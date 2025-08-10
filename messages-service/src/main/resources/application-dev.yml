@@ -1,0 +1,65 @@
+# 开发环境配置
+spring:
+  profiles:
+    active: dev
+
+# 消息服务配置 - 开发环境
+message:
+  service:
+    # 消息服务类型
+    type: rocketmq
+    
+    # 是否启用消息轨迹追踪
+    trace-enabled: true
+    
+    # 消息发送重试次数
+    send-retry-times: 2
+    
+    # 消息发送超时时间（毫秒）
+    send-timeout-ms: 5000
+    
+    # 最大批量发送消息数量
+    max-batch-size: 50
+    
+    # RocketMQ配置 - 开发环境
+    rocketmq:
+      enabled: true
+      name-server: localhost:9876
+      producer-group: jiangyang-dev-producer-group
+      consumer-group: jiangyang-dev-consumer-group
+      compression-strategy: LZ4
+      retry-sync-times: 2
+      retry-async-times: 2
+      queue-count-per-topic: 2
+      message-retention-hours: 24
+    
+    # Kafka配置 - 开发环境
+    kafka:
+      enabled: false
+      bootstrap-servers: localhost:9092
+      consumer-group-id: jiangyang-dev-consumer-group
+      acks: 1
+      batch-size: 8192
+      linger-ms: 10
+      buffer-memory: 16777216
+    
+    # RabbitMQ配置 - 开发环境
+    rabbitmq:
+      enabled: false
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      virtual-host: /
+      connection-timeout: 30000
+      heartbeat: 30
+
+# 日志配置 - 开发环境
+logging:
+  level:
+    com.jiangyang.messages: DEBUG
+    org.apache.rocketmq: INFO
+    org.apache.kafka: INFO
+    com.rabbitmq: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

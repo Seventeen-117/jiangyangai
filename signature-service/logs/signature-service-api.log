@@ -1,0 +1,4 @@
+2025-08-09 20:51:24.810 [http-nio-8689-exec-1] [traceId:] [userId:] INFO  com.signature.controller.ValidationController - 收到验证请求: path=/api/chatGatWay-internal, method=POST, apiKey=***
+2025-08-09 20:51:24.869 [http-nio-8689-exec-1] [traceId:] [userId:] INFO  com.signature.service.impl.ApiKeyServiceImpl - validateApiKeyStatus: API Key is valid for client: test-client-123
+2025-08-09 20:51:24.924 [http-nio-8689-exec-1] [traceId:] [userId:] INFO  com.signature.controller.ValidationController - 验证完成: path=/api/chatGatWay-internal, 结果: true, 错误信息: 无
+2025-08-09 20:51:24.924 [http-nio-8689-exec-1] [traceId:] [userId:] INFO  com.signature.controller.ValidationController - 验证成功，返回成功响应

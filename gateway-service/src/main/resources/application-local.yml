@@ -1,0 +1,229 @@
+server:
+  port: 8080
+  tomcat:
+    max-http-header-size: 8KB
+    max-http-form-post-size: 2MB
+    max-http-header-count: 200
+
+spring:
+  application:
+    name: gateway-service
+  main:
+    web-application-type: reactive
+  # 禁用数据源
+  datasource:
+    enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration
+      - com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+  
+  # 禁用Nacos配置
+  cloud:
+    nacos:
+      discovery:
+        enabled: true  # 启用 Nacos 服务发现
+      config:
+        enabled: true  # 启用 Nacos 配置中心
+    gateway:
+      discovery:
+        locator:
+          enabled: true  # 启用自动路由发现，Nacos服务可用
+          lower-case-service-id: true
+      routes:
+        # 签名验证服务路由 - 最高优先级
+        - id: signature-service
+          uri: http://localhost:8689
+          order: -1000
+          predicates:
+            - Path=/api/signature/**,/api/keys/**,/api/auth/**,/api/sso/**,/api/validation/**,/api/token/**,/api/app-secret/**
+          filters:
+            - AddRequestHeader=X-Gateway-Source, gateway-service
+            - AddResponseHeader=X-Gateway-Response, true
+            # 暂时禁用 Redis 限流器，等 Redis 服务可用后启用
+            # - name: RequestRateLimiter
+            #   args:
+            #     replenishRate: 200
+            #     burstCapacity: 400
+        
+        # bgai服务路由 - 需要验证的接口 (先经过验证过滤器)
+        - id: bgai-service-validated
+          uri: http://localhost:8688  # 直接路由到bgai-service
+          predicates:
+            - Path=/api/chatGatWay-internal/**,/api/admin/**
+          filters:
+            - ValidationFilter
+            - AddRequestHeader=X-Gateway-Source, gateway-service
+            - AddResponseHeader=X-Gateway-Response, true
+            # 暂时禁用 Redis 限流器，等 Redis 服务可用后启用
+            # - name: RequestRateLimiter
+            #   args:
+            #     replenishRate: 50
+            #     burstCapacity: 100
+        
+        # bgai服务路由 - 公开接口
+        - id: bgai-service-public
+          uri: http://localhost:8688
+          predicates:
+            - Path=/api/bgai/**,/api/public/**
+          filters:
+            - StripPrefix=1
+            - AddRequestHeader=X-Gateway-Source, gateway-service
+            - AddResponseHeader=X-Gateway-Response, true
+            # 暂时禁用 Redis 限流器，等 Redis 服务可用后启用
+            # - name: RequestRateLimiter
+            #   args:
+            #     replenishRate: 100
+            #     burstCapacity: 200
+        
+        # 默认路由 - 最低优先级，只处理其他所有请求
+        - id: default-route
+          uri: http://localhost:8688
+          predicates:
+            - Path=/**
+          filters:
+            - AddRequestHeader=X-Gateway-Source, gateway-service
+            - AddResponseHeader=X-Gateway-Response, true
+
+# 网关配置
+gateway:
+  # 启用动态路由功能
+  dynamic-routes:
+    enabled: true
+  # signature-service配置
+  signature-service:
+    base-url: http://localhost:8689
+    validation-endpoint: /api/validation/validate
+    timeout: 5000  # 5秒超时
+    retry-attempts: 3
+  # 跳过限流的路径
+  skip-rate-limit-paths:
+    - /actuator/**
+    - /health/**
+    - /metrics/**
+    - /public/**
+  # 跳过熔断的路径
+  skip-circuit-breaker-paths:
+    - /actuator/**
+    - /health/**
+    - /metrics/**
+    - /public/**
+  # 跳过防御检查的路径
+  skip-defensive-paths:
+    - /actuator/**
+    - /health/**
+    - /metrics/**
+    - /public/**
+    - /api/validation/**
+    - /api/metrics/**
+    - /api/token/**
+    - /api/keys/**
+  # 路径权限配置
+  path-permissions:
+    - path: /api/admin/**
+      methods: [GET, POST, PUT, DELETE]
+      roles: [ADMIN]
+    - path: /api/user/**
+      methods: [GET, POST]
+      roles: [USER, ADMIN]
+  # 限流配置
+  rate-limit-configs:
+    - path: /api/chat/**
+      max-requests: 100
+      time-window: 60
+    - path: /api/chatGatWay-internal/**
+      max-requests: 50
+      time-window: 60
+  # 熔断器配置
+  circuit-breaker-configs:
+    - path: /api/chat/**
+      failure-rate-threshold: 50.0
+      ring-buffer-size-in-closed-state: 10
+      ring-buffer-size-in-half-open-state: 5
+      wait-duration-in-open-state: 30
+      fallback-message: "Service temporarily unavailable"
+  # 防御性策略配置
+  defensive-config:
+    max-requests-per-minute: 10000
+    enable-anti-crawler: false
+    enable-anti-replay: false
+    enable-malicious-content-detection: false
+    timestamp-validity-seconds: 300
+    blacklisted-ips:
+      - "192.168.1.100"
+      - "10.0.0.50"
+    whitelisted-ips:
+      - "192.168.1.1"
+      - "10.0.0.1"
+  # 灰度发布配置
+  canary:
+    enabled: false
+    weight: 10
+    header: "X-Canary"
+    value: "true"
+  canary-paths:
+    - /api/chat/**
+  canary-services:
+    - name: bgai-service
+      canary-uri: http://localhost:8688-canary
+      main-uri: http://localhost:8688
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: false
+    elasticsearch:
+      enabled: false
+
+# 日志配置
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.jiangyang.gateway: DEBUG
+    com.alibaba.nacos: OFF  # 禁用Nacos日志
+    io.seata: OFF  # 禁用Seata日志
+    com.netflix.eureka: OFF  # 禁用Eureka日志
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 禁用Seata分布式事务
+seata:
+  enabled: false
+  saga:
+    enabled: false
+    state-machine:
+      auto-register: false
+      enabled: false
+saga:
+  enabled: false
+
+# JWT配置
+jwt:
+  secret: jiangyang-gateway-secret-key-2024-for-development-only-change-in-production
+  issuer: jiangyang-gateway
+  expiration: 3600000  # 1小时
+
+# 禁用Eureka客户端
+eureka:
+  client:
+    enabled: false
+  instance:
+    enabled: false

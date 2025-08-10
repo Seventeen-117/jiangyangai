@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.jiangyang</groupId>
+		<artifactId>jiangyangai</artifactId>
+		<version>1.0.0-Final</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<artifactId>bgai-service</artifactId>
+	<version>1.0.0-Final</version>
+	<name>bgai-service</name>
+	<description>bgpay for your life </description>
+
+	<properties>
+		<java.version>17</java.version>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<!-- bgai特有的依赖，继承自父pom的依赖不需要重复声明 -->
+		
+		<!-- 公共API模块 -->
+		<dependency>
+			<groupId>com.jiangyang</groupId>
+			<artifactId>dubbo-api</artifactId>
+		</dependency>
+		
+		<!-- Dubbo Spring Boot Starter -->
+		<dependency>
+			<groupId>org.apache.dubbo</groupId>
+			<artifactId>dubbo-spring-boot-starter</artifactId>
+		</dependency>
+		
+		<!-- Dubbo Nacos Registry -->
+		<dependency>
+			<groupId>org.apache.dubbo</groupId>
+			<artifactId>dubbo-registry-nacos</artifactId>
+		</dependency>
+		
+		<!-- Hessian Serialization -->
+		<dependency>
+			<groupId>com.caucho</groupId>
+			<artifactId>hessian</artifactId>
+		</dependency>
+		
+		<!-- 如果需要特殊的依赖，可以在这里添加 -->
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+					<skip>${maven.test.skip}</skip>
+					<executable>true</executable>
+					<mainClass>com.bgpay.bgai.BgaiApplication</mainClass>
+					<!-- 添加 Java 17 兼容性 JVM 参数，解决 Hessian 序列化问题 -->
+					<jvmArguments>
+						--add-opens java.base/java.math=ALL-UNNAMED
+						--add-opens java.base/java.lang=ALL-UNNAMED
+						--add-opens java.base/java.util=ALL-UNNAMED
+						--add-opens java.base/java.io=ALL-UNNAMED
+						--add-opens java.base/java.time=ALL-UNNAMED
+					</jvmArguments>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>clean-dependencies</id>
+						<phase>clean</phase>
+						<goals>
+							<goal>clean</goal>
+						</goals>
+						<configuration>
+							<excludeDefaultDirectories>true</excludeDefaultDirectories>
+							<filesets>
+								<fileset>
+									<directory>${project.build.directory}</directory>
+									<includes>
+										<include>**/*</include>
+									</includes>
+								</fileset>
+							</filesets>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
+				<configuration>
+					<source>17</source>
+					<target>17</target>
+					<compilerArgs>
+						<arg>-parameters</arg>
+					</compilerArgs>
+				</configuration>
+			</plugin>
+			<!-- Maven Enforcer Plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>3.4.1</version>
+				<executions>
+					<execution>
+						<id>enforce-banned-dependencies</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<bannedDependencies>
+									<excludes>
+										<exclude>org.slf4j:slf4j-simple</exclude>
+										<exclude>org.slf4j:slf4j-log4j12</exclude>
+										<exclude>org.slf4j:slf4j-jdk14</exclude>
+										<exclude>org.slf4j:slf4j-nop</exclude>
+										<exclude>org.slf4j:slf4j-jcl</exclude>
+										<exclude>commons-logging:commons-logging</exclude>
+									</excludes>
+								</bannedDependencies>
+							</rules>
+							<fail>true</fail>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- 配置Surefire插件，修复JAVA_HOME路径问题 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.1.2</version>
+				<configuration>
+					<!-- 使用系统默认的Java可执行文件 -->
+					<useSystemClassLoader>true</useSystemClassLoader>
+					<jvm>${java.home}/bin/java</jvm>
+					<!-- 跳过测试 -->
+					<skip>${skip.tests}</skip>
+					<skipTests>${skip.tests}</skipTests>
+					<!-- 配置TestNG -->
+					<suiteXmlFiles>
+						<suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
+					</suiteXmlFiles>
+					<!-- 配置Allure报告 -->
+					<argLine>
+						-javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
+					</argLine>
+					<systemPropertyVariables>
+						<allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+					</systemPropertyVariables>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.aspectj</groupId>
+						<artifactId>aspectjweaver</artifactId>
+						<version>${aspectj.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.testng</groupId>
+						<artifactId>testng</artifactId>
+						<version>${testng.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.maven.surefire</groupId>
+						<artifactId>surefire-testng</artifactId>
+						<version>3.1.2</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			
+			<!-- Allure Maven 插件 -->
+			<plugin>
+				<groupId>io.qameta.allure</groupId>
+				<artifactId>allure-maven</artifactId>
+				<version>2.12.0</version>
+				<configuration>
+					<reportVersion>${allure.version}</reportVersion>
+					<resultsDirectory>${project.build.directory}/allure-results</resultsDirectory>
+					<reportDirectory>${project.build.directory}/allure-report</reportDirectory>
+				</configuration>
+			</plugin>
+		</plugins>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>src/main/java</directory>
+				<includes>
+					<include>**/*.xml</include>
+					<include>**/*.yml</include>
+				</includes>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
+	</build>
+	
+	<!-- 添加配置文件以处理不同的Java版本 -->
+	<profiles>
+		<!-- 默认配置文件 -->
+		<profile>
+			<id>default</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+		</profile>
+		<!-- 跳过测试配置 -->
+		<profile>
+			<id>skip-tests</id>
+			<properties>
+				<maven.test.skip>true</maven.test.skip>
+				<skipTests>true</skipTests>
+				<skip.tests>true</skip.tests>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>3.1.2</version>
+						<configuration>
+							<skip>true</skip>
+							<skipTests>true</skipTests>
+							<testFailureIgnore>true</testFailureIgnore>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		
+		<!-- 启用测试配置 -->
+		<profile>
+			<id>enable-tests</id>
+			<properties>
+				<maven.test.skip>false</maven.test.skip>
+				<skipTests>false</skipTests>
+				<skip.tests>false</skip.tests>
+			</properties>
+		</profile>
+		
+		<!-- 不使用AspectJ的简单测试配置 -->
+		<profile>
+			<id>no-aspectj</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<version>3.1.2</version>
+						<configuration>
+							<argLine>
+								-Duser.language=en
+								-Djdk.attach.allowAttachSelf=true
+							</argLine>
+							<skipTests>false</skipTests>
+							<testFailureIgnore>true</testFailureIgnore>
+							<useModulePath>false</useModulePath>
+							<testNGArtifactName>org.testng:testng</testNGArtifactName>
+							<suiteXmlFiles>
+								<suiteXmlFile>src/test/resources/no-aspectj-testng.xml</suiteXmlFile>
+							</suiteXmlFiles>
+							<includes>
+								<include>**/SimpleIdempotenceTest.java</include>
+							</includes>
+							<properties>
+								<property>
+									<name>listener</name>
+									<value>io.qameta.allure.testng.AllureTestNg</value>
+								</property>
+							</properties>
+							<systemPropertyVariables>
+								<allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+							</systemPropertyVariables>
+						</configuration>
+						<dependencies>
+							<dependency>
+								<groupId>org.testng</groupId>
+								<artifactId>testng</artifactId>
+								<version>${testng.version}</version>
+							</dependency>
+							<dependency>
+								<groupId>org.apache.maven.surefire</groupId>
+								<artifactId>surefire-testng</artifactId>
+								<version>3.1.2</version>
+							</dependency>
+						</dependencies>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>

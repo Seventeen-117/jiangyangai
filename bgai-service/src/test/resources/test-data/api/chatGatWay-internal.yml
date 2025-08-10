@@ -1,0 +1,114 @@
+# 反应式聊天控制器测试数据
+baseUrl: "/api"
+testCases:
+  - id: "chat-completion-success"
+    description: "聊天完成请求成功"
+    endpoint: "/chatGatWay-internal"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        question: "Hello, how are you?"
+        modelName: "gpt-3.5-turbo"
+        multiTurn: true
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "mocked response"
+
+  - id: "chat-completion-with-history-success"
+    description: "带历史记录的聊天完成请求成功"
+    endpoint: "/chatGatWay-internal"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        question: "Hello, how are you?\nI'm doing well, thank you for asking. How can I help you today?\nTell me about yourself."
+        modelName: "gpt-3.5-turbo"
+        multiTurn: true
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "mocked response"
+
+  - id: "chat-completion-invalid-model"
+    description: "使用无效模型名称"
+    endpoint: "/chatGatWay-internal"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        question: "Hello, how are you?"
+        modelName: "invalid-model"
+        multiTurn: true
+    expectedResponse:
+      statusCode: 400
+      bodyContains:
+        - "Invalid model"
+
+  - id: "chat-completion-missing-messages"
+    description: "缺少消息内容"
+    endpoint: "/chatGatWay-internal"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        modelName: "gpt-3.5-turbo"
+        multiTurn: true
+    expectedResponse:
+      statusCode: 400
+      bodyContains:
+        - "Messages are required"
+
+  - id: "chat-completion-unauthorized"
+    description: "未授权访问"
+    endpoint: "/chatGatWay-internal"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        question: "Hello, how are you?"
+        modelName: "gpt-3.5-turbo"
+        multiTurn: true
+    expectedResponse:
+      statusCode: 401
+      bodyContains:
+        - "Unauthorized"
+
+  - id: "chat-stream-success"
+    description: "流式聊天请求成功"
+    endpoint: "/chatGatWay-internal"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        question: "Hello, how are you?"
+        modelName: "gpt-3.5-turbo"
+        multiTurn: true
+        stream: true
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "mocked response"
+
+  - id: "chat-with-file-upload-success"
+    description: "带文件上传的聊天请求成功"
+    endpoint: "/chatGatWay-internal"
+    request:
+      method: "POST"
+      multipart:
+        file: "test-document.txt"
+        contentType: "text/plain"
+        fileContent: "This is a test document content for analysis."
+        question: "Summarize this document."
+        modelName: "gpt-3.5-turbo"
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "mocked response" 

@@ -1,0 +1,40 @@
+# 生产环境配置
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+
+# 网关配置
+gateway:
+  # signature-service配置
+  signature-service:
+    base-url: http://signature-service:8689  # 使用服务名
+    validation-endpoint: /api/validation/validate
+    timeout: 3000  # 3秒超时
+    retry-attempts: 2
+  # 跳过限流的路径
+  skip-rate-limit-paths:
+    - /actuator/**
+    - /health/**
+    - /metrics/**
+    - /public/**
+  # 跳过熔断的路径
+  skip-circuit-breaker-paths:
+    - /actuator/**
+    - /health/**
+    - /metrics/**
+    - /public/**
+  # 跳过防御检查的路径
+  skip-defensive-paths:
+    - /actuator/**
+    - /health/**
+    - /metrics/**
+    - /public/**
+
+# 日志配置
+logging:
+  level:
+    com.jiangyang.gateway: INFO
+    org.springframework.cloud.gateway: INFO

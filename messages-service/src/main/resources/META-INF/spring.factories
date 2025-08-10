@@ -1,0 +1,5 @@
+# Spring Boot自动配置文件
+# 确保MessageServiceAutoConfiguration被自动发现和加载
+
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.jiangyang.messages.MessageServiceAutoConfiguration

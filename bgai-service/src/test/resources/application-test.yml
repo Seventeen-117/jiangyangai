@@ -1,0 +1,196 @@
+spring:
+  application:
+    name: bgai-test
+  main:
+    allow-bean-definition-overriding: true
+    web-application-type: servlet
+  cloud:
+    nacos:
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+    loadbalancer:
+      enabled: false
+    discovery:
+      enabled: false
+    config:
+      enabled: false
+    consul:
+      enabled: false
+    gateway:
+      enabled: false
+      discovery:
+        locator:
+          enabled: false
+      routes: []
+      httpserver:
+        wiretap: false
+      httpclient:
+        wiretap: false
+      filter:
+        secure-headers:
+          enabled: false
+        circuit-breaker:
+          enabled: false
+    circuitbreaker:
+      enabled: false
+  # 添加Redis配置
+  data:
+    redis:
+      host: 8.133.246.113
+      port: 6379
+      password: 5z25u2sk
+      database: 0
+      timeout: 2000
+      connect-timeout: 2000
+    elasticsearch:
+      repositories:
+        enabled: false
+      enabled: false
+  elasticsearch:
+    enabled: false
+  webflux:
+    base-path: /api
+  # 统一所有自动配置排除项
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration
+      - org.apache.rocketmq.spring.autoconfigure.RocketMQTransactionConfiguration
+      - io.seata.spring.boot.autoconfigure.SeataAutoConfiguration
+      - io.seata.spring.boot.autoconfigure.SeataSagaAutoConfiguration
+      - org.springframework.cloud.gateway.config.GatewayAutoConfiguration
+      - org.springframework.cloud.gateway.config.GatewayClassPathWarningAutoConfiguration
+      - org.springframework.cloud.gateway.config.GatewayMetricsAutoConfiguration
+      - org.springframework.cloud.gateway.config.GatewayReactiveLoadBalancerClientAutoConfiguration
+  validation:
+    is-method-validation-bean-post-processor-enabled: false
+  # 测试环境数据源配置
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+          username: sa
+          password: 
+          driver-class-name: org.h2.Driver
+        slave:
+          url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+          username: sa
+          password: 
+          driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# MyBatis Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.bgpay.bgai.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 禁用WebClient冲突解决
+webclient:
+  resolver:
+    enabled: true
+    primary-bean-name: webClient
+
+# 日志配置
+logging:
+  level:
+    net.logstash.logback: OFF
+    io.seata: OFF
+    org.elasticsearch: OFF
+    org.springframework.data.elasticsearch: OFF
+    com.alibaba.nacos: OFF
+    org.apache.http: OFF
+    io.netty: OFF
+    org.springframework.cloud.gateway: OFF
+    reactor.netty: OFF
+  config: classpath:logback-test.xml
+
+# 禁用Seata
+seata:
+  enabled: false
+  saga:
+    enabled: false
+    state-machine:
+      auto-register: false
+      enabled: false
+saga:
+  enabled: false
+
+# 禁用RocketMQ
+rocketmq:
+  messageConsumer:
+    enabled: false
+  producer:
+    enable: false
+    group: test-group
+  name-server: 8.133.246.113:9876
+  enable: false
+  topic:
+    chat-log: test-chat-log-topic
+
+# 禁用缓存预热器
+cache:
+  warmer:
+    enabled: false
+    
+# Feign配置
+bgai:
+  feign:
+    enabled: false  # 禁用实际的Feign客户端创建
+    mock-enabled: true  # 启用测试用的Mock
+    demo:
+      enabled: true  # 启用FeignDemoController
+    user-service:
+      url: http://localhost:8688  # 测试环境用户服务地址
+    local-user-service:
+      url: http://localhost:8688  # 测试环境本地用户服务地址
+
+# Redisson配置
+bgpay:
+  bgai:
+    redis:
+      single:
+        address: redis://8.133.246.113:6379
+        password: 5z25u2sk
+        connectionPoolSize: 16
+        connectionMinimumIdleSize: 4
+        idleConnectionTimeout: 10000
+        connectTimeout: 10000
+        timeout: 3000 
+
+# 网关配置禁用
+gateway:
+  mock:
+    legacy:
+      enabled: false  # 禁用旧的Gateway Mock配置
+  enabled: false
+  route:
+    config:
+      enabled: false
+spring.main.allow-bean-definition-overriding: true
+spring.main.allow-circular-references: true 

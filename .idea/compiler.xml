@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="messages-service" />
+        <module name="signature-service (1)" />
+        <module name="gateway-service" />
+        <module name="bgai-service" />
+        <module name="dubbo-api" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="bgai" target="17" />
+      <module name="jiangyangai" target="17" />
+      <module name="signature-service" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="bgai" options="-parameters -parameters" />
+      <module name="bgai-service" options="-parameters -parameters" />
+      <module name="dubbo-api" options="-parameters" />
+      <module name="gateway-service" options="-parameters" />
+      <module name="jiangyangai" options="-parameters -parameters" />
+      <module name="messages-service" options="-parameters" />
+      <module name="signature-service" options="-parameters" />
+      <module name="signature-service (1)" options="-parameters --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED" />
+    </option>
+  </component>
+</project>

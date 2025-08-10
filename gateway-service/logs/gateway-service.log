@@ -1,0 +1,28 @@
+2025-08-09 20:50:24.954 [main] [traceId:] [clientIp:] WARN  com.alibaba.nacos.client.logging.NacosLogging - Load Logback Configuration of Nacos fail, message: Could not initialize Logback Nacos logging from classpath:nacos-logback.xml
+2025-08-09 20:50:25.023 [main] [traceId:] [clientIp:] WARN  com.alibaba.nacos.client.logging.NacosLogging - Load Logback Configuration of Nacos fail, message: Could not initialize Logback Nacos logging from classpath:nacos-logback.xml
+2025-08-09 20:50:25.269 [main] [traceId:] [clientIp:] WARN  com.alibaba.nacos.client.logging.NacosLogging - Load Logback Configuration of Nacos fail, message: Could not initialize Logback Nacos logging from classpath:nacos-logback.xml
+2025-08-09 20:50:26.592 [main] [traceId:] [clientIp:] WARN  c.a.cloud.nacos.client.NacosPropertySourceBuilder - Ignore the empty nacos configuration and get it based on dataId[common-dev.yaml] & group[DEFAULT_GROUP]
+2025-08-09 20:50:26.601 [main] [traceId:] [clientIp:] WARN  c.a.cloud.nacos.client.NacosPropertySourceBuilder - Ignore the empty nacos configuration and get it based on dataId[gateway-service] & group[DEFAULT_GROUP]
+2025-08-09 20:50:26.619 [main] [traceId:] [clientIp:] WARN  c.a.cloud.nacos.client.NacosPropertySourceBuilder - Ignore the empty nacos configuration and get it based on dataId[gateway-service.yaml] & group[DEFAULT_GROUP]
+2025-08-09 20:50:26.646 [main] [traceId:] [clientIp:] INFO  o.s.c.b.c.PropertySourceBootstrapConfiguration - Located property source: [BootstrapPropertySource {name='bootstrapProperties-gateway-service-dev.yaml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-gateway-service.yaml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-gateway-service,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-common-dev.yaml,DEFAULT_GROUP'}]
+2025-08-09 20:50:26.687 [main] [traceId:] [clientIp:] INFO  com.jiangyang.gateway.GatewayServiceApplication - The following 1 profile is active: "dev"
+2025-08-09 20:50:27.544 [main] [traceId:] [clientIp:] DEBUG i.g.r.spring6.utils.RxJava2OnClasspathCondition - RxJava2 related Aspect extensions are not activated because Resilience4j RxJava2 module is not on the classpath.
+2025-08-09 20:50:27.555 [main] [traceId:] [clientIp:] DEBUG i.g.r.spring6.utils.RxJava2OnClasspathCondition - RxJava2 related Aspect extensions are not activated because Resilience4j RxJava2 module is not on the classpath.
+2025-08-09 20:50:27.568 [main] [traceId:] [clientIp:] DEBUG i.g.r.spring6.utils.RxJava2OnClasspathCondition - RxJava2 related Aspect extensions are not activated because Resilience4j RxJava2 module is not on the classpath.
+2025-08-09 20:50:27.580 [main] [traceId:] [clientIp:] DEBUG i.g.r.spring6.utils.RxJava2OnClasspathCondition - RxJava2 related Aspect extensions are not activated because Resilience4j RxJava2 module is not on the classpath.
+2025-08-09 20:50:27.591 [main] [traceId:] [clientIp:] DEBUG i.g.r.spring6.utils.RxJava2OnClasspathCondition - RxJava2 related Aspect extensions are not activated because Resilience4j RxJava2 module is not on the classpath.
+2025-08-09 20:50:27.602 [main] [traceId:] [clientIp:] DEBUG i.g.r.spring6.utils.RxJava2OnClasspathCondition - RxJava2 related Aspect extensions are not activated because Resilience4j RxJava2 module is not on the classpath.
+2025-08-09 20:50:28.811 [main] [traceId:] [clientIp:] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-08-09 20:50:28.825 [main] [traceId:] [clientIp:] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2025-08-09 20:50:28.825 [main] [traceId:] [clientIp:] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.20]
+2025-08-09 20:50:28.999 [main] [traceId:] [clientIp:] INFO  c.j.gateway.service.impl.DynamicRouteServiceImpl - 初始化网关动态路由服务
+2025-08-09 20:50:29.410 [main] [traceId:] [clientIp:] WARN  c.j.gateway.service.impl.DynamicRouteServiceImpl - Nacos中没有找到路由配置，使用默认配置
+2025-08-09 20:50:29.418 [main] [traceId:] [clientIp:] INFO  c.j.gateway.service.impl.DynamicRouteServiceImpl - 注册Nacos配置监听器成功
+2025-08-09 20:50:31.776 [main] [traceId:] [clientIp:] DEBUG o.s.w.r.r.m.a.RequestMappingHandlerMapping - 29 mappings in 'requestMappingHandlerMapping'
+2025-08-09 20:50:31.809 [main] [traceId:] [clientIp:] DEBUG o.s.web.reactive.handler.SimpleUrlHandlerMapping - Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
+2025-08-09 20:50:32.356 [main] [traceId:] [clientIp:] INFO  o.s.b.actuate.endpoint.web.EndpointLinksResolver - Exposing 6 endpoint(s) beneath base path '/actuator'
+2025-08-09 20:50:32.671 [main] [traceId:] [clientIp:] DEBUG o.s.w.r.r.m.annotation.ControllerMethodResolver - ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 @ExceptionHandler
+2025-08-09 20:50:33.527 [main] [traceId:] [clientIp:] DEBUG o.s.w.r.r.view.freemarker.FreeMarkerConfigurer - File system access not preferred: using SpringTemplateLoader
+2025-08-09 20:50:33.932 [main] [traceId:] [clientIp:] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path ''
+2025-08-09 20:50:34.282 [main] [traceId:] [clientIp:] INFO  com.jiangyang.gateway.GatewayServiceApplication - Started GatewayServiceApplication in 10.162 seconds (process running for 11.9)
+2025-08-09 20:52:50.285 [SpringApplicationShutdownHook] [traceId:] [clientIp:] INFO  c.j.gateway.service.impl.DynamicRouteServiceImpl - 网关动态路由服务关闭，执行清理操作
