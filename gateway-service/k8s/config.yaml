@@ -1,0 +1,184 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-service-config
+  namespace: jiangyangai
+  labels:
+    app: gateway-service
+data:
+  # 应用配置文件
+  application-k8s.yml: |
+    server:
+      port: 8080
+      address: 0.0.0.0
+    
+    spring:
+      application:
+        name: gateway-service
+      cloud:
+        gateway:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
+            - id: bgai-service
+              uri: lb://bgai-service
+              predicates:
+                - Path=/api/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: bgai-circuit-breaker
+                    fallbackUri: forward:/fallback/bgai
+            - id: signature-service
+              uri: lb://signature-service
+              predicates:
+                - Path=/signature/**
+              filters:
+                - StripPrefix=1
+            - id: actuator
+              uri: http://localhost:8080
+              predicates:
+                - Path=/actuator/**
+      
+      # Nacos配置
+      cloud:
+        nacos:
+          discovery:
+            server-addr: nacos-service:8848
+            namespace: jiangyangai
+            group: DEFAULT_GROUP
+          config:
+            server-addr: nacos-service:8848
+            namespace: jiangyangai
+            group: DEFAULT_GROUP
+            file-extension: yml
+    
+    # 监控配置
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus,gateway
+          base-path: /actuator
+      endpoint:
+        health:
+          show-details: always
+          probes:
+            enabled: true
+      health:
+        livenessstate:
+          enabled: true
+        readinessstate:
+          enabled: true
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+        tags:
+          application: gateway-service
+          environment: k8s
+    
+    # 日志配置
+    logging:
+      level:
+        com.jiangyang.gateway: DEBUG
+        org.springframework.cloud.gateway: DEBUG
+      pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+        file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+      file:
+        name: /app/logs/gateway-service.log
+        max-size: 100MB
+        max-history: 30
+    
+    # 网关配置
+    gateway:
+      # 跳过认证的路径
+      skip-auth-paths:
+        - /actuator/health
+        - /actuator/info
+        - /actuator/metrics
+        - /actuator/prometheus
+        - /public/**
+        - /swagger-ui/**
+        - /v3/api-docs/**
+      
+      # 跳过token验证的路径
+      skip-token-validation-paths:
+        - /actuator/health
+        - /actuator/info
+        - /actuator/metrics
+        - /actuator/prometheus
+        - /public/**
+        - /swagger-ui/**
+        - /v3/api-docs/**
+        - /api/public/**
+        - /api/auth/**
+      
+      # 路径权限配置
+      path-permissions:
+        - path: /api/admin/**
+          methods: [GET, POST, PUT, DELETE]
+          roles: [ADMIN]
+        - path: /api/user/**
+          methods: [GET, POST, PUT, DELETE]
+          roles: [USER, ADMIN]
+        - path: /api/public/**
+          methods: [GET]
+          roles: [*]
+      
+      # 限流配置
+      rate-limit-configs:
+        - path: /api/**
+          max-requests: 1000
+          time-window: 60
+        - path: /actuator/**
+          max-requests: 100
+          time-window: 60
+      
+      # 熔断器配置
+      circuit-breaker-configs:
+        - path: /api/**
+          failure-rate-threshold: 50
+          wait-duration-in-open-state: 60
+          ring-buffer-size-in-half-open-state: 10
+          ring-buffer-size-in-closed-state: 100
+          fallback-message: "Service temporarily unavailable"
+      
+      # 防御性策略配置
+      defensive-config:
+        max-requests-per-minute: 1000
+        enable-anti-crawler: true
+        enable-anti-replay: true
+        enable-malicious-content-detection: true
+        timestamp-validity-seconds: 300
+        blacklisted-ips:
+          - "192.168.1.100"
+          - "10.0.0.50"
+        whitelisted-ips:
+          - "192.168.1.1"
+          - "10.0.0.1"
+  
+  # 灰度发布配置
+  application-canary.yml: |
+    gateway:
+      # 灰度发布路由配置
+      canary:
+        enabled: true
+        weight: 10
+        header: X-Canary
+        value: "true"
+      
+      # 灰度发布路径配置
+      canary-paths:
+        - /api/v2/**
+        - /api/beta/**
+      
+      # 灰度发布服务配置
+      canary-services:
+        - name: bgai-service
+          canary-version: v2
+          weight: 20 

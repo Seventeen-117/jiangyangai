@@ -1,0 +1,111 @@
+# 明确设置服务器端口
+server:
+  port: 8688
+
+# Additional server configuration
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 2048
+  http2:
+    enabled: true
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+# 禁用Actuator Metrics，避免应用关闭时的bean创建错误
+management:
+  metrics:
+    enable:
+      all: false
+  simple:
+    metrics:
+      export:
+        enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info,dubbo
+
+spring:
+  application:
+    name: bgai-service
+
+# Dubbo 启用开关（当需要完全禁用Dubbo时，设置为false）
+dubbo:
+  enabled: true  # 可以设置为false来完全禁用Dubbo
+  
+  # Dubbo 配置
+  application:
+    name: bgai-service
+    version: 1.0.0
+    owner: jiangyang
+    organization: jiangyang-tech
+    qos-enable: false  # 禁用QOS服务，避免端口冲突
+    qos-port: 22222
+    qos-accept-foreign-ip: false
+
+  # 注册中心配置
+  # 在Dubbo 3.x中，namespace通过URL参数传递
+  registry:
+    address: nacos://8.133.246.113:8848?namespace=dubbo
+    group: DEFAULT_GROUP
+    timeout: 10000
+    check: false  # 启动时不检查注册中心
+    register: true
+    subscribe: true
+
+  # 协议配置（bgai-service 作为消费者，使用不同端口避免冲突）
+  protocol:
+    name: dubbo
+    port: 20880  # 使用 20880 端口，避免与 signature-service (20881) 冲突
+    host: localhost
+    threads: 200
+    accepts: 0
+    dispatcher: message
+    # 在Dubbo 3.x中，heartbeat-interval配置已被移除
+    # 心跳间隔可以通过其他配置方式设置
+    
+  # 消费者配置
+  consumer:
+    timeout: 5000
+    retries: 2
+    loadbalance: roundrobin
+    cluster: failover
+    check: false  # 启动时不检查提供者
+    # 在Dubbo 3.x中，serialization通过protocol配置或全局配置设置
+    connections: 1
+    lazy: true
+    async: false
+    actives: 0
+    filter: -exception
+
+  # 提供者配置（如果需要的话）
+  provider:
+    timeout: 10000
+    retries: 0
+    loadbalance: roundrobin
+    cluster: failover
+    filter: -exception
+
+  # 配置中心
+  config-center:
+    address: nacos://8.133.246.113:8848?namespace=dubbo-config
+    group: DEFAULT_GROUP
+    timeout: 10000
+
+  # 元数据中心
+  metadata-report:
+    address: nacos://8.133.246.113:8848?namespace=dubbo-metadata
+    group: DEFAULT_GROUP
+    timeout: 10000
+
+  # 监控配置
+  monitor:
+    protocol: registry
+
+# 日志配置
+logging:
+  level:
+    org.apache.dubbo: INFO
+    com.jiangyang.dubbo: DEBUG
+

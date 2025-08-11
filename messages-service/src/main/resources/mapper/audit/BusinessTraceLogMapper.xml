@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jiangyang.messages.audit.mapper.BusinessTraceLogMapper">
+
+    <!-- 根据全局事务ID查询业务轨迹日志 -->
+    <select id="selectByGlobalTransactionId" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE global_transaction_id = #{globalTransactionId} 
+        AND deleted = 0 
+        ORDER BY start_time ASC
+    </select>
+
+    <!-- 根据业务事务ID查询业务轨迹日志 -->
+    <select id="selectByBusinessTransactionId" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE business_transaction_id = #{businessTransactionId} 
+        AND deleted = 0 
+        ORDER BY start_time ASC
+    </select>
+
+    <!-- 根据调用链ID查询业务轨迹日志 -->
+    <select id="selectByTraceId" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE trace_id = #{traceId} 
+        AND deleted = 0 
+        ORDER BY start_time ASC
+    </select>
+
+    <!-- 根据Span ID查询业务轨迹日志 -->
+    <select id="selectBySpanId" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE span_id = #{spanId} 
+        AND deleted = 0
+    </select>
+
+    <!-- 根据父Span ID查询业务轨迹日志 -->
+    <select id="selectByParentSpanId" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE parent_span_id = #{parentSpanId} 
+        AND deleted = 0 
+        ORDER BY start_time ASC
+    </select>
+
+    <!-- 根据服务名称查询业务轨迹日志 -->
+    <select id="selectByServiceName" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE service_name = #{serviceName} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据操作类型查询业务轨迹日志 -->
+    <select id="selectByOperationType" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE operation_type = #{operationType} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据调用方向查询业务轨迹日志 -->
+    <select id="selectByCallDirection" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE call_direction = #{callDirection} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据时间范围查询业务轨迹日志 -->
+    <select id="selectByTimeRange" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据调用状态查询业务轨迹日志 -->
+    <select id="selectByCallStatus" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE call_status = #{callStatus} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询失败的调用 -->
+    <select id="selectFailedCalls" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND (call_status = 'FAILED' OR error_message IS NOT NULL)
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询超时的调用 -->
+    <select id="selectTimeoutCalls" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT * FROM business_trace_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND call_status = 'TIMEOUT' 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 统计指定时间范围内的调用数量 -->
+    <select id="countCallsByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM business_trace_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0
+    </select>
+
+    <!-- 统计指定时间范围内的失败调用数量 -->
+    <select id="countFailedCallsByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM business_trace_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND (call_status = 'FAILED' OR error_message IS NOT NULL)
+        AND deleted = 0
+    </select>
+
+    <!-- 统计指定时间范围内的超时调用数量 -->
+    <select id="countTimeoutCallsByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM business_trace_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND call_status = 'TIMEOUT' 
+        AND deleted = 0
+    </select>
+
+    <!-- 查询调用性能统计 -->
+    <select id="selectCallPerformanceStats" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        SELECT 
+            service_name,
+            operation_type,
+            call_direction,
+            target_service,
+            COUNT(*) as call_count,
+            AVG(call_duration) as avg_duration,
+            MAX(call_duration) as max_duration,
+            MIN(call_duration) as min_duration,
+            SUM(CASE WHEN error_message IS NOT NULL THEN 1 ELSE 0 END) as error_count
+        FROM business_trace_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0 
+        GROUP BY service_name, operation_type, call_direction, target_service
+        ORDER BY call_count DESC
+    </select>
+
+    <!-- 查询完整的调用链 -->
+    <select id="selectCompleteCallChain" resultType="com.jiangyang.messages.audit.entity.BusinessTraceLog">
+        WITH RECURSIVE trace_tree AS (
+            -- 根节点
+            SELECT * FROM business_trace_log 
+            WHERE trace_id = #{traceId} 
+            AND parent_span_id IS NULL 
+            AND deleted = 0
+            
+            UNION ALL
+            
+            -- 子节点
+            SELECT b.* FROM business_trace_log b
+            INNER JOIN trace_tree t ON b.parent_span_id = t.span_id
+            WHERE b.deleted = 0
+        )
+        SELECT * FROM trace_tree 
+        ORDER BY start_time ASC
+    </select>
+
+</mapper>

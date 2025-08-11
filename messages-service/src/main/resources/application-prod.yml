@@ -1,0 +1,80 @@
+# 生产环境配置
+spring:
+  profiles:
+    active: prod
+
+# 消息服务配置 - 生产环境
+message:
+  service:
+    # 消息服务类型
+    type: rocketmq
+    
+    # 是否启用消息轨迹追踪
+    trace-enabled: true
+    
+    # 消息发送重试次数
+    send-retry-times: 5
+    
+    # 消息发送超时时间（毫秒）
+    send-timeout-ms: 10000
+    
+    # 最大批量发送消息数量
+    max-batch-size: 200
+    
+    # RocketMQ配置 - 生产环境
+    rocketmq:
+      enabled: true
+      name-server: rocketmq-namesrv:9876
+      producer-group: jiangyang-prod-producer-group
+      consumer-group: jiangyang-prod-consumer-group
+      compression-strategy: ZSTD
+      retry-sync-times: 5
+      retry-async-times: 5
+      queue-count-per-topic: 8
+      message-retention-hours: 168
+    
+    # Kafka配置 - 生产环境
+    kafka:
+      enabled: false
+      bootstrap-servers: kafka-broker:9092
+      consumer-group-id: jiangyang-prod-consumer-group
+      acks: all
+      batch-size: 32768
+      linger-ms: 5
+      buffer-memory: 67108864
+    
+    # RabbitMQ配置 - 生产环境
+    rabbitmq:
+      enabled: false
+      host: rabbitmq-server
+      port: 5672
+      username: ${RABBITMQ_USERNAME:admin}
+      password: ${RABBITMQ_PASSWORD:admin123}
+      virtual-host: /
+      connection-timeout: 120000
+      heartbeat: 60
+
+# 日志配置 - 生产环境
+logging:
+  level:
+    com.jiangyang.messages: INFO
+    org.apache.rocketmq: WARN
+    org.apache.kafka: WARN
+    com.rabbitmq: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/messages-service.log
+    max-size: 500MB
+    max-history: 90
+
+# 性能调优配置
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 20
+    max-connections: 8192
+    accept-count: 100

@@ -1,0 +1,152 @@
+# Nacos配置中心配置文件
+# 此文件用于导入到Nacos配置中心
+# Data ID: messages-service.yml
+# Group: JIANGYANG
+# 格式: YAML
+
+# 消息服务配置
+message:
+  service:
+    # 消息服务类型：rocketmq, kafka, rabbitmq
+    type: rocketmq
+    
+    # 是否启用消息轨迹追踪
+    trace-enabled: true
+    
+    # 消息发送重试次数
+    send-retry-times: 3
+    
+    # 消息发送超时时间（毫秒）
+    send-timeout-ms: 5000
+    
+    # 最大批量发送消息数量
+    max-batch-size: 100
+    
+    # RocketMQ配置
+    rocketmq:
+      # 是否启用RocketMQ
+      enabled: true
+      # Name Server地址
+      name-server: ${ROCKETMQ_NAMESRV_ADDR:8.133.246.113:9876}
+      # 生产者组
+      producer-group: jiangyang-producer-group
+      # 消费者组
+      consumer-group: jiangyang-consumer-group
+      # 压缩策略：LZ4, SNAPPY, ZSTD
+      compression-strategy: LZ4
+      # 同步发送重试次数
+      retry-sync-times: 3
+      # 异步发送重试次数
+      retry-async-times: 3
+      # 每个Topic的队列数量
+      queue-count-per-topic: 4
+      # 消息保留时间（小时）
+      message-retention-hours: 72
+      # 发送消息超时时间
+      send-msg-timeout: 3000
+      # 压缩消息体阈值
+      compress-msg-body-over-howmuch: 4096
+      # 最大消息大小
+      max-message-size: 4194304
+      # 是否启用消息轨迹
+      enable-msg-trace: true
+      # 消息轨迹存储类型
+      trace-topic-name: RMQ_SYS_TRACE_TOPIC
+    
+    # Kafka配置
+    kafka:
+      # 是否启用Kafka
+      enabled: false
+      # Bootstrap Servers地址
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:8.133.246.113:9092}
+      # 消费者组ID
+      consumer-group-id: jiangyang-consumer-group
+      # 生产者确认机制：acks
+      acks: all
+      # 批量大小（字节）
+      batch-size: 16384
+      # 延迟时间（毫秒）
+      linger-ms: 1
+      # 缓冲区大小（字节）
+      buffer-memory: 33554432
+      # 生产者重试次数
+      retries: 3
+      # 消费者自动提交间隔
+      auto-commit-interval-ms: 1000
+      # 消费者会话超时时间
+      session-timeout-ms: 30000
+      # 消费者心跳间隔
+      heartbeat-interval-ms: 3000
+      # 消费者最大拉取记录数
+      max-poll-records: 500
+      # 消费者最大拉取间隔
+      max-poll-interval-ms: 300000
+    
+    # RabbitMQ配置
+    rabbitmq:
+      # 是否启用RabbitMQ
+      enabled: false
+      # 主机地址
+      host: ${RABBITMQ_HOST:8.133.246.113}
+      # 端口
+      port: ${RABBITMQ_PORT:5672}
+      # 用户名
+      username: ${RABBITMQ_USERNAME:guest}
+      # 密码
+      password: ${RABBITMQ_PASSWORD:guest}
+      # 虚拟主机
+      virtual-host: ${RABBITMQ_VIRTUAL_HOST:/}
+      # 连接超时时间（毫秒）
+      connection-timeout: 60000
+      # 心跳间隔（秒）
+      heartbeat: 60
+      # 连接池大小
+      connection-pool-size: 10
+      # 通道池大小
+      channel-pool-size: 25
+      # 是否启用发布确认
+      publisher-confirms: true
+      # 是否启用发布返回
+      publisher-returns: true
+      # 消息确认超时时间
+      confirm-timeout: 5000
+      # 返回超时时间
+      return-timeout: 5000
+
+# 日志配置
+logging:
+  level:
+    com.jiangyang.messages: INFO
+    org.apache.rocketmq: WARN
+    org.apache.kafka: WARN
+    com.rabbitmq: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/messages-service.log
+    max-size: 100MB
+    max-history: 30
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# 线程池配置
+thread:
+  pool:
+    core-size: 10
+    max-size: 50
+    queue-capacity: 1000
+    keep-alive-seconds: 60
+    thread-name-prefix: messages-service-

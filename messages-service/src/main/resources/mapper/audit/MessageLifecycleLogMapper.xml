@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jiangyang.messages.audit.mapper.MessageLifecycleLogMapper">
+
+    <!-- 根据消息ID查询生命周期日志 -->
+    <select id="selectByMessageId" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE message_id = #{messageId} 
+        AND deleted = 0 
+        ORDER BY stage_start_time ASC
+    </select>
+
+    <!-- 根据业务消息ID查询生命周期日志 -->
+    <select id="selectByBusinessMessageId" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE business_message_id = #{businessMessageId} 
+        AND deleted = 0 
+        ORDER BY stage_start_time ASC
+    </select>
+
+    <!-- 根据消息类型和主题查询生命周期日志 -->
+    <select id="selectByMessageTypeAndTopic" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE message_type = #{messageType} 
+        AND topic = #{topic} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据生命周期阶段查询日志 -->
+    <select id="selectByLifecycleStage" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE lifecycle_stage = #{lifecycleStage} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据时间范围查询生命周期日志 -->
+    <select id="selectByTimeRange" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据消费者组查询生命周期日志 -->
+    <select id="selectByConsumerGroup" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE consumer_group = #{consumerGroup} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询死信消息 -->
+    <select id="selectDeadLetterMessages" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND dead_letter_flag = 1 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询超时消息 -->
+    <select id="selectTimeoutMessages" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT * FROM message_lifecycle_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND stage_status = 'TIMEOUT' 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 统计指定时间范围内的消息数量 -->
+    <select id="countMessagesByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM message_lifecycle_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0
+    </select>
+
+    <!-- 统计指定时间范围内的死信消息数量 -->
+    <select id="countDeadLetterMessagesByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM message_lifecycle_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND dead_letter_flag = 1 
+        AND deleted = 0
+    </select>
+
+    <!-- 统计指定时间范围内的超时消息数量 -->
+    <select id="countTimeoutMessagesByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM message_lifecycle_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND stage_status = 'TIMEOUT' 
+        AND deleted = 0
+    </select>
+
+    <!-- 查询消息处理性能统计 -->
+    <select id="selectPerformanceStats" resultType="com.jiangyang.messages.audit.entity.MessageLifecycleLog">
+        SELECT 
+            message_type,
+            topic,
+            lifecycle_stage,
+            COUNT(*) as message_count,
+            AVG(processing_time) as avg_processing_time,
+            MAX(processing_time) as max_processing_time,
+            MIN(processing_time) as min_processing_time,
+            SUM(CASE WHEN error_message IS NOT NULL THEN 1 ELSE 0 END) as error_count
+        FROM message_lifecycle_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0 
+        GROUP BY message_type, topic, lifecycle_stage
+        ORDER BY message_count DESC
+    </select>
+
+</mapper>

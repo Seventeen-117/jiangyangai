@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jiangyang.messages.audit.mapper.TransactionAuditLogMapper">
+
+    <!-- 根据全局事务ID查询审计日志 -->
+    <select id="selectByGlobalTransactionId" resultType="com.jiangyang.messages.audit.entity.TransactionAuditLog">
+        SELECT * FROM transaction_audit_log 
+        WHERE global_transaction_id = #{globalTransactionId} 
+        AND deleted = 0 
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 根据业务事务ID查询审计日志 -->
+    <select id="selectByBusinessTransactionId" resultType="com.jiangyang.messages.audit.entity.TransactionAuditLog">
+        SELECT * FROM transaction_audit_log 
+        WHERE business_transaction_id = #{businessTransactionId} 
+        AND deleted = 0 
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 根据操作链ID查询审计日志 -->
+    <select id="selectByOperationChainId" resultType="com.jiangyang.messages.audit.entity.TransactionAuditLog">
+        SELECT * FROM transaction_audit_log 
+        WHERE operation_chain_id = #{operationChainId} 
+        AND deleted = 0 
+        ORDER BY operation_order ASC, create_time ASC
+    </select>
+
+    <!-- 根据时间范围查询审计日志 -->
+    <select id="selectByTimeRange" resultType="com.jiangyang.messages.audit.entity.TransactionAuditLog">
+        SELECT * FROM transaction_audit_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据服务名称和操作类型查询审计日志 -->
+    <select id="selectByServiceAndOperation" resultType="com.jiangyang.messages.audit.entity.TransactionAuditLog">
+        SELECT * FROM transaction_audit_log 
+        WHERE service_name = #{serviceName} 
+        AND operation_type = #{operationType} 
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据消息ID查询审计日志 -->
+    <select id="selectByMessageId" resultType="com.jiangyang.messages.audit.entity.TransactionAuditLog">
+        SELECT * FROM transaction_audit_log 
+        WHERE message_id = #{messageId} 
+        AND deleted = 0 
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 查询失败的事务审计日志 -->
+    <select id="selectFailedTransactions" resultType="com.jiangyang.messages.audit.entity.TransactionAuditLog">
+        SELECT * FROM transaction_audit_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND (transaction_status = 'FAILED' OR operation_status = 'FAILED' OR error_message IS NOT NULL)
+        AND deleted = 0 
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 统计指定时间范围内的事务数量 -->
+    <select id="countTransactionsByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM transaction_audit_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND deleted = 0
+    </select>
+
+    <!-- 统计指定时间范围内的失败事务数量 -->
+    <select id="countFailedTransactionsByTimeRange" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM transaction_audit_log 
+        WHERE create_time BETWEEN #{startTime} AND #{endTime} 
+        AND (transaction_status = 'FAILED' OR operation_status = 'FAILED' OR error_message IS NOT NULL)
+        AND deleted = 0
+    </select>
+
+</mapper>

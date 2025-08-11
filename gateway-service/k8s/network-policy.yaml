@@ -1,0 +1,154 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-service-network-policy
+  namespace: jiangyangai
+  labels:
+    app: gateway-service
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # 允许来自Ingress Controller的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  # 允许来自同一命名空间的其他Pod的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 8080
+  # 允许来自监控系统的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  # 允许来自日志系统的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: logging
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # 允许访问Nacos服务
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 8848
+  # 允许访问Redis服务
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 6379
+  # 允许访问其他微服务
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 8080
+  # 允许DNS查询
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # 允许访问监控系统
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+---
+# 灰度发布NetworkPolicy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-service-canary-network-policy
+  namespace: jiangyangai
+  labels:
+    app: gateway-service
+    version: canary
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway-service
+      version: v2
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # 允许来自Ingress Controller的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  # 允许来自同一命名空间的其他Pod的流量
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # 允许访问Nacos服务
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 8848
+  # 允许访问Redis服务
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 6379
+  # 允许访问其他微服务
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: jiangyangai
+    ports:
+    - protocol: TCP
+      port: 8080
+  # 允许DNS查询
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53 

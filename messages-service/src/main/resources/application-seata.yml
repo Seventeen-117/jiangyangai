@@ -1,0 +1,210 @@
+# Seata 分布式事务配置
+seata:
+  # 应用ID，用于标识当前应用
+  application-id: ${spring.application.name}
+  
+  # 事务组名称，用于标识事务组
+  tx-service-group: messages-service-group
+  
+  # 是否启用自动数据源代理
+  enable-auto-data-source-proxy: true
+  
+  # 是否启用数据源自动代理
+  data-source-proxy-mode: AT
+  
+  # 服务配置
+  service:
+    # 事务组映射关系
+    vgroup-mapping:
+      messages-service-group: default
+    # 全局事务会话信息
+    grouplist:
+      default: 127.0.0.1:8091
+    # 是否启用降级
+    enable-degrade: false
+    # 是否禁用全局事务
+    disable-global-transaction: false
+  
+  # 客户端配置
+  client:
+    # 是否启用数据源自动代理
+    rm:
+      report-success-enable: false
+      table-meta-check-enable: false
+      report-retry-count: 5
+      async-commit-buffer-limit: 10000
+      lock:
+        retry-interval: 10
+        retry-times: 30
+        retry-policy-branch-rollback-on-conflict: true
+    # 事务协调器配置
+    tm:
+      commit-retry-count: 5
+      rollback-retry-count: 5
+      default-global-transaction-timeout: 60000
+      degrade-check: false
+      degrade-check-allow-times: 10
+      degrade-check-period: 2000
+  
+  # 事务存储配置
+  store:
+    # 存储模式：file、db、redis
+    mode: file
+    # 文件存储配置
+    file:
+      dir: sessionStore
+      max-branch-session-size: 16384
+      max-global-session-size: 512
+      file-write-buffer-cache-size: 16384
+      session-reload-read-size: 100
+      flush-disk-mode: async
+    # 数据库存储配置
+    db:
+      datasource: druid
+      db-type: mysql
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://127.0.0.1:3306/seata?useUnicode=true&characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false
+      user: root
+      password: password
+      min-conn: 5
+      max-conn: 100
+      global-table: global_table
+      branch-table: branch_table
+      lock-table: lock_table
+      query-limit: 100
+      max-wait: 5000
+  
+  # 事务锁配置
+  lock:
+    # 锁模式：memory、redis、db
+    mode: memory
+    # Redis锁配置
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 
+      database: 0
+      min-conn: 1
+      max-conn: 10
+      max-total: 100
+      query-limit: 100
+      acquire-interval: 1
+      acquire-interval-max-millis: 120000
+      acquire-interval-min-millis: 10
+      lock-acquire-interval: 10
+      lock-acquire-interval-max-millis: 120000
+      lock-acquire-interval-min-millis: 10
+      expire-unsafe-lock-millis: 10000
+      expire-lock-millis: 30000
+      expire-lock-interval: 10000
+      expire-lock-interval-min-millis: 10
+      expire-lock-interval-max-millis: 120000
+  
+  # 事务会话配置
+  session:
+    # 是否启用事务会话
+    enable: true
+    # 事务会话超时时间
+    timeout: 60000
+    # 事务会话清理间隔
+    cleanup-interval: 10000
+  
+  # 事务协调器配置
+  coordinator:
+    # 事务协调器类型：default、raft
+    type: default
+    # 默认协调器配置
+    default:
+      # 事务协调器地址
+      server-addr: 127.0.0.1:8091
+      # 事务协调器端口
+      port: 8091
+      # 事务协调器IP
+      host: 127.0.0.1
+      # 事务协调器名称
+      name: default
+      # 事务协调器权重
+      weight: 1
+      # 事务协调器状态
+      status: UP
+    # Raft协调器配置
+    raft:
+      # Raft集群配置
+      server-addr: 127.0.0.1:8091
+      # Raft选举超时时间
+      election-timeout: 5000
+      # Raft心跳间隔
+      heartbeat-interval: 1000
+      # Raft快照间隔
+      snapshot-interval: 10000
+      # Raft最大快照数量
+      max-snapshot-count: 1000
+      # Raft最大日志数量
+      max-log-count: 10000
+  
+  # 事务恢复配置
+  recovery:
+    # 事务恢复超时时间
+    timeout: 60000
+    # 事务恢复重试次数
+    retry-count: 5
+    # 事务恢复重试间隔
+    retry-interval: 1000
+  
+  # 事务监控配置
+  monitor:
+    # 是否启用事务监控
+    enable: false
+    # 事务监控端口
+    port: 8092
+    # 事务监控地址
+    host: 127.0.0.1
+  
+  # 事务日志配置
+  log:
+    # 事务日志级别
+    level: info
+    # 事务日志文件路径
+    file: logs/seata.log
+    # 事务日志文件大小
+    max-file-size: 100MB
+    # 事务日志文件数量
+    max-file-count: 10
+  
+  # 事务配置
+  config:
+    # 事务配置类型：file、nacos、apollo、zk、consul、etcd3
+    type: file
+    # 文件配置
+    file:
+      name: file.conf
+    # Nacos配置
+    nacos:
+      server-addr: 127.0.0.1:8848
+      namespace: 
+      group: SEATA_GROUP
+      username: 
+      password: 
+      data-id: seata.properties
+    # Apollo配置
+    apollo:
+      app-id: seata-server
+      apollo-meta: http://192.168.1.84:8080
+      namespace: application
+      apollo-accesskey-secret: 
+    # Zookeeper配置
+    zk:
+      server-addr: 127.0.0.1:2181
+      session-timeout: 6000
+      connect-timeout: 2000
+      username: 
+      password: 
+      node-path: /seata/seata.properties
+    # Consul配置
+    consul:
+      server-addr: 127.0.0.1:8500
+      acl-token: 
+    # Etcd3配置
+    etcd3:
+      server-addr: http://localhost:2379
+      key: /seata.properties

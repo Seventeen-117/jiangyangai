@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 引入Spring Boot默认的配置 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+    
+    <!-- 添加启动时的状态监听器，确认配置加载正常 -->
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" />
+
+    <!-- 控制台输出 - 开发环境友好 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId}] [userId:%X{userId}] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!-- 只在控制台显示INFO及以上级别 -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- 主要日志文件 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>signature-service/logs/${springAppName}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>signature-service/logs/${springAppName}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId}] [userId:%X{userId}] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 错误日志文件 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>signature-service/logs/${springAppName}-error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>signature-service/logs/${springAppName}-error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId}] [userId:%X{userId}] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!-- 只记录ERROR级别 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 签名验证日志文件 -->
+    <appender name="SIGNATURE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>signature-service/logs/${springAppName}-signature.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>signature-service/logs/${springAppName}-signature.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>15</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId}] [userId:%X{userId}] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- API调用日志文件 -->
+    <appender name="API_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>signature-service/logs/${springAppName}-api.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>signature-service/logs/${springAppName}-api.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>15</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId}] [userId:%X{userId}] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 异步文件输出 -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <neverBlock>false</neverBlock>
+    </appender>
+
+    <!-- 异步错误文件输出 -->
+    <appender name="ASYNC_ERROR_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="ERROR_FILE"/>
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <neverBlock>false</neverBlock>
+    </appender>
+
+
+
+    <!-- ========================= 日志级别配置 ========================= -->
+    
+    <!-- 应用程序日志 -->
+    <logger name="com.signature" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+    
+    <!-- 签名验证相关日志 -->
+    <logger name="com.signature.service.impl.SignatureVerificationServiceImpl" level="DEBUG" additivity="false">
+        <appender-ref ref="SIGNATURE_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+    
+    <logger name="com.signature.filter.SignatureVerificationWebFilter" level="DEBUG" additivity="false">
+        <appender-ref ref="SIGNATURE_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+    
+    <!-- API调用相关日志 -->
+    <logger name="com.signature.controller" level="DEBUG" additivity="false">
+        <appender-ref ref="API_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+    
+    <!-- Token和密钥管理日志 -->
+    <logger name="com.signature.service.impl.TokenServiceImpl" level="DEBUG" additivity="false">
+        <appender-ref ref="API_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+    
+    <logger name="com.signature.service.impl.ApiKeyServiceImpl" level="DEBUG" additivity="false">
+        <appender-ref ref="API_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+
+    <!-- 配置管理日志 -->
+    <logger name="com.signature.service.impl.DynamicConfigServiceImpl" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <!-- Spring Security 相关 -->
+    <logger name="org.springframework.security" level="DEBUG"/>
+    
+    <!-- WebFlux 相关 -->
+    <logger name="org.springframework.web.reactive" level="DEBUG"/>
+    <logger name="reactor.netty" level="INFO"/>
+    
+    <!-- Spring相关 -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.springframework.cloud.context.scope" level="WARN"/>
+    <logger name="org.springframework.context.support" level="WARN"/>
+    <logger name="org.springframework.beans.factory.support" level="WARN"/>
+    <logger name="org.springframework.context.annotation" level="WARN"/>
+    <logger name="org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker" level="ERROR"/>
+    <logger name="org.springframework.boot.autoconfigure" level="WARN"/>
+    
+    <!-- MyBatis相关 -->
+    <logger name="org.mybatis.spring.mapper" level="WARN"/>
+    <logger name="com.baomidou.mybatisplus" level="WARN"/>
+    <logger name="com.signature.mapper" level="DEBUG"/>
+
+    <!-- Redis相关 -->
+    <logger name="org.springframework.data.redis" level="INFO"/>
+    <logger name="io.lettuce.core" level="WARN"/>
+    
+    <!-- HTTP客户端相关 -->
+    <logger name="org.springframework.web.client" level="DEBUG"/>
+    <logger name="org.springframework.cloud.openfeign" level="DEBUG"/>
+    
+    <!-- Jackson相关 -->
+    <logger name="com.fasterxml.jackson" level="WARN"/>
+    
+
+
+    <!-- Nacos相关 -->
+    <logger name="com.alibaba.nacos" level="WARN"/>
+    
+    <!-- 缓存相关 -->
+    <logger name="org.springframework.cache" level="DEBUG"/>
+
+    <!-- 根日志级别 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+        
+
+    </root>
+</configuration>

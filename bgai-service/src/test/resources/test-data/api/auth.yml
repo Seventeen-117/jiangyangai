@@ -1,0 +1,98 @@
+# 认证控制器API测试数据
+description: "认证控制器API测试用例"
+baseUrl: "/api/auth"
+testCases:
+  - id: "login-url-success"
+    description: "获取登录URL成功"
+    endpoint: "/login-url"
+    request:
+      method: "GET"
+      headers:
+        Content-Type: "application/json"
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "loginUrl"
+      
+  - id: "callback-success"
+    description: "SSO回调处理成功"
+    endpoint: "/callback"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+      parameters:
+        code: "test-auth-code"
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "userId"
+        - "accessToken"
+        - "expiresAt"
+      
+  - id: "refresh-token-success"
+    description: "刷新令牌成功"
+    endpoint: "/refresh"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+      parameters:
+        refresh_token: "valid-refresh-token"
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "userId"
+        - "accessToken"
+        - "expiresAt"
+      
+  - id: "refresh-token-invalid"
+    description: "刷新令牌失败 - 无效令牌"
+    endpoint: "/refresh"
+    request:
+      method: "POST"
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+      parameters:
+        refresh_token: "invalid-refresh-token"
+    expectedResponse:
+      statusCode: 401
+      bodyContains:
+        - "error"
+        - "message"
+      
+  - id: "validate-token-success"
+    description: "验证令牌成功"
+    endpoint: "/validate"
+    request:
+      method: "POST"
+      headers:
+        Authorization: "Bearer valid-token"
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "valid"
+      
+  - id: "validate-token-invalid"
+    description: "验证令牌失败 - 无效令牌"
+    endpoint: "/validate"
+    request:
+      method: "POST"
+      headers:
+        Authorization: "Bearer invalid-token"
+    expectedResponse:
+      statusCode: 401
+      bodyContains:
+        - "error"
+      
+  - id: "logout-success"
+    description: "用户登出成功"
+    endpoint: "/logout"
+    request:
+      method: "POST"
+      headers:
+        Authorization: "Bearer valid-token"
+    expectedResponse:
+      statusCode: 200
+      bodyContains:
+        - "message" 

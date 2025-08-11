@@ -1,0 +1,142 @@
+# 审计日志配置
+spring:
+  # 审计日志数据源配置
+  datasource:
+    audit-log:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/messages_audit_log?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      username: ${AUDIT_LOG_DB_USERNAME:root}
+      password: ${AUDIT_LOG_DB_PASSWORD:password}
+      # 连接池配置
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      filters: stat,wall,slf4j
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+
+  # MyBatis-Plus配置
+  mybatis-plus:
+    configuration:
+      map-underscore-to-camel-case: true
+      cache-enabled: false
+      call-setters-on-nulls: true
+      jdbc-type-for-null: 'null'
+    global-config:
+      db-config:
+        id-type: ASSIGN_ID
+        logic-delete-field: deleted
+        logic-delete-value: 1
+        logic-not-delete-value: 0
+    mapper-locations: classpath:mapper/audit/*.xml
+
+  # Spring StateMachine配置
+  statemachine:
+    # 状态机配置
+    states:
+      # 消息发送状态机
+      message-send:
+        initial: MESSAGE_SEND
+        states:
+          - MESSAGE_SEND
+          - MESSAGE_CONFIRM
+          - SUCCESS
+          - MESSAGE_SEND_COMPENSATE
+          - MESSAGE_CONFIRM_COMPENSATE
+      # 消息消费状态机
+      message-consume:
+        initial: MESSAGE_RECEIVE
+        states:
+          - MESSAGE_RECEIVE
+          - BUSINESS_PROCESS
+          - CONSUME_CONFIRM
+          - SUCCESS
+          - MESSAGE_RECEIVE_COMPENSATE
+          - BUSINESS_PROCESS_COMPENSATE
+          - CONSUME_CONFIRM_COMPENSATE
+      # 批量消息处理状态机
+      batch-message:
+        initial: BATCH_RECEIVE
+        states:
+          - BATCH_RECEIVE
+          - PARALLEL_PROCESS
+          - BATCH_CONFIRM
+          - SUCCESS
+          - BATCH_RECEIVE_COMPENSATE
+          - PARALLEL_PROCESS_COMPENSATE
+          - BATCH_CONFIRM_COMPENSATE
+      # 事务消息状态机
+      transaction-message:
+        initial: TRANSACTION_BEGIN
+        states:
+          - TRANSACTION_BEGIN
+          - MESSAGE_SEND
+          - TRANSACTION_COMMIT
+          - SUCCESS
+          - TRANSACTION_ROLLBACK
+          - MESSAGE_SEND_COMPENSATE
+
+# 审计日志配置
+audit:
+  log:
+    # 是否启用审计日志
+    enabled: true
+    # 审计日志保留天数
+    retention-days: 30
+    # 批量插入大小
+    batch-size: 100
+    # 异步线程池配置
+    async:
+      core-pool-size: 5
+      max-pool-size: 20
+      queue-capacity: 1000
+      keep-alive-seconds: 60
+      thread-name-prefix: "audit-log-"
+    # 消息内容存储配置
+    message:
+      # 是否存储消息内容
+      store-content: true
+      # 消息内容最大长度
+      max-content-length: 10000
+      # 是否启用消息内容压缩
+      enable-compression: true
+    # 性能监控配置
+    performance:
+      # 是否启用性能监控
+      enabled: true
+      # 慢查询阈值（毫秒）
+      slow-query-threshold: 1000
+      # 是否记录SQL执行计划
+      log-execution-plan: false
+    # 导出配置
+    export:
+      # 是否启用导出功能
+      enabled: true
+      # 单次导出最大记录数
+      max-records-per-export: 10000
+      # 导出文件格式
+      formats: ["CSV", "JSON", "EXCEL"]
+      # 导出文件存储路径
+      storage-path: "./exports"
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true

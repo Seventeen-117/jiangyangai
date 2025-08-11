@@ -1,0 +1,230 @@
+server:
+  port: 8689
+
+spring:
+  application:
+    name: signature-service
+  main:
+    web-application-type: reactive
+  
+  # Jackson 时间格式配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      adjust-dates-to-context-time-zone: false
+  
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://8.133.246.113:3306/deepseek?autoReconnect=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&useSSL=false
+    username: bgtech
+    password: Zly689258..
+    # 动态数据源配置
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://8.133.246.113:3306/deepseek?autoReconnect=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&useSSL=false
+          username: bgtech
+          password: Zly689258..
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        slave:
+          url: jdbc:mysql://8.133.246.113:3306/deepseek?autoReconnect=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&useSSL=false
+          username: bgtech
+          password: Zly689258..
+          driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # Redis配置
+  data:
+    redis:
+      host: 8.133.246.113
+      port: 6379
+      password: 5z25u2sk
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+
+  # Elasticsearch配置
+  elasticsearch:
+    uris: http://8.133.246.113:9200
+    connection-timeout: 30s
+    socket-timeout: 30s
+    username: elastic
+    password: elastic123
+    # 禁用SSL验证（如果需要）
+    ssl:
+      verification-mode: none
+
+  # 禁用Nacos配置
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
+
+# MyBatis Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    call-setters-on-nulls: true
+    jdbc-type-for-null: 'null'
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/*.xml
+
+# Feign配置
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 5000
+        logger-level: full
+
+# 签名验证配置
+signature:
+  enabled: true
+  timestamp-expire-seconds: 300
+  nonce-cache-expire-seconds: 1800
+  app-secret-cache-expire-seconds: 3600
+  # 签名验证过滤器配置
+  verification:
+    enabled: false  # 禁用签名验证过滤器，允许直接访问签名生成接口
+    timestamp-expire-seconds: 300
+    nonce-cache-expire-seconds: 1800
+    excluded-paths:
+      - "/actuator/**"
+      - "/health/**"
+      - "/api/auth/**"
+      - "/api/public/**"
+      - "/api/signature/**"
+      - "/api/token/**"
+      - "/api/keys/**"
+      - "/api/validation/**"
+  # 异步验证配置
+  async:
+    enabled: true
+    mode: HYBRID
+    timeout: 5000
+  # 批量验证配置
+  batch:
+    enabled: false
+    max-batch-size: 100
+    timeout: 10000
+  # API Key验证配置
+  api-key:
+    enabled: false  # 禁用API Key验证，允许直接访问
+    header-name: X-API-Key
+    test-key: test-api-key-123
+    strict-validation: false
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      # 禁用Elasticsearch健康检查
+      defaults:
+        enabled: true
+  health:
+    elasticsearch:
+      enabled: false
+    elasticsearch-reactive:
+      enabled: false
+
+# 日志配置
+logging:
+  level:
+    org.apache.dubbo: INFO
+    com.jiangyang.dubbo: DEBUG
+    com.bgpay.signature: DEBUG
+    org.springframework.web: DEBUG
+    com.alibaba.nacos: OFF  # 禁用Nacos日志
+    io.seata: OFF  # 禁用Seata日志
+    com.netflix.eureka: OFF  # 禁用Eureka日志
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 禁用Seata分布式事务
+seata:
+  enabled: false
+  saga:
+    enabled: false
+    state-machine:
+      auto-register: false
+      enabled: false
+saga:
+  enabled: false
+
+# 禁用Eureka客户端
+eureka:
+  client:
+    enabled: false
+  instance:
+    enabled: false
+
+# Dubbo 启用开关（当需要完全禁用Dubbo时，设置为false）
+dubbo:
+  enabled: true  # 可以设置为false来完全禁用Dubbo
+  
+  # Dubbo 配置
+  application:
+    name: signature-service
+    version: 1.0.0
+    owner: jiangyang
+    organization: jiangyang-tech
+  
+  # 注册中心配置
+  registry:
+    address: nacos://localhost:8848
+    namespace: dubbo
+    group: DEFAULT_GROUP
+    timeout: 10000
+    check: false  # 启动时不检查注册中心
+    
+  # 协议配置
+  protocol:
+    name: dubbo
+    port: 20881
+    host: localhost
+    threads: 200
+    iothreads: 4
+    accepts: 1000
+    payload: 8388608  # 8MB
+    
+  # 提供者配置
+  provider:
+    timeout: 5000
+    retries: 0
+    loadbalance: roundrobin
+    cluster: failfast
+    serialization: fastjson2  # 使用 fastjson2 序列化，Java 17 兼容性更好
+    
+  # 禁用配置中心和元数据中心（避免强制连接Nacos）
+  config-center:
+    address: ""  # 禁用配置中心
+    
+  metadata-report:
+    address: ""  # 禁用元数据中心
+    
+  # 监控配置（可选）
+  monitor:
+    protocol: registry
+

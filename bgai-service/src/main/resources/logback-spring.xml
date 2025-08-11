@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 引入Spring Boot默认的配置 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+    
+    <!-- 添加启动时的状态监听器，确认配置加载正常 -->
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" />
+
+    <!-- 控制台输出 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId}] [userId:%X{userId}] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 文件输出 - 输出到 bgai-service 自己的 logs 目录 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>bgai-service/logs/${springAppName}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>bgai-service/logs/${springAppName}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId}] [userId:%X{userId}] %-5level %logger{50} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+
+
+    <!-- 自定义日志级别 -->
+    <logger name="com.bgpay.bgai" level="DEBUG"/>
+    <logger name="com.bgpay.bgai.saga" level="DEBUG"/>
+    
+    <!-- Seata相关的日志 -->
+    <logger name="io.seata" level="INFO"/>
+    <!-- 特别禁用Seata警告 -->
+    <logger name="io.seata.spring.boot.autoconfigure.provider.SpringBootConfigurationProvider" level="ERROR"/>
+
+    <!-- Spring相关 -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.springframework.cloud.context.scope" level="WARN"/>
+    <logger name="org.springframework.context.support" level="WARN"/>
+    <logger name="org.springframework.beans.factory.support" level="WARN"/>
+    <logger name="org.springframework.context.annotation" level="WARN"/>
+    <logger name="org.springframework.context.support.PostProcessorRegistrationDelegate$BeanPostProcessorChecker" level="ERROR"/>
+    
+    <!-- MyBatis相关 -->
+    <logger name="org.mybatis.spring.mapper" level="WARN"/>
+    <logger name="com.baomidou.mybatisplus" level="WARN"/>
+
+
+
+    <!-- 根日志级别 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+
+    </root>
+</configuration>

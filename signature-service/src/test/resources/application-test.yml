@@ -1,0 +1,31 @@
+# 测试环境配置
+spring:
+  application:
+    name: signature-service-test
+  profiles:
+    active: test
+
+# SSO安全配置 - 测试环境
+sso:
+  security:
+    jwt-secret: test-secret-key-here-must-be-at-least-256-bits-for-testing-purpose-only-do-not-use-in-production
+    jwt-expiration: 3600000  # 1小时 (毫秒)
+    refresh-token-expiration: 2592000000  # 30天 (毫秒)
+
+# Feign配置 - 测试环境
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 5000
+      bgai-service:
+        url: http://localhost:8688
+        connect-timeout: 5000
+        read-timeout: 5000
+
+# 日志配置 - 测试环境
+logging:
+  level:
+    com.signature: DEBUG
+    root: WARN
