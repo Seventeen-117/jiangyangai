@@ -164,21 +164,4 @@ public class RocketMQTemplate implements InitializingBean {
         return msg;
     }
 
-    /**
-     * 关闭生产者
-     */
-    public void shutdown() {
-        if (producer != null) {
-            producer.shutdown();
-            initialized = false;
-            log.info("RocketMQ producer shutdown");
-        }
-    }
-
-    /**
-     * 检查是否已初始化
-     */
-    public boolean isInitialized() {
-        return initialized;
-    }
 }

@@ -1,19 +1,13 @@
 package com.jiangyang.messages.kafka;
 
-import com.jiangyang.messages.MessageService;
-import com.jiangyang.messages.MessageServiceType;
+import com.jiangyang.messages.service.MessageService;
+import com.jiangyang.messages.utils.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.*;
-import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import jakarta.annotation.PreDestroy;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -25,43 +19,40 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 提供Kafka消息中间件的具体实现
  */
 @Slf4j
-@Service
 public class KafkaMessageService implements MessageService {
 
-    @Value("${kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
-    @Value("${kafka.client-id:default-kafka-producer}")
     private String clientId;
 
-    @Value("${kafka.acks:all}")
     private String acks;
 
-    @Value("${kafka.retries:3}")
     private int retries;
 
-    @Value("${kafka.batch-size:16384}")
     private int batchSize;
 
-    @Value("${kafka.linger-ms:1}")
     private int lingerMs;
 
-    @Value("${kafka.buffer-memory:33554432}")
     private long bufferMemory;
 
     private KafkaProducer<String, String> producer;
     private final ConcurrentHashMap<String, AtomicInteger> retryCountMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> messageDedupMap = new ConcurrentHashMap<>();
 
-    @PostConstruct
     public void init() {
         try {
+            // 检查必要的配置属性
+            if (bootstrapServers == null || bootstrapServers.trim().isEmpty()) {
+                log.warn("Kafka bootstrapServers is not configured, skipping initialization");
+                return;
+            }
+            
             Properties props = new Properties();
             props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-            props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
+            props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId != null ? clientId : "default-kafka-producer");
             props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
             props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-            props.put(ProducerConfig.ACKS_CONFIG, acks);
+            props.put(ProducerConfig.ACKS_CONFIG, acks != null ? acks : "all");
             props.put(ProducerConfig.RETRIES_CONFIG, retries);
             props.put(ProducerConfig.BATCH_SIZE_CONFIG, batchSize);
             props.put(ProducerConfig.LINGER_MS_CONFIG, lingerMs);
@@ -225,6 +216,7 @@ public class KafkaMessageService implements MessageService {
     }
 
     @Override
+    @PreDestroy
     public void shutdown() {
         try {
             if (producer != null) {
@@ -236,6 +228,15 @@ public class KafkaMessageService implements MessageService {
             log.error("关闭Kafka消息服务失败: {}", e.getMessage(), e);
         }
     }
+
+    // setters for configuration injection
+    public void setBootstrapServers(String bootstrapServers) { this.bootstrapServers = bootstrapServers; }
+    public void setClientId(String clientId) { this.clientId = clientId; }
+    public void setAcks(String acks) { this.acks = acks; }
+    public void setRetries(int retries) { this.retries = retries; }
+    public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
+    public void setLingerMs(int lingerMs) { this.lingerMs = lingerMs; }
+    public void setBufferMemory(long bufferMemory) { this.bufferMemory = bufferMemory; }
 
     /**
      * 异步发送消息

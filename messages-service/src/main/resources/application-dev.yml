@@ -1,8 +1,5 @@
 # 开发环境配置
 spring:
-  profiles:
-    active: dev
-  
   # Seata配置
   cloud:
     alibaba:
@@ -12,7 +9,7 @@ spring:
           vgroup-mapping:
             messages-service-group: default
           grouplist:
-            default: 127.0.0.1:8091
+            default: 8.133.246.113:8091
         enable-auto-data-source-proxy: true
 
 # Dubbo配置
@@ -24,7 +21,7 @@ dubbo:
     name: dubbo
     port: -1
   registry:
-    address: nacos://localhost:8848
+    address: nacos://8.133.246.113:8848
     timeout: 10000
   consumer:
     timeout: 5000
@@ -55,7 +52,7 @@ message:
     # RocketMQ配置 - 开发环境
     rocketmq:
       enabled: true
-      name-server: localhost:9876
+      name-server: 8.133.246.113:9876
       producer-group: jiangyang-dev-producer-group
       consumer-group: jiangyang-dev-consumer-group
       compression-strategy: LZ4
@@ -67,7 +64,7 @@ message:
     # Kafka配置 - 开发环境
     kafka:
       enabled: false
-      bootstrap-servers: localhost:9092
+      bootstrap-servers: 8.133.246.113:9092
       consumer-group-id: jiangyang-dev-consumer-group
       acks: 1
       batch-size: 8192
@@ -77,7 +74,7 @@ message:
     # RabbitMQ配置 - 开发环境
     rabbitmq:
       enabled: false
-      host: localhost
+      host: 8.133.246.113
       port: 5672
       username: guest
       password: guest

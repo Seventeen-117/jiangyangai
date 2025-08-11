@@ -1,17 +1,14 @@
 package com.jiangyang.messages.rabbitmq;
 
-import com.jiangyang.messages.MessageService;
-import com.jiangyang.messages.MessageServiceType;
+import com.jiangyang.messages.service.MessageService;
+import com.jiangyang.messages.utils.MessageServiceType;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import jakarta.annotation.PreDestroy;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -28,31 +25,22 @@ import java.util.HashMap;
  * 提供RabbitMQ消息中间件的具体实现
  */
 @Slf4j
-@Service
 public class RabbitMQMessageService implements MessageService {
 
-    @Value("${rabbitmq.host:localhost}")
     private String host;
 
-    @Value("${rabbitmq.port:5672}")
     private int port;
 
-    @Value("${rabbitmq.username:guest}")
     private String username;
 
-    @Value("${rabbitmq.password:guest}")
     private String password;
 
-    @Value("${rabbitmq.virtual-host:/}")
     private String virtualHost;
 
-    @Value("${rabbitmq.connection-timeout:60000}")
     private int connectionTimeout;
 
-    @Value("${rabbitmq.requested-heartbeat:60}")
     private int requestedHeartbeat;
 
-    @Value("${rabbitmq.automatic-recovery:true}")
     private boolean automaticRecovery;
 
     private Connection connection;
@@ -60,15 +48,20 @@ public class RabbitMQMessageService implements MessageService {
     private final ConcurrentHashMap<String, AtomicInteger> retryCountMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> messageDedupMap = new ConcurrentHashMap<>();
 
-    @PostConstruct
     public void init() {
         try {
+            // 检查必要的配置属性
+            if (host == null || host.trim().isEmpty()) {
+                log.warn("RabbitMQ host is not configured, skipping initialization");
+                return;
+            }
+            
             ConnectionFactory factory = new ConnectionFactory();
             factory.setHost(host);
             factory.setPort(port);
-            factory.setUsername(username);
-            factory.setPassword(password);
-            factory.setVirtualHost(virtualHost);
+            factory.setUsername(username != null ? username : "guest");
+            factory.setPassword(password != null ? password : "guest");
+            factory.setVirtualHost(virtualHost != null ? virtualHost : "/");
             factory.setConnectionTimeout(connectionTimeout);
             factory.setRequestedHeartbeat(requestedHeartbeat);
             factory.setAutomaticRecoveryEnabled(automaticRecovery);
@@ -402,4 +395,23 @@ public class RabbitMQMessageService implements MessageService {
             return false;
         }
     }
+
+    // ==================== 配置方法 ====================
+    public void setHost(String host) { this.host = host; }
+    public void setPort(int port) { this.port = port; }
+    public void setUsername(String username) { this.username = username; }
+    public void setPassword(String password) { this.password = password; }
+    public void setVirtualHost(String virtualHost) { this.virtualHost = virtualHost; }
+    public void setConnectionTimeout(int connectionTimeout) { this.connectionTimeout = connectionTimeout; }
+    public void setRequestedHeartbeat(int requestedHeartbeat) { this.requestedHeartbeat = requestedHeartbeat; }
+    public void setAutomaticRecovery(boolean automaticRecovery) { this.automaticRecovery = automaticRecovery; }
+
+    public String getHost() { return host; }
+    public int getPort() { return port; }
+    public String getUsername() { return username; }
+    public String getPassword() { return password; }
+    public String getVirtualHost() { return virtualHost; }
+    public int getConnectionTimeout() { return connectionTimeout; }
+    public int getRequestedHeartbeat() { return requestedHeartbeat; }
+    public boolean isAutomaticRecovery() { return automaticRecovery; }
 }

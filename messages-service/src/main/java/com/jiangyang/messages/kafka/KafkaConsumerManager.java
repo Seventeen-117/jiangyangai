@@ -1,8 +1,8 @@
 package com.jiangyang.messages.kafka;
 
 import com.alibaba.fastjson2.JSON;
-import com.jiangyang.messages.MessageListener;
-import com.jiangyang.messages.MessageServiceException;
+import com.jiangyang.messages.service.MessageListener;
+import com.jiangyang.messages.utils.MessageServiceException;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

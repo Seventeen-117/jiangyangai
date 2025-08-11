@@ -1,4 +1,4 @@
-package com.jiangyang.messages;
+package com.jiangyang.messages.service;
 
 /**
  * 消息监听器接口

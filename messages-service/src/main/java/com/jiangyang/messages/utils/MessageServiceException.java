@@ -1,4 +1,4 @@
-package com.jiangyang.messages;
+package com.jiangyang.messages.utils;
 
 /**
  * 消息服务异常

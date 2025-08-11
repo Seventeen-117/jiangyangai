@@ -1,8 +1,8 @@
 package com.jiangyang.messages.rabbitmq;
 
 import com.alibaba.fastjson2.JSON;
-import com.jiangyang.messages.MessageListener;
-import com.jiangyang.messages.MessageServiceException;
+import com.jiangyang.messages.service.MessageListener;
+import com.jiangyang.messages.utils.MessageServiceException;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RabbitMQConsumerManager implements InitializingBean, DisposableBean {
 
     @Setter
-    private String host = "localhost";
+    private String host = "8.133.246.113";
 
     @Setter
     private int port = 5672;

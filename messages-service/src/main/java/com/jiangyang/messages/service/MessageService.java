@@ -1,4 +1,6 @@
-package com.jiangyang.messages;
+package com.jiangyang.messages.service;
+
+import com.jiangyang.messages.utils.MessageServiceType;
 
 /**
  * 消息服务接口

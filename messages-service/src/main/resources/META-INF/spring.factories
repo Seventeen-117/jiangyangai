@@ -2,4 +2,4 @@
 # 确保MessageServiceAutoConfiguration被自动发现和加载
 
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.jiangyang.messages.MessageServiceAutoConfiguration
+com.jiangyang.messages.utils.MessageServiceAutoConfiguration

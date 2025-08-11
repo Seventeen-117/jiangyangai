@@ -19,7 +19,7 @@ seata:
       messages-service-group: default
     # 全局事务会话信息
     grouplist:
-      default: 127.0.0.1:8091
+      default: 8.133.246.113:8091
     # 是否启用降级
     enable-degrade: false
     # 是否禁用全局事务
@@ -63,9 +63,9 @@ seata:
       datasource: druid
       db-type: mysql
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://127.0.0.1:3306/seata?useUnicode=true&characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false
-      user: root
-      password: password
+      url: jdbc:mysql://8.133.246.113:3306/seata?characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true
+      user: bgtech
+      password: Zly689258..
       min-conn: 5
       max-conn: 100
       global-table: global_table
@@ -80,9 +80,9 @@ seata:
     mode: memory
     # Redis锁配置
     redis:
-      host: 127.0.0.1
+      host: 8.133.246.113
       port: 6379
-      password: 
+      password: 5z25u2sk
       database: 0
       min-conn: 1
       max-conn: 10
@@ -116,11 +116,11 @@ seata:
     # 默认协调器配置
     default:
       # 事务协调器地址
-      server-addr: 127.0.0.1:8091
+      server-addr: 8.133.246.113:8091
       # 事务协调器端口
       port: 8091
       # 事务协调器IP
-      host: 127.0.0.1
+      host: 8.133.246.113
       # 事务协调器名称
       name: default
       # 事务协调器权重
@@ -130,7 +130,7 @@ seata:
     # Raft协调器配置
     raft:
       # Raft集群配置
-      server-addr: 127.0.0.1:8091
+      server-addr: 8.133.246.113:8091
       # Raft选举超时时间
       election-timeout: 5000
       # Raft心跳间隔
@@ -158,7 +158,7 @@ seata:
     # 事务监控端口
     port: 8092
     # 事务监控地址
-    host: 127.0.0.1
+    host: 8.133.246.113
   
   # 事务日志配置
   log:
@@ -180,7 +180,7 @@ seata:
       name: file.conf
     # Nacos配置
     nacos:
-      server-addr: 127.0.0.1:8848
+      server-addr: 8.133.246.113:8848
       namespace: 
       group: SEATA_GROUP
       username: 
@@ -194,7 +194,7 @@ seata:
       apollo-accesskey-secret: 
     # Zookeeper配置
     zk:
-      server-addr: 127.0.0.1:2181
+      server-addr: 8.133.246.113:2181
       session-timeout: 6000
       connect-timeout: 2000
       username: 
@@ -202,9 +202,9 @@ seata:
       node-path: /seata/seata.properties
     # Consul配置
     consul:
-      server-addr: 127.0.0.1:8500
+      server-addr: 8.133.246.113:8500
       acl-token: 
     # Etcd3配置
     etcd3:
-      server-addr: http://localhost:2379
+      server-addr: http://8.133.246.113:2379
       key: /seata.properties

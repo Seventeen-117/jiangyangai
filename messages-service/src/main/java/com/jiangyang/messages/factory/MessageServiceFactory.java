@@ -1,9 +1,12 @@
-package com.jiangyang.messages;
+package com.jiangyang.messages.factory;
 
+import com.jiangyang.messages.utils.MessageServiceConfig;
+import com.jiangyang.messages.utils.MessageServiceException;
+import com.jiangyang.messages.utils.MessageServiceType;
 import com.jiangyang.messages.kafka.KafkaMessageService;
 import com.jiangyang.messages.rabbitmq.RabbitMQMessageService;
 import com.jiangyang.messages.rocketmq.RocketMQMessageService;
-import lombok.Setter;
+import com.jiangyang.messages.service.MessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

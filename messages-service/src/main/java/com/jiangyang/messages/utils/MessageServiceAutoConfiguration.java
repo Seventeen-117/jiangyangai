@@ -1,4 +1,4 @@
-package com.jiangyang.messages;
+package com.jiangyang.messages.utils;
 
 import com.jiangyang.messages.kafka.KafkaMessageService;
 import com.jiangyang.messages.rabbitmq.RabbitMQMessageService;
@@ -55,6 +55,9 @@ public class MessageServiceAutoConfiguration {
         // 应用配置到服务
         applyRocketMQConfig(service);
         
+        // 初始化服务
+        service.init();
+        
         log.info("RocketMQ Message Service configured successfully");
         return service;
     }
@@ -76,6 +79,9 @@ public class MessageServiceAutoConfiguration {
         // 应用配置到服务
         applyKafkaConfig(service);
         
+        // 初始化服务
+        service.init();
+        
         log.info("Kafka Message Service configured successfully");
         return service;
     }
@@ -96,6 +102,9 @@ public class MessageServiceAutoConfiguration {
         
         // 应用配置到服务
         applyRabbitMQConfig(service);
+        
+        // 初始化服务
+        service.init();
         
         log.info("RabbitMQ Message Service configured successfully");
         return service;
@@ -179,10 +188,23 @@ public class MessageServiceAutoConfiguration {
      */
     private void applyKafkaConfig(KafkaMessageService service) {
         try {
-            // 这里可以根据需要调用服务的配置方法
-            log.debug("Applied Kafka configuration: bootstrapServers={}, consumerGroupId={}",
-                    config.getKafka().getBootstrapServers(),
-                    config.getKafka().getConsumerGroupId());
+            MessageServiceConfig.KafkaConfig kafkaConfig = config.getKafka();
+            
+            // 直接设置配置属性
+            service.setBootstrapServers(kafkaConfig.getBootstrapServers());
+            service.setAcks(kafkaConfig.getAcks());
+            service.setRetries(kafkaConfig.getRetries());
+            service.setBatchSize(kafkaConfig.getBatchSize());
+            service.setLingerMs(kafkaConfig.getLingerMs());
+            service.setBufferMemory(kafkaConfig.getBufferMemory());
+            
+            log.debug("Applied Kafka configuration: bootstrapServers={}, acks={}, retries={}, batchSize={}, lingerMs={}, bufferMemory={}",
+                    kafkaConfig.getBootstrapServers(),
+                    kafkaConfig.getAcks(),
+                    kafkaConfig.getRetries(),
+                    kafkaConfig.getBatchSize(),
+                    kafkaConfig.getLingerMs(),
+                    kafkaConfig.getBufferMemory());
         } catch (Exception e) {
             log.warn("Failed to apply Kafka configuration", e);
         }
@@ -193,11 +215,26 @@ public class MessageServiceAutoConfiguration {
      */
     private void applyRabbitMQConfig(RabbitMQMessageService service) {
         try {
-            // 这里可以根据需要调用服务的配置方法
-            log.debug("Applied RabbitMQ configuration: host={}, port={}, username={}",
-                    config.getRabbitmq().getHost(),
-                    config.getRabbitmq().getPort(),
-                    config.getRabbitmq().getUsername());
+            MessageServiceConfig.RabbitMQConfig rabbitmqConfig = config.getRabbitmq();
+            
+            // 直接设置配置属性
+            service.setHost(rabbitmqConfig.getHost());
+            service.setPort(rabbitmqConfig.getPort());
+            service.setUsername(rabbitmqConfig.getUsername());
+            service.setPassword(rabbitmqConfig.getPassword());
+            service.setVirtualHost(rabbitmqConfig.getVirtualHost());
+            service.setConnectionTimeout(rabbitmqConfig.getConnectionTimeout());
+            service.setRequestedHeartbeat(rabbitmqConfig.getRequestedHeartBeat());
+            service.setAutomaticRecovery(rabbitmqConfig.isAutomaticRecoveryEnabled());
+            
+            log.debug("Applied RabbitMQ configuration: host={}, port={}, username={}, virtualHost={}, connectionTimeout={}, requestedHeartBeat={}, automaticRecoveryEnabled={}",
+                    rabbitmqConfig.getHost(),
+                    rabbitmqConfig.getPort(),
+                    rabbitmqConfig.getUsername(),
+                    rabbitmqConfig.getVirtualHost(),
+                    rabbitmqConfig.getConnectionTimeout(),
+                    rabbitmqConfig.getRequestedHeartBeat(),
+                    rabbitmqConfig.isAutomaticRecoveryEnabled());
         } catch (Exception e) {
             log.warn("Failed to apply RabbitMQ configuration", e);
         }

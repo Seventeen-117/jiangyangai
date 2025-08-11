@@ -1,4 +1,4 @@
-package com.jiangyang.messages;
+package com.jiangyang.messages.utils;
 
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;

@@ -1,4 +1,4 @@
-package com.jiangyang.messages;
+package com.jiangyang.messages.utils;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

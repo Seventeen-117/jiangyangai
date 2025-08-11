@@ -1,7 +1,7 @@
 package com.jiangyang.messages.rocketmq;
 
-import com.jiangyang.messages.MessageService;
-import com.jiangyang.messages.MessageServiceType;
+import com.jiangyang.messages.service.MessageService;
+import com.jiangyang.messages.utils.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
@@ -9,11 +9,8 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import jakarta.annotation.PreDestroy;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,28 +21,32 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 提供RocketMQ消息中间件的具体实现
  */
 @Slf4j
-@Service
 public class RocketMQMessageService implements MessageService {
 
-    @Value("${rocketmq.name-server:localhost:9876}")
     private String nameServer;
 
-    @Value("${rocketmq.producer-group:default-producer-group}")
     private String producerGroup;
 
-    @Value("${rocketmq.max-retry-times:3}")
     private int maxRetryTimes;
 
-    @Value("${rocketmq.send-msg-timeout:3000}")
     private int sendMsgTimeout;
 
     private DefaultMQProducer producer;
     private final ConcurrentHashMap<String, AtomicInteger> retryCountMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> messageDedupMap = new ConcurrentHashMap<>();
 
-    @PostConstruct
     public void init() {
         try {
+            // 检查必要的配置属性
+            if (nameServer == null || nameServer.trim().isEmpty()) {
+                log.warn("RocketMQ nameServer is not configured, skipping initialization");
+                return;
+            }
+            if (producerGroup == null || producerGroup.trim().isEmpty()) {
+                log.warn("RocketMQ producerGroup is not configured, skipping initialization");
+                return;
+            }
+            
             producer = new DefaultMQProducer(producerGroup);
             producer.setNamesrvAddr(nameServer);
             producer.setRetryTimesWhenSendAsyncFailed(maxRetryTimes);
@@ -106,9 +107,15 @@ public class RocketMQMessageService implements MessageService {
     public boolean sendDelayMessage(String topic, String content, int delayLevel) {
         try {
             Message message = new Message(topic, content.getBytes(StandardCharsets.UTF_8));
-            message.setDelayTimeLevel(delayLevel);
             
-            SendResult sendResult = producer.send(message);
+            // 使用hashKey进行顺序消息发送
+            SendResult sendResult = producer.send(message, new MessageQueueSelector() {
+                @Override
+                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                    int index = Math.abs(topic.hashCode()) % mqs.size();
+                    return mqs.get(index);
+                }
+            }, topic);
             
             if (sendResult.getSendStatus().name().equals("SEND_OK")) {
                 log.info("RocketMQ延迟消息发送成功: topic={}, delayLevel={}, msgId={}", 
@@ -202,6 +209,7 @@ public class RocketMQMessageService implements MessageService {
     }
 
     @Override
+    @PreDestroy
     public void shutdown() {
         try {
             if (producer != null) {

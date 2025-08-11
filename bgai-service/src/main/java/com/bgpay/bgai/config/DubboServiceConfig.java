@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
+// import java.util.List;
 
 /**
  * Dubbo服务配置类
@@ -77,8 +77,8 @@ public class DubboServiceConfig {
         reference.setCluster("failover");
         reference.setCheck(false);
         reference.setLazy(true);
-        // 在Dubbo 3.x中，使用setRegistries而不是setRegistry
-        reference.setRegistries((List<? extends RegistryConfig>) registryConfig());
+        // 在Dubbo 3.x中，使用setRegistries而不是setRegistry；这里需要传入列表
+        reference.setRegistries(java.util.Collections.singletonList(registryConfig()));
         reference.setApplication(applicationConfig());
         return reference;
     }
