@@ -50,6 +50,15 @@ spring:
           filters:
             - AddRequestHeader=X-Gateway-Source, gateway-service
             - AddResponseHeader=X-Gateway-Response, true
+        # AI代理服务路由
+        - id: aiAgent-service
+          uri: http://localhost:8690
+          order: -500
+          predicates:
+            - Path=/api/aiAgent/**,/api/aiChat/**
+          filters:
+            - AddRequestHeader=X-Gateway-Source, gateway-service
+            - AddResponseHeader=X-Gateway-Response, true
         # bgai服务路由 - 需要验证的接口 (先经过验证过滤器)
         - id: bgai-service-validated
           uri: http://localhost:8688  # 直接路由到bgai-service
@@ -123,6 +132,19 @@ resilience4j:
           - java.io.IOException
           - java.util.concurrent.TimeoutException
           - org.springframework.web.client.ResourceAccessException
+      aiAgent-service-breaker:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
       default-service-breaker:
         baseConfig: default
         slidingWindowSize: 10
@@ -145,6 +167,8 @@ resilience4j:
       signature-service-breaker:
         timeoutDuration: 10s
       bgai-service-breaker:
+        timeoutDuration: 30s
+      aiAgent-service-breaker:
         timeoutDuration: 30s
       default-service-breaker:
         timeoutDuration: 30s
@@ -172,6 +196,10 @@ resilience4j:
         maxRetryAttempts: 2
         waitDuration: 1s
       bgai-service-retry:
+        baseConfig: default
+        maxRetryAttempts: 3
+        waitDuration: 2s
+      aiAgent-service-retry:
         baseConfig: default
         maxRetryAttempts: 3
         waitDuration: 2s

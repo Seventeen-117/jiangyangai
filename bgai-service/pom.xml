@@ -29,7 +29,7 @@
 			<groupId>com.jiangyang</groupId>
 			<artifactId>dubbo-api</artifactId>
 		</dependency>
-		
+
 		<!-- Dubbo Spring Boot Starter -->
 		<dependency>
 			<groupId>org.apache.dubbo</groupId>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 引入Spring Boot默认的logback配置 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- 定义日志文件的存储路径 -->
+    <property name="LOG_HOME" value="logs"/>
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"/>
+    
+    <!-- 控制台输出配置 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+    
+    <!-- 文件输出配置 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/messages-service.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/messages-service.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+    
+    <!-- 错误日志单独输出 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/messages-service-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/messages-service-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+    
+    <!-- 异步输出配置 -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>512</queueSize>
+        <appender-ref ref="FILE"/>
+    </appender>
+    
+    <appender name="ASYNC_ERROR_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>512</queueSize>
+        <appender-ref ref="ERROR_FILE"/>
+    </appender>
+    
+    <!-- 开发环境配置 -->
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
+        
+        <!-- 应用日志级别 -->
+        <logger name="com.jiangyang.messages" level="DEBUG"/>
+        <logger name="com.jiangyang.messages.saga" level="DEBUG"/>
+        <logger name="com.jiangyang.messages.audit" level="DEBUG"/>
+        
+        <!-- 第三方框架日志级别 -->
+        <logger name="org.apache.dubbo" level="INFO"/>
+        <logger name="com.alibaba.nacos" level="INFO"/>
+        <logger name="io.seata" level="INFO"/>
+        <logger name="org.springframework.cloud" level="INFO"/>
+        <logger name="org.springframework.boot" level="INFO"/>
+        <logger name="org.springframework.web" level="INFO"/>
+        <logger name="org.mybatis" level="DEBUG"/>
+        <logger name="com.baomidou.mybatisplus" level="DEBUG"/>
+        
+        <!-- 消息队列日志 -->
+        <logger name="org.apache.rocketmq" level="INFO"/>
+        <logger name="org.apache.kafka" level="INFO"/>
+        <logger name="com.rabbitmq" level="INFO"/>
+    </springProfile>
+    
+    <!-- 生产环境配置 -->
+    <springProfile name="prod">
+        <root level="WARN">
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
+        
+        <!-- 应用日志级别 -->
+        <logger name="com.jiangyang.messages" level="INFO"/>
+        <logger name="com.jiangyang.messages.saga" level="INFO"/>
+        <logger name="com.jiangyang.messages.audit" level="INFO"/>
+        
+        <!-- 第三方框架日志级别 -->
+        <logger name="org.apache.dubbo" level="WARN"/>
+        <logger name="com.alibaba.nacos" level="WARN"/>
+        <logger name="io.seata" level="WARN"/>
+        <logger name="org.springframework.cloud" level="WARN"/>
+        <logger name="org.springframework.boot" level="WARN"/>
+        <logger name="org.springframework.web" level="WARN"/>
+        <logger name="org.mybatis" level="WARN"/>
+        <logger name="com.baomidou.mybatisplus" level="WARN"/>
+        
+        <!-- 消息队列日志 -->
+        <logger name="org.apache.rocketmq" level="WARN"/>
+        <logger name="org.apache.kafka" level="WARN"/>
+        <logger name="com.rabbitmq" level="WARN"/>
+    </springProfile>
+    
+    <!-- 本地环境配置 -->
+    <springProfile name="local">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR_FILE"/>
+        </root>
+        
+        <!-- 应用日志级别 -->
+        <logger name="com.jiangyang.messages" level="DEBUG"/>
+        <logger name="com.jiangyang.messages.saga" level="DEBUG"/>
+        <logger name="com.jiangyang.messages.audit" level="DEBUG"/>
+        
+        <!-- 第三方框架日志级别 -->
+        <logger name="org.apache.dubbo" level="DEBUG"/>
+        <logger name="com.alibaba.nacos" level="DEBUG"/>
+        <logger name="io.seata" level="DEBUG"/>
+        <logger name="org.springframework.cloud" level="DEBUG"/>
+        <logger name="org.springframework.boot" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.mybatis" level="DEBUG"/>
+        <logger name="com.baomidou.mybatisplus" level="DEBUG"/>
+        
+        <!-- 消息队列日志 -->
+        <logger name="org.apache.rocketmq" level="DEBUG"/>
+        <logger name="org.apache.kafka" level="DEBUG"/>
+        <logger name="com.rabbitmq" level="DEBUG"/>
+    </springProfile>
+    
+    <!-- 默认配置（当没有指定profile时使用） -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </root>
+    
+    <!-- 应用日志级别 -->
+    <logger name="com.jiangyang.messages" level="INFO"/>
+    <logger name="com.jiangyang.messages.saga" level="INFO"/>
+    <logger name="com.jiangyang.messages.audit" level="INFO"/>
+    
+    <!-- 第三方框架日志级别 -->
+    <logger name="org.apache.dubbo" level="INFO"/>
+    <logger name="com.alibaba.nacos" level="INFO"/>
+    <logger name="io.seata" level="INFO"/>
+    <logger name="org.springframework.cloud" level="INFO"/>
+    <logger name="org.springframework.boot" level="INFO"/>
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.mybatis" level="INFO"/>
+    <logger name="com.baomidou.mybatisplus" level="INFO"/>
+    
+    <!-- 消息队列日志 -->
+    <logger name="org.apache.rocketmq" level="INFO"/>
+    <logger name="org.apache.kafka" level="INFO"/>
+    <logger name="com.rabbitmq" level="INFO"/>
+</configuration>

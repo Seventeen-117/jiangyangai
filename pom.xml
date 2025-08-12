@@ -22,6 +22,7 @@
 		<module>gateway-service</module>
 		<module>dubbo-api</module>
 		<module>messages-service</module>
+		<module>aiAgent</module>
 	</modules>
 
 	<!-- ====================== 统一版本管理 ====================== -->

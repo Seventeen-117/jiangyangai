@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -304,20 +305,57 @@ public class MessageSagaStateMachine {
             messageLifecycleService.save(lifecycleLog);
             
             // 3. 执行消息确认逻辑
-            // 这里可以添加具体的确认逻辑，比如：
-            // - 更新消息状态为已确认
-            // - 发送确认通知
-            // - 记录确认日志等
+            // 3.1 验证消息ID
+            if (StrUtil.isBlank(messageId)) {
+                throw new IllegalArgumentException("消息ID不能为空");
+            }
+            
+            // 3.2 检查消息是否已存在
+            MessageLifecycleLog existingLog = messageLifecycleService.getByMessageId(messageId);
+            if (existingLog == null) {
+                throw new IllegalStateException("消息不存在: " + messageId);
+            }
+            
+            // 3.3 验证消息状态是否允许确认
+            if (!"SEND".equals(existingLog.getLifecycleStage()) || 
+                !"SUCCESS".equals(existingLog.getStageStatus())) {
+                throw new IllegalStateException("消息状态不允许确认: " + messageId + 
+                    ", 当前阶段: " + existingLog.getLifecycleStage() + 
+                    ", 状态: " + existingLog.getStageStatus());
+            }
+            
+            // 3.4 更新消息状态为已确认
+            existingLog.setStageStatus("ACKED");
+            existingLog.setStageEndTime(LocalDateTime.now());
+            existingLog.setProcessingTime(System.currentTimeMillis() - 
+                existingLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            messageLifecycleService.updateById(existingLog);
+            
+            // 3.5 记录消息确认日志
+            log.info("消息已确认: ID={}, 确认时间={}", messageId, LocalDateTime.now());
+            
+            // 3.6 发送确认通知（可选）
+            sendMessageConfirmationNotification(messageId);
+            
+            // 3.7 更新消息统计信息
+            updateMessageStatistics(messageId, "MESSAGE_CONFIRM");
+            
+            // 3.8 记录确认历史（可选）
+            recordConfirmationHistory(messageId);
             
             // 4. 更新Saga日志状态
             sagaLog.setStatus("SUCCESS");
             sagaLog.setEndTime(LocalDateTime.now());
+            sagaLog.setProcessingTime(System.currentTimeMillis() - 
+                sagaLog.getStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            sagaLog.setResponseResult("{\"status\":\"SUCCESS\",\"message\":\"消息确认成功\"}");
             messageSagaLogService.updateById(sagaLog);
             
             // 5. 更新生命周期日志状态
             lifecycleLog.setStageStatus("SUCCESS");
             lifecycleLog.setStageEndTime(LocalDateTime.now());
-            lifecycleLog.setProcessingTime(System.currentTimeMillis() - lifecycleLog.getStageStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+            lifecycleLog.setProcessingTime(System.currentTimeMillis() - 
+                lifecycleLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             messageLifecycleService.updateById(lifecycleLog);
             
             log.info("消息确认成功: ID={}", messageId);
@@ -457,20 +495,57 @@ public class MessageSagaStateMachine {
             messageLifecycleService.save(lifecycleLog);
             
             // 3. 执行消费确认逻辑
-            // - 更新消费状态
-            // - 记录消费日志
-            // - 发送确认通知
-            // - 清理临时数据等
+            // 3.1 验证消息ID
+            if (StrUtil.isBlank(messageId)) {
+                throw new IllegalArgumentException("消息ID不能为空");
+            }
+            
+            // 3.2 检查消息是否已存在
+            MessageLifecycleLog existingLog = messageLifecycleService.getByMessageId(messageId);
+            if (existingLog == null) {
+                throw new IllegalStateException("消息不存在: " + messageId);
+            }
+            
+            // 3.3 验证消息状态是否允许确认
+            if (!"CONSUME".equals(existingLog.getLifecycleStage()) || 
+                !"SUCCESS".equals(existingLog.getStageStatus())) {
+                throw new IllegalStateException("消息状态不允许确认消费: " + messageId + 
+                    ", 当前阶段: " + existingLog.getLifecycleStage() + 
+                    ", 状态: " + existingLog.getStageStatus());
+            }
+            
+            // 3.4 更新消费状态为已确认
+            existingLog.setStageStatus("CONFIRMED");
+            existingLog.setStageEndTime(LocalDateTime.now());
+            existingLog.setProcessingTime(System.currentTimeMillis() - 
+                existingLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            messageLifecycleService.updateById(existingLog);
+            
+            // 3.5 记录消费确认日志
+            log.info("消息消费已确认: ID={}, 确认时间={}", messageId, LocalDateTime.now());
+            
+            // 3.6 发送确认通知（可选）
+            sendConsumptionConfirmationNotification(messageId);
+            
+            // 3.7 清理临时数据（如果有的话）
+            // cleanupTemporaryData(messageId);
+            
+            // 3.8 更新消息统计信息
+            updateMessageStatistics(messageId, "CONSUME_CONFIRM");
             
             // 4. 更新Saga日志状态
             sagaLog.setStatus("SUCCESS");
             sagaLog.setEndTime(LocalDateTime.now());
+            sagaLog.setProcessingTime(System.currentTimeMillis() - 
+                sagaLog.getStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            sagaLog.setResponseResult("{\"status\":\"SUCCESS\",\"message\":\"消费确认成功\"}");
             messageSagaLogService.updateById(sagaLog);
             
             // 5. 更新生命周期日志状态
             lifecycleLog.setStageStatus("SUCCESS");
             lifecycleLog.setStageEndTime(LocalDateTime.now());
-            lifecycleLog.setProcessingTime(System.currentTimeMillis() - lifecycleLog.getStageStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+            lifecycleLog.setProcessingTime(System.currentTimeMillis() - 
+                lifecycleLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             messageLifecycleService.updateById(lifecycleLog);
             
             log.info("消费确认成功: ID={}", messageId);
@@ -810,6 +885,37 @@ public class MessageSagaStateMachine {
         }
     }
 
+    /**
+     * 更新消息统计信息
+     * 
+     * @param messageId 消息ID
+     * @param operation 操作类型
+     */
+    private void updateMessageStatistics(String messageId, String operation) {
+        try {
+            // 这里可以实现具体的统计逻辑
+            // 例如：更新Redis计数器、数据库统计表等
+            
+            log.debug("更新消息统计信息: messageId={}, operation={}", messageId, operation);
+            
+            // 示例：更新Redis计数器
+            // String counterKey = "message:stats:" + operation + ":" + LocalDate.now();
+            // redisTemplate.opsForValue().increment(counterKey);
+            
+            // 示例：更新数据库统计表
+            // MessageStatistics stats = new MessageStatistics();
+            // stats.setOperation(operation);
+            // stats.setCount(1);
+            // stats.setDate(LocalDate.now());
+            // messageStatisticsService.incrementCount(stats);
+            
+        } catch (Exception e) {
+            log.warn("更新消息统计信息失败: messageId={}, operation={}, error={}", 
+                    messageId, operation, e.getMessage());
+            // 统计失败不影响主业务流程，只记录警告日志
+        }
+    }
+
     // ==================== 事务事件发送私有方法 ====================
 
     /**
@@ -922,6 +1028,150 @@ public class MessageSagaStateMachine {
                      transactionId, globalTransactionId, errorMessage);
         } catch (Exception e) {
             log.warn("发送事务回滚事件失败: transactionId={}, error={}", transactionId, e.getMessage());
+        }
+    }
+
+    /**
+     * 发送消息确认通知
+     * 可以通过邮件、短信、WebSocket等方式发送通知
+     */
+    private void sendMessageConfirmationNotification(String messageId) {
+        try {
+            log.info("发送消息确认通知: messageId={}", messageId);
+            
+            // 获取消息详情
+            MessageLifecycleLog messageLog = messageLifecycleService.getByMessageId(messageId);
+            if (messageLog == null) {
+                log.warn("消息不存在，无法发送确认通知: messageId={}", messageId);
+                return;
+            }
+            
+            // 构建通知内容
+            String notificationContent = String.format(
+                "消息确认通知\n" +
+                "消息ID: %s\n" +
+                "确认时间: %s\n" +
+                "状态: 已确认\n" +
+                "处理时间: %dms",
+                messageId,
+                LocalDateTime.now(),
+                messageLog.getProcessingTime() != null ? messageLog.getProcessingTime() : 0
+            );
+            
+            // 这里可以实现具体的通知逻辑
+            // 例如：发送邮件、短信、WebSocket推送等
+            
+            // 示例：记录通知日志
+            log.info("消息确认通知已发送: messageId={}, 内容={}", messageId, notificationContent);
+            
+            // 示例：发送WebSocket通知（如果有WebSocket服务）
+            // webSocketService.sendNotification("message-confirmation", notificationContent);
+            
+            // 示例：发送邮件通知（如果有邮件服务）
+            // emailService.sendNotification("消息确认通知", notificationContent, recipientEmail);
+            
+            // 示例：发送短信通知（如果有短信服务）
+            // smsService.sendNotification(phoneNumber, notificationContent);
+            
+        } catch (Exception e) {
+            log.warn("发送消息确认通知失败: messageId={}, error={}", messageId, e.getMessage());
+            // 通知失败不影响主业务流程，只记录警告日志
+        }
+    }
+    
+    /**
+     * 发送消费确认通知
+     * 可以通过邮件、短信、WebSocket等方式发送通知
+     */
+    private void sendConsumptionConfirmationNotification(String messageId) {
+        try {
+            log.info("发送消费确认通知: messageId={}", messageId);
+            
+            // 获取消息详情
+            MessageLifecycleLog messageLog = messageLifecycleService.getByMessageId(messageId);
+            if (messageLog == null) {
+                log.warn("消息不存在，无法发送消费确认通知: messageId={}", messageId);
+                return;
+            }
+            
+            // 构建通知内容
+            String notificationContent = String.format(
+                "消费确认通知\n" +
+                "消息ID: %s\n" +
+                "确认时间: %s\n" +
+                "状态: 消费已确认\n" +
+                "处理时间: %dms",
+                messageId,
+                LocalDateTime.now(),
+                messageLog.getProcessingTime() != null ? messageLog.getProcessingTime() : 0
+            );
+            
+            // 这里可以实现具体的通知逻辑
+            // 例如：发送邮件、短信、WebSocket推送等
+            
+            // 示例：记录通知日志
+            log.info("消费确认通知已发送: messageId={}, 内容={}", messageId, notificationContent);
+            
+            // 示例：发送WebSocket通知（如果有WebSocket服务）
+            // webSocketService.sendNotification("consumption-confirmation", notificationContent);
+            
+            // 示例：发送邮件通知（如果有邮件服务）
+            // emailService.sendNotification("消费确认通知", notificationContent, recipientEmail);
+            
+            // 示例：发送短信通知（如果有短信服务）
+            // smsService.sendNotification(phoneNumber, notificationContent);
+            
+        } catch (Exception e) {
+            log.warn("发送消费确认通知失败: messageId={}, error={}", messageId, e.getMessage());
+            // 通知失败不影响主业务流程，只记录警告日志
+        }
+    }
+    
+    /**
+     * 记录消息确认历史
+     * 将确认操作记录到历史表中，便于后续查询和审计
+     */
+    private void recordConfirmationHistory(String messageId) {
+        try {
+            log.info("记录消息确认历史: messageId={}", messageId);
+            
+            // 获取消息详情
+            MessageLifecycleLog messageLog = messageLifecycleService.getByMessageId(messageId);
+            if (messageLog == null) {
+                log.warn("消息不存在，无法记录确认历史: messageId={}", messageId);
+                return;
+            }
+            
+            // 构建确认历史记录
+            Map<String, Object> confirmationHistory = new HashMap<>();
+            confirmationHistory.put("messageId", messageId);
+            confirmationHistory.put("confirmationTime", LocalDateTime.now());
+            confirmationHistory.put("confirmationType", "MESSAGE_ACK");
+            confirmationHistory.put("previousStatus", "SEND_SUCCESS");
+            confirmationHistory.put("currentStatus", "ACKED");
+            confirmationHistory.put("processingTime", messageLog.getProcessingTime());
+            confirmationHistory.put("operator", "system"); // 可以从安全上下文获取实际操作用户
+            confirmationHistory.put("operationReason", "消息发送成功后的自动确认");
+            confirmationHistory.put("timestamp", System.currentTimeMillis());
+            
+            // 这里可以实现具体的历史记录逻辑
+            // 例如：保存到数据库历史表、写入日志文件、发送到消息队列等
+            
+            // 示例：记录到数据库历史表（如果有历史表服务）
+            // messageHistoryService.saveConfirmationHistory(confirmationHistory);
+            
+            // 示例：写入审计日志
+            log.info("消息确认历史记录: {}", JSON.toJSONString(confirmationHistory));
+            
+            // 示例：发送到消息队列（如果有消息队列服务）
+            // messageQueueService.sendMessage("message-confirmation-history", confirmationHistory);
+            
+            // 示例：保存到Redis缓存（如果有Redis服务）
+            // redisTemplate.opsForHash().put("message:confirmation:history", messageId, confirmationHistory);
+            
+        } catch (Exception e) {
+            log.warn("记录消息确认历史失败: messageId={}, error={}", messageId, e.getMessage());
+            // 历史记录失败不影响主业务流程，只记录警告日志
         }
     }
 

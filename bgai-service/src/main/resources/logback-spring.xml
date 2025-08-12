@@ -16,11 +16,11 @@
         </encoder>
     </appender>
 
-    <!-- 文件输出 - 输出到 bgai-service 自己的 logs 目录 -->
+    <!-- 文件输出 - 使用相对路径 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>bgai-service/logs/${springAppName}.log</file>
+        <file>logs/${springAppName}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>bgai-service/logs/${springAppName}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/${springAppName}.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -28,8 +28,6 @@
             <charset>UTF-8</charset>
         </encoder>
     </appender>
-
-
 
     <!-- 自定义日志级别 -->
     <logger name="com.bgpay.bgai" level="DEBUG"/>
@@ -52,12 +50,9 @@
     <logger name="org.mybatis.spring.mapper" level="WARN"/>
     <logger name="com.baomidou.mybatisplus" level="WARN"/>
 
-
-
     <!-- 根日志级别 -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
-
     </root>
 </configuration>

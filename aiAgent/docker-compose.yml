@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  aiAgent-service:
+    build: .
+    container_name: aiAgent-service
+    ports:
+      - "8690:8690"
+    environment:
+      - SERVER_PORT=8690
+      - NACOS_SERVER_ADDR=8.133.246.113:8848
+      - NACOS_GROUP=DEFAULT_GROUP
+      - NACOS_NAMESPACE=d750d92e-152f-4055-a641-3bc9dda85a29
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT:-gpt-35-turbo}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://localhost:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama2}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - ai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8690/api/aiAgent/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  ai-network:
+    driver: bridge
+    external: true

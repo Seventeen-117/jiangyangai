@@ -22,9 +22,9 @@
 
     <!-- 主要日志文件 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>signature-service/logs/${springAppName}.log</file>
+        <file>logs/${springAppName}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>signature-service/logs/${springAppName}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/${springAppName}.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>30</maxHistory>
             <totalSizeCap>10GB</totalSizeCap>
         </rollingPolicy>
@@ -36,9 +36,9 @@
 
     <!-- 错误日志文件 -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>signature-service/logs/${springAppName}-error.log</file>
+        <file>logs/${springAppName}-error.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>signature-service/logs/${springAppName}-error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/${springAppName}-error.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>30</maxHistory>
             <totalSizeCap>5GB</totalSizeCap>
         </rollingPolicy>
@@ -56,9 +56,9 @@
 
     <!-- 签名验证日志文件 -->
     <appender name="SIGNATURE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>signature-service/logs/${springAppName}-signature.log</file>
+        <file>logs/${springAppName}-signature.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>signature-service/logs/${springAppName}-signature.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/${springAppName}-signature.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>15</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
@@ -70,9 +70,9 @@
 
     <!-- API调用日志文件 -->
     <appender name="API_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>signature-service/logs/${springAppName}-api.log</file>
+        <file>logs/${springAppName}-api.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>signature-service/logs/${springAppName}-api.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/${springAppName}-api.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>15</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>

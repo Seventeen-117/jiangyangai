@@ -15,6 +15,8 @@
 - **gateway-service** (端口8080): API网关服务，负责路由和基础过滤
 - **signature-service** (端口8689): 签名验证服务，提供完整的认证和授权功能
 - **bgai-service** (端口8688): AI服务，提供业务功能
+- **aiAgent-service** (端口8690): AI智能代理服务，集成多种AI模型，提供统一聊天接口
+- **messages-service** (端口8687): 消息服务，处理消息队列和事务事件
 
 ## 目录
 
