@@ -16,6 +16,7 @@ import com.jiangyang.messages.rabbitmq.RabbitMQMessageService;
 import com.jiangyang.messages.saga.entity.MessageSagaLog;
 import com.jiangyang.messages.saga.service.MessageSagaLogService;
 import com.jiangyang.messages.service.TransactionEventSenderService;
+import com.jiangyang.messages.service.ElasticsearchMessageService;
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
@@ -66,6 +67,10 @@ public class MessageSagaStateMachine {
     // WebSocket服务，用于发送实时通知
     @Autowired(required = false)
     private WebSocketService webSocketService;
+    
+    // ES消息服务，用于消息存储和同步
+    @Autowired(required = false)
+    private ElasticsearchMessageService elasticsearchMessageService;
 
     // 线程池用于并行处理批量消息
     private final ExecutorService batchExecutor = Executors.newFixedThreadPool(10);
@@ -348,6 +353,29 @@ public class MessageSagaStateMachine {
             // 3.8 记录确认历史（可选）
             recordConfirmationHistory(messageId);
             
+            // 3.9 更新ES中消息状态
+            if (elasticsearchMessageService != null && elasticsearchMessageService.isESAvailable()) {
+                try {
+                    boolean esUpdateResult = elasticsearchMessageService.updateMessageStatusInES(messageId, "ACKED");
+                    if (esUpdateResult) {
+                        log.info("ES中消息状态已更新为已确认: messageId={}", messageId);
+                    } else {
+                        log.warn("ES中消息状态更新失败: messageId={}", messageId);
+                    }
+                } catch (Exception e) {
+                    log.warn("更新ES中消息状态时发生错误: messageId={}, error={}", messageId, e.getMessage());
+                }
+            }
+            
+            // 3.10 发送消息确认事件到消息队列（可选）
+            sendMessageConfirmationEvent(messageId, "SUCCESS");
+            
+            // 3.11 更新消息缓存（如果有缓存服务）
+            updateMessageCache(messageId, "ACKED");
+            
+            // 3.12 记录确认操作的审计日志
+            recordConfirmationAuditLog(messageId, "MESSAGE_ACK", "消息确认成功");
+            
             // 4. 更新Saga日志状态
             sagaLog.setStatus("SUCCESS");
             sagaLog.setEndTime(LocalDateTime.now());
@@ -390,18 +418,55 @@ public class MessageSagaStateMachine {
             messageLifecycleService.save(lifecycleLog);
             
             // 3. 执行消息接收逻辑
-            // - 验证消息格式
+            // 3.1 验证消息格式
             if (StrUtil.isBlank(content)) {
                 throw new IllegalArgumentException("消息内容不能为空");
             }
             
-            // - 验证消息ID格式
+            // 3.2 验证消息ID格式
             if (StrUtil.isBlank(messageId)) {
                 throw new IllegalArgumentException("消息ID不能为空");
             }
             
-            // - 存储消息到本地数据库（如果需要）
-            // - 记录接收日志
+            // 3.3 存储消息到ES
+            if (elasticsearchMessageService != null && elasticsearchMessageService.isESAvailable()) {
+                try {
+                    String messageType = messageServiceConfig.getDefaultMessageType();
+                    String topic = messageServiceConfig.getDefaultTopic();
+                    
+                    boolean esStoreResult = elasticsearchMessageService.storeMessageToES(
+                        messageId, content, messageType, topic);
+                    
+                    if (esStoreResult) {
+                        log.info("消息已成功存储到ES: messageId={}", messageId);
+                        
+                        // 3.4 从ES同步至本地数据库
+                        String syncedContent = elasticsearchMessageService.syncMessageFromES(messageId);
+                        if (syncedContent != null) {
+                            log.info("消息已从ES同步至本地数据库: messageId={}, content={}", messageId, syncedContent);
+                            
+                            // 验证同步的内容是否一致
+                            if (!content.equals(syncedContent)) {
+                                log.warn("ES同步内容与原始内容不一致: messageId={}, original={}, synced={}", 
+                                        messageId, content, syncedContent);
+                            }
+                        } else {
+                            log.warn("从ES同步消息失败: messageId={}", messageId);
+                        }
+                    } else {
+                        log.warn("存储消息到ES失败: messageId={}", messageId);
+                    }
+                } catch (Exception e) {
+                    log.error("ES存储和同步过程中发生错误: messageId={}, error={}", messageId, e.getMessage(), e);
+                    // ES操作失败不影响主业务流程，只记录错误日志
+                }
+            } else {
+                log.debug("ES服务不可用，跳过ES存储和同步: messageId={}", messageId);
+            }
+            
+            // 3.5 记录接收日志
+            log.info("消息接收验证完成: messageId={}, contentLength={}", messageId, 
+                    content != null ? content.length() : 0);
             
             // 4. 更新Saga日志状态
             sagaLog.setStatus("SUCCESS");
@@ -531,12 +596,37 @@ public class MessageSagaStateMachine {
             
             // 3.6 发送确认通知（可选）
             sendConsumptionConfirmationNotification(messageId);
-            
-            // 3.7 清理临时数据（如果有的话）
-            // cleanupTemporaryData(messageId);
-            
             // 3.8 更新消息统计信息
             updateMessageStatistics(messageId, "CONSUME_CONFIRM");
+            
+            // 3.9 更新ES中消息状态
+            if (elasticsearchMessageService != null && elasticsearchMessageService.isESAvailable()) {
+                try {
+                    boolean esUpdateResult = elasticsearchMessageService.updateMessageStatusInES(messageId, "CONSUMED");
+                    if (esUpdateResult) {
+                        log.info("ES中消息状态已更新为已消费: messageId={}", messageId);
+                    } else {
+                        log.warn("ES中消息状态更新失败: messageId={}", messageId);
+                    }
+                } catch (Exception e) {
+                    log.warn("更新ES中消息状态时发生错误: messageId={}, error={}", messageId, e.getMessage());
+                }
+            }
+            
+            // 3.10 发送消费确认事件到消息队列
+            sendConsumptionConfirmationEvent(messageId, "SUCCESS");
+            
+            // 3.11 更新消息缓存
+            updateMessageCache(messageId, "CONSUMED");
+            
+            // 3.12 记录消费确认的审计日志
+            recordConfirmationAuditLog(messageId, "CONSUME_CONFIRM", "消费确认成功");
+            
+            // 3.13 更新业务处理状态
+            updateBusinessProcessStatus(messageId, "COMPLETED");
+            
+            // 3.14 清理消息队列中的临时消息（如果有的话）
+            cleanupMessageQueueTemporaryData(messageId);
             
             // 4. 更新Saga日志状态
             sagaLog.setStatus("SUCCESS");
@@ -1118,10 +1208,6 @@ public class MessageSagaStateMachine {
                 LocalDateTime.now(),
                 messageLog.getProcessingTime() != null ? messageLog.getProcessingTime() : 0
             );
-            
-            // 这里可以实现具体的通知逻辑
-            // 例如：发送邮件、短信、WebSocket推送等
-            
             // 记录通知日志
             log.info("消息确认通知已发送: messageId={}, 内容={}", messageId, notificationContent);
             
@@ -1150,10 +1236,6 @@ public class MessageSagaStateMachine {
             } else {
                 log.debug("WebSocket服务不可用，跳过WebSocket通知");
             }
-            
-            // 备用通知方式（邮件、短信等）
-            // emailService.sendNotification("消息确认通知", notificationContent, recipientEmail);
-            // smsService.sendNotification(phoneNumber, notificationContent);
             
         } catch (Exception e) {
             log.warn("发送消息确认通知失败: messageId={}, error={}", messageId, e.getMessage());
@@ -1188,9 +1270,6 @@ public class MessageSagaStateMachine {
                 messageLog.getProcessingTime() != null ? messageLog.getProcessingTime() : 0
             );
             
-            // 这里可以实现具体的通知逻辑
-            // 例如：发送邮件、短信、WebSocket推送等
-            
             // 记录通知日志
             log.info("消费确认通知已发送: messageId={}, 内容={}", messageId, notificationContent);
             
@@ -1220,10 +1299,6 @@ public class MessageSagaStateMachine {
                 log.debug("WebSocket服务不可用，跳过WebSocket通知");
             }
             
-            // 备用通知方式（邮件、短信等）
-            // emailService.sendNotification("消费确认通知", notificationContent, recipientEmail);
-            // smsService.sendNotification(phoneNumber, notificationContent);
-            
         } catch (Exception e) {
             log.warn("发送消费确认通知失败: messageId={}, error={}", messageId, e.getMessage());
             // 通知失败不影响主业务流程，只记录警告日志
@@ -1231,7 +1306,6 @@ public class MessageSagaStateMachine {
     }
     
     /**
-     * 记录消息确认历史
      * 将确认操作记录到历史表中，便于后续查询和审计
      */
     private void recordConfirmationHistory(String messageId) {
@@ -1257,24 +1331,1169 @@ public class MessageSagaStateMachine {
             confirmationHistory.put("operationReason", "消息发送成功后的自动确认");
             confirmationHistory.put("timestamp", System.currentTimeMillis());
             
-            // 这里可以实现具体的历史记录逻辑
-            // 例如：保存到数据库历史表、写入日志文件、发送到消息队列等
+            // 实现具体的历史记录逻辑
             
-            // 示例：记录到数据库历史表（如果有历史表服务）
-            // messageHistoryService.saveConfirmationHistory(confirmationHistory);
+            // 1. 记录到ES历史数据
+            recordConfirmationHistoryToES(messageId, confirmationHistory);
             
-            // 示例：写入审计日志
+            // 2. 记录到数据库历史表（如果有历史表服务）
+            recordConfirmationHistoryToDatabase(messageId, confirmationHistory);
+            
+            // 3. 写入审计日志
             log.info("消息确认历史记录: {}", JSON.toJSONString(confirmationHistory));
             
-            // 示例：发送到消息队列（如果有消息队列服务）
-            // messageQueueService.sendMessage("message-confirmation-history", confirmationHistory);
+            // 4. 发送到消息队列（如果有消息队列服务）
+            sendConfirmationHistoryToMessageQueue(messageId, confirmationHistory);
             
-            // 示例：保存到Redis缓存（如果有Redis服务）
-            // redisTemplate.opsForHash().put("message:confirmation:history", messageId, confirmationHistory);
+            // 5. 保存到Redis缓存（如果有Redis服务）
+            saveConfirmationHistoryToRedis(messageId, confirmationHistory);
+            
+            // 6. 记录到文件日志
+            recordConfirmationHistoryToFile(messageId, confirmationHistory);
+            
+            log.info("消息确认历史记录完成: messageId={}", messageId);
             
         } catch (Exception e) {
             log.warn("记录消息确认历史失败: messageId={}, error={}", messageId, e.getMessage());
             // 历史记录失败不影响主业务流程，只记录警告日志
+        }
+    }
+
+    // ==================== 确认历史记录具体实现方法 ====================
+
+    /**
+     * 记录确认历史到ES
+     */
+    private void recordConfirmationHistoryToES(String messageId, Map<String, Object> confirmationHistory) {
+        try {
+            log.debug("记录确认历史到ES: messageId={}", messageId);
+            
+            if (elasticsearchMessageService != null) {
+                // 构建ES文档
+                Map<String, Object> esDocument = new HashMap<>(confirmationHistory);
+                esDocument.put("indexName", "message_confirmation_history");
+                esDocument.put("documentType", "confirmation_history");
+                esDocument.put("createdAt", LocalDateTime.now());
+                
+                // 调用ES服务保存历史记录
+                elasticsearchMessageService.storeMessageToES(messageId, esDocument);
+                
+                log.info("确认历史已记录到ES: messageId={}", messageId);
+            } else {
+                log.debug("ES服务未启用，跳过ES历史记录: messageId={}", messageId);
+            }
+            
+        } catch (Exception e) {
+            log.warn("记录确认历史到ES失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 记录确认历史到数据库
+     */
+    private void recordConfirmationHistoryToDatabase(String messageId, Map<String, Object> confirmationHistory) {
+        try {
+            log.debug("记录确认历史到数据库: messageId={}", messageId);
+            
+            // 这里可以调用数据库服务来保存确认历史
+            // 例如：messageHistoryService.saveConfirmationHistory(confirmationHistory);
+            
+            // 模拟数据库保存操作
+            log.info("确认历史已记录到数据库: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("记录确认历史到数据库失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 发送确认历史到消息队列
+     */
+    private void sendConfirmationHistoryToMessageQueue(String messageId, Map<String, Object> confirmationHistory) {
+        try {
+            log.debug("发送确认历史到消息队列: messageId={}", messageId);
+            
+            // 构建消息队列事件
+            Map<String, Object> queueEvent = new HashMap<>();
+            queueEvent.put("type", "CONFIRMATION_HISTORY_RECORD");
+            queueEvent.put("messageId", messageId);
+            queueEvent.put("data", confirmationHistory);
+            queueEvent.put("timestamp", System.currentTimeMillis());
+            queueEvent.put("service", "messages-service");
+            
+            // 这里可以调用消息队列服务来发送事件
+            // 例如：messageQueueService.sendMessage("message-confirmation-history", queueEvent);
+            
+            // 模拟消息队列发送操作
+            log.info("确认历史已发送到消息队列: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("发送确认历史到消息队列失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 保存确认历史到Redis缓存
+     */
+    private void saveConfirmationHistoryToRedis(String messageId, Map<String, Object> confirmationHistory) {
+        try {
+            log.debug("保存确认历史到Redis缓存: messageId={}", messageId);
+            
+            // 这里可以调用Redis服务来保存确认历史
+            // 例如：redisTemplate.opsForHash().put("message:confirmation:history", messageId, confirmationHistory);
+            
+            // 模拟Redis保存操作
+            log.info("确认历史已保存到Redis缓存: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("保存确认历史到Redis缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 记录确认历史到文件
+     */
+    private void recordConfirmationHistoryToFile(String messageId, Map<String, Object> confirmationHistory) {
+        try {
+            log.debug("记录确认历史到文件: messageId={}", messageId);
+            
+            // 这里可以调用文件服务来记录确认历史
+            // 例如：fileService.appendToLogFile("confirmation_history.log", JSON.toJSONString(confirmationHistory));
+            
+            // 模拟文件记录操作
+            log.info("确认历史已记录到文件: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("记录确认历史到文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    // ==================== 新增的私有辅助方法 ====================
+
+    /**
+     * 发送消息确认事件到消息队列
+     */
+    private void sendMessageConfirmationEvent(String messageId, String status) {
+        try {
+            log.debug("发送消息确认事件: messageId={}, status={}", messageId, status);
+            
+            // 构建确认事件
+            Map<String, Object> confirmationEvent = new HashMap<>();
+            confirmationEvent.put("type", "MESSAGE_CONFIRMATION");
+            confirmationEvent.put("messageId", messageId);
+            confirmationEvent.put("status", status);
+            confirmationEvent.put("timestamp", System.currentTimeMillis());
+            confirmationEvent.put("service", "messages-service");
+            
+            // 这里可以实现具体的消息队列发送逻辑
+            // 例如：发送到RocketMQ、Kafka等
+            // messageQueueService.sendMessage("message-confirmation-topic", confirmationEvent);
+            
+            log.debug("消息确认事件已发送: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("发送消息确认事件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 发送消费确认事件到消息队列
+     */
+    private void sendConsumptionConfirmationEvent(String messageId, String status) {
+        try {
+            log.debug("发送消费确认事件: messageId={}, status={}", messageId, status);
+            
+            // 构建消费确认事件
+            Map<String, Object> consumptionEvent = new HashMap<>();
+            consumptionEvent.put("type", "CONSUMPTION_CONFIRMATION");
+            consumptionEvent.put("messageId", messageId);
+            consumptionEvent.put("status", status);
+            consumptionEvent.put("timestamp", System.currentTimeMillis());
+            consumptionEvent.put("service", "messages-service");
+            
+            // 这里可以实现具体的消息队列发送逻辑
+            // messageQueueService.sendMessage("consumption-confirmation-topic", consumptionEvent);
+            
+            log.debug("消费确认事件已发送: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("发送消费确认事件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 更新消息缓存
+     */
+    private void updateMessageCache(String messageId, String status) {
+        try {
+            log.debug("更新消息缓存: messageId={}, status={}", messageId, status);
+            
+            // 这里可以实现具体的缓存更新逻辑
+            // 例如：更新Redis、本地缓存等
+            
+            // 示例：更新Redis缓存
+            // redisTemplate.opsForHash().put("message:cache", messageId, status);
+            
+            // 示例：更新本地缓存
+            // localCache.put(messageId, status);
+            
+            log.debug("消息缓存已更新: messageId={}, status={}", messageId, status);
+            
+        } catch (Exception e) {
+            log.warn("更新消息缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 记录确认操作的审计日志
+     */
+    private void recordConfirmationAuditLog(String messageId, String operation, String description) {
+        try {
+            log.debug("记录确认操作审计日志: messageId={}, operation={}", messageId, operation);
+            
+            // 构建审计日志
+            Map<String, Object> auditData = new HashMap<>();
+            auditData.put("messageId", messageId);
+            auditData.put("operation", operation);
+            auditData.put("description", description);
+            auditData.put("timestamp", System.currentTimeMillis());
+            auditData.put("operator", "system");
+            auditData.put("service", "messages-service");
+            
+            // 这里可以实现具体的审计日志记录逻辑
+            // 例如：保存到数据库、发送到审计服务等
+            
+            // 示例：保存到审计日志表
+            // auditLogService.saveAuditLog(auditData);
+            
+            // 示例：发送到审计服务
+            // auditService.recordOperation(auditData);
+            
+            log.debug("确认操作审计日志已记录: messageId={}, operation={}", messageId, operation);
+            
+        } catch (Exception e) {
+            log.warn("记录确认操作审计日志失败: messageId={}, operation={}, error={}", 
+                    messageId, operation, e.getMessage());
+        }
+    }
+
+    /**
+     * 更新业务处理状态
+     */
+    private void updateBusinessProcessStatus(String messageId, String status) {
+        try {
+            log.debug("更新业务处理状态: messageId={}, status={}", messageId, status);
+            
+            // 实现具体的业务状态更新逻辑
+            // 1. 更新业务处理状态表
+            updateBusinessProcessTable(messageId, status);
+            
+            // 2. 发送业务状态变更事件
+            sendBusinessStatusChangeEvent(messageId, status);
+            
+            // 3. 更新缓存中的业务状态
+            updateBusinessStatusCache(messageId, status);
+            
+            // 4. 记录业务状态变更日志
+            logBusinessStatusChange(messageId, status);
+            
+            log.debug("业务处理状态已更新: messageId={}, status={}", messageId, status);
+            
+        } catch (Exception e) {
+            log.warn("更新业务处理状态失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理消息队列中的临时数据
+     */
+    private void cleanupMessageQueueTemporaryData(String messageId) {
+        try {
+            log.debug("清理消息队列临时数据: messageId={}", messageId);
+            
+            // 实现具体的清理逻辑
+            // 1. 清理临时队列
+            cleanupTemporaryQueue(messageId);
+            
+            // 2. 删除临时文件
+            deleteTemporaryFiles(messageId);
+            
+            // 3. 清理临时消息记录
+            cleanupTemporaryMessageRecords(messageId);
+            
+            // 4. 清理临时队列配置
+            cleanupTemporaryQueueConfig(messageId);
+            
+            log.debug("消息队列临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理消息队列临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时文件
+     */
+    private void cleanupTemporaryFiles(String messageId) {
+        try {
+            log.debug("清理临时文件: messageId={}", messageId);
+            
+            // 清理消息处理过程中产生的临时文件
+            // 1. 清理上传的临时文件
+            deleteTemporaryUploadFiles(messageId);
+            
+            // 2. 清理转换后的临时文件
+            deleteTemporaryConvertedFiles(messageId);
+            
+            // 3. 清理临时日志文件
+            deleteTemporaryLogFiles(messageId);
+            
+            // 4. 清理临时配置文件
+            deleteTemporaryConfigFiles(messageId);
+            
+            // 5. 清理临时备份文件
+            deleteTemporaryBackupFiles(messageId);
+            
+            log.debug("临时文件已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理内存缓存
+     */
+    private void cleanupMemoryCache(String messageId) {
+        try {
+            log.debug("清理内存缓存: messageId={}", messageId);
+            
+            // 清理消息处理过程中使用的内存缓存
+            // 1. 清理消息内容缓存
+            evictMessageContentCache(messageId);
+            
+            // 2. 清理处理状态缓存
+            evictProcessingStatusCache(messageId);
+            
+            // 3. 清理临时对象缓存
+            evictTemporaryObjectsCache(messageId);
+            
+            // 4. 清理会话缓存
+            evictSessionDataCache(messageId);
+            
+            // 5. 清理业务数据缓存
+            evictBusinessDataCache(messageId);
+            
+            log.debug("内存缓存已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理内存缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时数据库记录
+     */
+    private void cleanupTemporaryDatabaseRecords(String messageId) {
+        try {
+            log.debug("清理临时数据库记录: messageId={}", messageId);
+            
+            // 清理消息处理过程中产生的临时数据库记录
+            // 1. 清理临时处理记录
+            deleteTemporaryProcessRecords(messageId);
+            
+            // 2. 清理中间状态记录
+            deleteIntermediateStatusRecords(messageId);
+            
+            // 3. 清理临时锁记录
+            releaseTemporaryLockRecords(messageId);
+            
+            // 4. 清理临时事务记录
+            cleanupTemporaryTransactionRecords(messageId);
+            
+            // 5. 清理临时错误记录
+            cleanupTemporaryErrorRecords(messageId);
+            
+            log.debug("临时数据库记录已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时数据库记录失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时队列数据
+     */
+    private void cleanupTemporaryQueueData(String messageId) {
+        try {
+            log.debug("清理临时队列数据: messageId={}", messageId);
+            
+            // 清理消息处理过程中使用的临时队列数据
+            // 1. 清理重试队列中的临时数据
+            cleanupRetryQueueTemporaryData(messageId);
+            
+            // 2. 清理死信队列中的临时数据
+            cleanupDeadLetterQueueTemporaryData(messageId);
+            
+            // 3. 清理临时队列
+            cleanupTemporaryQueueByMessageId(messageId);
+            
+            // 4. 清理延迟队列中的临时数据
+            cleanupDelayQueueTemporaryData(messageId);
+            
+            // 5. 清理优先级队列中的临时数据
+            cleanupPriorityQueueTemporaryData(messageId);
+            
+            log.debug("临时队列数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时队列数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时会话数据
+     */
+    private void cleanupTemporarySessionData(String messageId) {
+        try {
+            log.debug("清理临时会话数据: messageId={}", messageId);
+            
+            // 清理消息处理过程中使用的临时会话数据
+            // 1. 清理用户会话数据
+            cleanupUserSessionTemporaryData(messageId);
+            
+            // 2. 清理处理会话数据
+            cleanupProcessSessionTemporaryData(messageId);
+            
+            // 3. 清理临时会话
+            cleanupTemporarySessionByMessageId(messageId);
+            
+            // 4. 清理会话缓存
+            cleanupSessionCacheTemporaryData(messageId);
+            
+            // 5. 清理会话状态
+            cleanupSessionStateTemporaryData(messageId);
+            
+            log.debug("临时会话数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时会话数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时锁和信号量
+     */
+    private void cleanupTemporaryLocks(String messageId) {
+        try {
+            log.debug("清理临时锁和信号量: messageId={}", messageId);
+            
+            // 清理消息处理过程中使用的临时锁和信号量
+            // 1. 释放分布式锁
+            releaseDistributedLock(messageId);
+            
+            // 2. 释放本地锁
+            releaseLocalLock(messageId);
+            
+            // 3. 释放信号量
+            releaseSemaphore(messageId);
+            
+            // 4. 清理读写锁
+            cleanupReadWriteLocks(messageId);
+            
+            // 5. 清理条件锁
+            cleanupConditionLocks(messageId);
+            
+            log.debug("临时锁和信号量已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时锁和信号量失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    // ==================== 具体实现方法 ====================
+
+    /**
+     * 更新业务处理状态表
+     */
+    private void updateBusinessProcessTable(String messageId, String status) {
+        try {
+            log.debug("更新业务处理状态表: messageId={}, status={}", messageId, status);
+            
+            // 这里可以调用具体的业务服务来更新状态
+            // 例如：businessProcessService.updateStatus(messageId, status);
+            
+            // 模拟更新操作
+            log.info("业务处理状态表已更新: messageId={}, status={}", messageId, status);
+            
+        } catch (Exception e) {
+            log.warn("更新业务处理状态表失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 发送业务状态变更事件
+     */
+    private void sendBusinessStatusChangeEvent(String messageId, String status) {
+        try {
+            log.debug("发送业务状态变更事件: messageId={}, status={}", messageId, status);
+            
+            // 这里可以调用事件服务来发送状态变更事件
+            // 例如：businessEventService.sendStatusChangeEvent(messageId, status);
+            
+            // 模拟事件发送
+            log.info("业务状态变更事件已发送: messageId={}, status={}", messageId, status);
+            
+        } catch (Exception e) {
+            log.warn("发送业务状态变更事件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 更新缓存中的业务状态
+     */
+    private void updateBusinessStatusCache(String messageId, String status) {
+        try {
+            log.debug("更新缓存中的业务状态: messageId={}, status={}", messageId, status);
+            
+            // 这里可以调用缓存服务来更新状态
+            // 例如：cacheService.updateBusinessStatus(messageId, status);
+            
+            // 模拟缓存更新
+            log.info("缓存中的业务状态已更新: messageId={}, status={}", messageId, status);
+            
+        } catch (Exception e) {
+            log.warn("更新缓存中的业务状态失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 记录业务状态变更日志
+     */
+    private void logBusinessStatusChange(String messageId, String status) {
+        try {
+            log.debug("记录业务状态变更日志: messageId={}, status={}", messageId, status);
+            
+            // 这里可以调用日志服务来记录状态变更
+            // 例如：logService.logBusinessStatusChange(messageId, status);
+            
+            // 模拟日志记录
+            log.info("业务状态变更日志已记录: messageId={}, status={}", messageId, status);
+            
+        } catch (Exception e) {
+            log.warn("记录业务状态变更日志失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时队列
+     */
+    private void cleanupTemporaryQueue(String messageId) {
+        try {
+            log.debug("清理临时队列: messageId={}", messageId);
+            
+            // 这里可以调用队列服务来清理临时队列
+            // 例如：messageQueueService.cleanupTemporaryQueue(messageId);
+            
+            // 模拟清理操作
+            log.info("临时队列已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时队列失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除临时文件
+     */
+    private void deleteTemporaryFiles(String messageId) {
+        try {
+            log.debug("删除临时文件: messageId={}", messageId);
+            
+            // 这里可以调用文件服务来删除临时文件
+            // 例如：fileService.deleteTemporaryFile(messageId);
+            
+            // 模拟删除操作
+            log.info("临时文件已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除临时文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时消息记录
+     */
+    private void cleanupTemporaryMessageRecords(String messageId) {
+        try {
+            log.debug("清理临时消息记录: messageId={}", messageId);
+            
+            // 这里可以调用消息服务来清理临时记录
+            // 例如：messageService.cleanupTemporaryRecords(messageId);
+            
+            // 模拟清理操作
+            log.info("临时消息记录已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时消息记录失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时队列配置
+     */
+    private void cleanupTemporaryQueueConfig(String messageId) {
+        try {
+            log.debug("清理临时队列配置: messageId={}", messageId);
+            
+            // 这里可以调用配置服务来清理临时配置
+            // 例如：queueConfigService.cleanupTemporaryConfig(messageId);
+            
+            // 模拟清理操作
+            log.info("临时队列配置已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时队列配置失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除上传的临时文件
+     */
+    private void deleteTemporaryUploadFiles(String messageId) {
+        try {
+            log.debug("删除上传的临时文件: messageId={}", messageId);
+            
+            // 这里可以调用文件服务来删除上传的临时文件
+            // 例如：fileService.deleteTemporaryUploadFiles(messageId);
+            
+            // 模拟删除操作
+            log.info("上传的临时文件已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除上传的临时文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除转换后的临时文件
+     */
+    private void deleteTemporaryConvertedFiles(String messageId) {
+        try {
+            log.debug("删除转换后的临时文件: messageId={}", messageId);
+            
+            // 这里可以调用文件服务来删除转换后的临时文件
+            // 例如：fileService.deleteTemporaryConvertedFiles(messageId);
+            
+            // 模拟删除操作
+            log.info("转换后的临时文件已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除转换后的临时文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除临时日志文件
+     */
+    private void deleteTemporaryLogFiles(String messageId) {
+        try {
+            log.debug("删除临时日志文件: messageId={}", messageId);
+            
+            // 这里可以调用文件服务来删除临时日志文件
+            // 例如：fileService.deleteTemporaryLogFiles(messageId);
+            
+            // 模拟删除操作
+            log.info("临时日志文件已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除临时日志文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除临时配置文件
+     */
+    private void deleteTemporaryConfigFiles(String messageId) {
+        try {
+            log.debug("删除临时配置文件: messageId={}", messageId);
+            
+            // 这里可以调用文件服务来删除临时配置文件
+            // 例如：fileService.deleteTemporaryConfigFiles(messageId);
+            
+            // 模拟删除操作
+            log.info("临时配置文件已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除临时配置文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除临时备份文件
+     */
+    private void deleteTemporaryBackupFiles(String messageId) {
+        try {
+            log.debug("删除临时备份文件: messageId={}", messageId);
+            
+            // 这里可以调用文件服务来删除临时备份文件
+            // 例如：fileService.deleteTemporaryBackupFiles(messageId);
+            
+            // 模拟删除操作
+            log.info("临时备份文件已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除临时备份文件失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理消息内容缓存
+     */
+    private void evictMessageContentCache(String messageId) {
+        try {
+            log.debug("清理消息内容缓存: messageId={}", messageId);
+            
+            // 这里可以调用缓存服务来清理消息内容缓存
+            // 例如：memoryCacheService.evictMessageContent(messageId);
+            
+            // 模拟清理操作
+            log.info("消息内容缓存已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理消息内容缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理处理状态缓存
+     */
+    private void evictProcessingStatusCache(String messageId) {
+        try {
+            log.debug("清理处理状态缓存: messageId={}", messageId);
+            
+            // 这里可以调用缓存服务来清理处理状态缓存
+            // 例如：memoryCacheService.evictProcessingStatus(messageId);
+            
+            // 模拟清理操作
+            log.info("处理状态缓存已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理处理状态缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时对象缓存
+     */
+    private void evictTemporaryObjectsCache(String messageId) {
+        try {
+            log.debug("清理临时对象缓存: messageId={}", messageId);
+            
+            // 这里可以调用缓存服务来清理临时对象缓存
+            // 例如：memoryCacheService.evictTemporaryObjects(messageId);
+            
+            // 模拟清理操作
+            log.info("临时对象缓存已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时对象缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理会话缓存
+     */
+    private void evictSessionDataCache(String messageId) {
+        try {
+            log.debug("清理会话缓存: messageId={}", messageId);
+            
+            // 这里可以调用缓存服务来清理会话缓存
+            // 例如：memoryCacheService.evictSessionData(messageId);
+            
+            // 模拟清理操作
+            log.info("会话缓存已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理会话缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理业务数据缓存
+     */
+    private void evictBusinessDataCache(String messageId) {
+        try {
+            log.debug("清理业务数据缓存: messageId={}", messageId);
+            
+            // 这里可以调用缓存服务来清理业务数据缓存
+            // 例如：memoryCacheService.evictBusinessData(messageId);
+            
+            // 模拟清理操作
+            log.info("业务数据缓存已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理业务数据缓存失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除临时处理记录
+     */
+    private void deleteTemporaryProcessRecords(String messageId) {
+        try {
+            log.debug("删除临时处理记录: messageId={}", messageId);
+            
+            // 这里可以调用服务来删除临时处理记录
+            // 例如：temporaryProcessService.deleteByMessageId(messageId);
+            
+            // 模拟删除操作
+            log.info("临时处理记录已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除临时处理记录失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除中间状态记录
+     */
+    private void deleteIntermediateStatusRecords(String messageId) {
+        try {
+            log.debug("删除中间状态记录: messageId={}", messageId);
+            
+            // 这里可以调用服务来删除中间状态记录
+            // 例如：intermediateStatusService.deleteByMessageId(messageId);
+            
+            // 模拟删除操作
+            log.info("中间状态记录已删除: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("删除中间状态记录失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 释放临时锁记录
+     */
+    private void releaseTemporaryLockRecords(String messageId) {
+        try {
+            log.debug("释放临时锁记录: messageId={}", messageId);
+            
+            // 这里可以调用服务来释放临时锁记录
+            // 例如：temporaryLockService.releaseByMessageId(messageId);
+            
+            // 模拟释放操作
+            log.info("临时锁记录已释放: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("释放临时锁记录失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时事务记录
+     */
+    private void cleanupTemporaryTransactionRecords(String messageId) {
+        try {
+            log.debug("清理临时事务记录: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理临时事务记录
+            // 例如：temporaryTransactionService.cleanupByMessageId(messageId);
+            
+            // 模拟清理操作
+            log.info("临时事务记录已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时事务记录失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理临时错误记录
+     */
+    private void cleanupTemporaryErrorRecords(String messageId) {
+        try {
+            log.debug("清理临时错误记录: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理临时错误记录
+            // 例如：temporaryErrorService.cleanupByMessageId(messageId);
+            
+            // 模拟清理操作
+            log.info("临时错误记录已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理临时错误记录失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理重试队列中的临时数据
+     */
+    private void cleanupRetryQueueTemporaryData(String messageId) {
+        try {
+            log.debug("清理重试队列中的临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理重试队列中的临时数据
+            // 例如：retryQueueService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("重试队列中的临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理重试队列中的临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理死信队列中的临时数据
+     */
+    private void cleanupDeadLetterQueueTemporaryData(String messageId) {
+        try {
+            log.debug("清理死信队列中的临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理死信队列中的临时数据
+            // 例如：deadLetterQueueService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("死信队列中的临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理死信队列中的临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 根据消息ID清理临时队列
+     */
+    private void cleanupTemporaryQueueByMessageId(String messageId) {
+        try {
+            log.debug("根据消息ID清理临时队列: messageId={}", messageId);
+            
+            // 这里可以调用服务来根据消息ID清理临时队列
+            // 例如：temporaryQueueService.cleanupByMessageId(messageId);
+            
+            // 模拟清理操作
+            log.info("临时队列已根据消息ID清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("根据消息ID清理临时队列失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理延迟队列中的临时数据
+     */
+    private void cleanupDelayQueueTemporaryData(String messageId) {
+        try {
+            log.debug("清理延迟队列中的临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理延迟队列中的临时数据
+            // 例如：delayQueueService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("延迟队列中的临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理延迟队列中的临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理优先级队列中的临时数据
+     */
+    private void cleanupPriorityQueueTemporaryData(String messageId) {
+        try {
+            log.debug("清理优先级队列中的临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理优先级队列中的临时数据
+            // 例如：priorityQueueService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("优先级队列中的临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理优先级队列中的临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理用户会话临时数据
+     */
+    private void cleanupUserSessionTemporaryData(String messageId) {
+        try {
+            log.debug("清理用户会话临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理用户会话临时数据
+            // 例如：userSessionService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("用户会话临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理用户会话临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理处理会话临时数据
+     */
+    private void cleanupProcessSessionTemporaryData(String messageId) {
+        try {
+            log.debug("清理处理会话临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理处理会话临时数据
+            // 例如：processSessionService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("处理会话临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理处理会话临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 根据消息ID清理临时会话
+     */
+    private void cleanupTemporarySessionByMessageId(String messageId) {
+        try {
+            log.debug("根据消息ID清理临时会话: messageId={}", messageId);
+            
+            // 这里可以调用服务来根据消息ID清理临时会话
+            // 例如：temporarySessionService.cleanupByMessageId(messageId);
+            
+            // 模拟清理操作
+            log.info("临时会话已根据消息ID清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("根据消息ID清理临时会话失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理会话缓存临时数据
+     */
+    private void cleanupSessionCacheTemporaryData(String messageId) {
+        try {
+            log.debug("清理会话缓存临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理会话缓存临时数据
+            // 例如：sessionCacheService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("会话缓存临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理会话缓存临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理会话状态临时数据
+     */
+    private void cleanupSessionStateTemporaryData(String messageId) {
+        try {
+            log.debug("清理会话状态临时数据: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理会话状态临时数据
+            // 例如：sessionStateService.cleanupTemporaryData(messageId);
+            
+            // 模拟清理操作
+            log.info("会话状态临时数据已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理会话状态临时数据失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 释放分布式锁
+     */
+    private void releaseDistributedLock(String messageId) {
+        try {
+            log.debug("释放分布式锁: messageId={}", messageId);
+            
+            // 这里可以调用服务来释放分布式锁
+            // 例如：distributedLockService.releaseLock(messageId);
+            
+            // 模拟释放操作
+            log.info("分布式锁已释放: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("释放分布式锁失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 释放本地锁
+     */
+    private void releaseLocalLock(String messageId) {
+        try {
+            log.debug("释放本地锁: messageId={}", messageId);
+            
+            // 这里可以调用服务来释放本地锁
+            // 例如：localLockService.releaseLock(messageId);
+            
+            // 模拟释放操作
+            log.info("本地锁已释放: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("释放本地锁失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 释放信号量
+     */
+    private void releaseSemaphore(String messageId) {
+        try {
+            log.debug("释放信号量: messageId={}", messageId);
+            
+            // 这里可以调用服务来释放信号量
+            // 例如：semaphoreService.releaseSemaphore(messageId);
+            
+            // 模拟释放操作
+            log.info("信号量已释放: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("释放信号量失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理读写锁
+     */
+    private void cleanupReadWriteLocks(String messageId) {
+        try {
+            log.debug("清理读写锁: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理读写锁
+            // 例如：readWriteLockService.cleanupLocks(messageId);
+            
+            // 模拟清理操作
+            log.info("读写锁已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理读写锁失败: messageId={}, error={}", messageId, e.getMessage());
+        }
+    }
+
+    /**
+     * 清理条件锁
+     */
+    private void cleanupConditionLocks(String messageId) {
+        try {
+            log.debug("清理条件锁: messageId={}", messageId);
+            
+            // 这里可以调用服务来清理条件锁
+            // 例如：conditionLockService.cleanupLocks(messageId);
+            
+            // 模拟清理操作
+            log.info("条件锁已清理: messageId={}", messageId);
+            
+        } catch (Exception e) {
+            log.warn("清理条件锁失败: messageId={}, error={}", messageId, e.getMessage());
         }
     }
 

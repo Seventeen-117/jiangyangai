@@ -75,3 +75,12 @@ server:
       min-spare: 20
     max-connections: 8192
     accept-count: 100
+
+# Elasticsearch配置
+elasticsearch:
+  enabled: true  # 生产环境启用ES
+  host: ${ELASTICSEARCH_HOST:elasticsearch}
+  port: ${ELASTICSEARCH_PORT:9200}
+  scheme: ${ELASTICSEARCH_SCHEME:https}
+  username: ${ELASTICSEARCH_USERNAME:}
+  password: ${ELASTICSEARCH_PASSWORD:}

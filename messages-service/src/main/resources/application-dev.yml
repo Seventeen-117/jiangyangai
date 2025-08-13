@@ -81,3 +81,12 @@ message:
       virtual-host: /
       connection-timeout: 30000
       heartbeat: 30
+
+# Elasticsearch配置
+elasticsearch:
+  enabled: true  # 开发环境启用ES
+  host: localhost
+  port: 9200
+  scheme: http
+  username: 
+  password:
