@@ -1,0 +1,62 @@
+server:
+  port: 8085
+  servlet:
+    context-path: /data-calculation
+
+spring:
+  application:
+    name: data-calculation-service
+  
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        group: DEFAULT_GROUP
+      config:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        group: DEFAULT_GROUP
+        file-extension: yml
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+
+# 服务配置
+service:
+  ai-agent:
+    base-url: http://aiAgent-service
+    timeout: 30000
+  bgai:
+    base-url: http://bgai-service
+    timeout: 30000
+
+# Dubbo配置
+dubbo:
+  application:
+    name: data-calculation-service
+    qos-enable: false
+  protocol:
+    name: dubbo
+    port: -1
+  registry:
+    address: nacos://127.0.0.1:8848
+    namespace: public
+    group: DEFAULT_GROUP
+  consumer:
+    timeout: 30000
+    retries: 2
+    check: false
+  provider:
+    timeout: 30000
+    retries: 2
+
+# 日志配置
+logging:
+  level:
+    com.jiangyang.datacalculation: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
+    org.apache.dubbo: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

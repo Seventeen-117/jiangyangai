@@ -11,6 +11,21 @@ spring:
           grouplist:
             default: 8.133.246.113:8091
         enable-auto-data-source-proxy: true
+  
+  # Redis配置
+  data:
+    redis:
+      host: 8.133.246.113
+      port: 6379
+      password: 
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
 
 # Dubbo配置
 dubbo:
@@ -90,3 +105,5 @@ elasticsearch:
   scheme: http
   username: 
   password:
+
+

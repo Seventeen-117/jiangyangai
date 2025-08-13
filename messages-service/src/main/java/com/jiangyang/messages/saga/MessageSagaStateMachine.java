@@ -17,6 +17,7 @@ import com.jiangyang.messages.saga.entity.MessageSagaLog;
 import com.jiangyang.messages.saga.service.MessageSagaLogService;
 import com.jiangyang.messages.service.TransactionEventSenderService;
 import com.jiangyang.messages.service.ElasticsearchMessageService;
+import com.jiangyang.messages.service.CacheService;
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +72,10 @@ public class MessageSagaStateMachine {
     // ES消息服务，用于消息存储和同步
     @Autowired(required = false)
     private ElasticsearchMessageService elasticsearchMessageService;
+    
+    // Redis缓存服务，用于业务状态缓存
+    @Autowired
+    private CacheService cacheService;
 
     // 线程池用于并行处理批量消息
     private final ExecutorService batchExecutor = Executors.newFixedThreadPool(10);
@@ -1856,11 +1861,14 @@ public class MessageSagaStateMachine {
         try {
             log.debug("更新缓存中的业务状态: messageId={}, status={}", messageId, status);
             
-            // 这里可以调用缓存服务来更新状态
-            // 例如：cacheService.updateBusinessStatus(messageId, status);
+            // 调用Redis缓存服务来更新状态
+            boolean success = cacheService.updateBusinessStatus(messageId, status);
             
-            // 模拟缓存更新
-            log.info("缓存中的业务状态已更新: messageId={}, status={}", messageId, status);
+            if (success) {
+                log.info("Redis缓存中的业务状态已更新: messageId={}, status={}", messageId, status);
+            } else {
+                log.warn("Redis缓存中的业务状态更新失败: messageId={}, status={}", messageId, status);
+            }
             
         } catch (Exception e) {
             log.warn("更新缓存中的业务状态失败: messageId={}, error={}", messageId, e.getMessage());

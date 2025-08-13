@@ -1,0 +1,55 @@
+# 测试环境配置
+spring:
+  # Redis配置 - 测试环境
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 1  # 使用不同的数据库避免影响生产数据
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 4
+          max-wait: -1ms
+          max-idle: 4
+          min-idle: 0
+
+# 消息服务配置 - 测试环境
+message:
+  service:
+    # 消息服务类型
+    type: rocketmq
+    
+    # 是否启用消息轨迹追踪
+    trace-enabled: false
+    
+    # 消息发送重试次数
+    send-retry-times: 1
+    
+    # 消息发送超时时间（毫秒）
+    send-timeout-ms: 3000
+    
+    # 最大批量发送消息数量
+    max-batch-size: 10
+    
+    # RocketMQ配置 - 测试环境
+    rocketmq:
+      enabled: false  # 测试环境禁用RocketMQ
+      name-server: localhost:9876
+      producer-group: jiangyang-test-producer-group
+      consumer-group: jiangyang-test-consumer-group
+      compression-strategy: LZ4
+      retry-sync-times: 1
+      retry-async-times: 1
+      queue-count-per-topic: 1
+      message-retention-hours: 1
+
+# Elasticsearch配置 - 测试环境
+elasticsearch:
+  enabled: false  # 测试环境禁用ES
+  host: localhost
+  port: 9200
+  scheme: http
+  username: 
+  password:

@@ -23,6 +23,7 @@
 		<module>dubbo-api</module>
 		<module>messages-service</module>
 		<module>aiAgent</module>
+		<module>data-calculation-service</module>
 	</modules>
 
 	<!-- ====================== 统一版本管理 ====================== -->
@@ -197,17 +198,23 @@
 				<artifactId>spring-boot-starter-webflux</artifactId>
 				<version>3.2.5</version>
 			</dependency>
-			<!-- Spring Cloud -->
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
-				<version>3.0.0</version>
-			</dependency>
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-starter-openfeign</artifactId>
-				<version>4.0.3</version>
-			</dependency>
+					<!-- Spring Cloud -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
+			<version>3.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+			<version>4.0.3</version>
+		</dependency>
+		<!-- Feign Jackson -->
+		<dependency>
+			<groupId>io.github.openfeign</groupId>
+			<artifactId>feign-jackson</artifactId>
+			<version>12.5</version>
+		</dependency>
 			<!-- RocketMQ -->
 			<dependency>
 				<groupId>org.apache.rocketmq</groupId>
