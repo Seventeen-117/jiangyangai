@@ -4,10 +4,7 @@ import com.jiangyang.datacalculation.model.algorithm.*;
 import com.jiangyang.datacalculation.service.AlgorithmService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 /**
  * 算法服务实现类

@@ -1,10 +1,8 @@
 package com.jiangyang.datacalculation.model.algorithm;
 
+import jakarta.validation.constraints.*;
 import lombok.Data;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Max;
+
 import java.util.List;
 import java.util.Map;
 
@@ -38,8 +36,8 @@ public class WilsonScoreRequest {
     /**
      * 置信水平
      */
-    @Min(value = 0.5, message = "置信水平必须大于等于0.5")
-    @Max(value = 0.999, message = "置信水平必须小于0.999")
+    @DecimalMin(value = "0.5", message = "置信水平必须大于等于0.5")
+    @DecimalMin(value = "0.999", message = "置信水平必须小于0.999")
     private Double confidenceLevel = 0.95;
 
     /**
