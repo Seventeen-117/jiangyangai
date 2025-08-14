@@ -22,7 +22,7 @@
 		<module>gateway-service</module>
 		<module>dubbo-api</module>
 		<module>messages-service</module>
-		<module>aiAgent</module>
+		        <module>chat-agent</module>
 		<module>data-calculation-service</module>
 	</modules>
 

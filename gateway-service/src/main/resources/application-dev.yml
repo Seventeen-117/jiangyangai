@@ -51,11 +51,11 @@ spring:
             - AddRequestHeader=X-Gateway-Source, gateway-service
             - AddResponseHeader=X-Gateway-Response, true
         # AI代理服务路由
-        - id: aiAgent-service
+        - id: chat-agent-service
           uri: http://localhost:8690
           order: -500
           predicates:
-            - Path=/api/aiAgent/**,/api/aiChat/**
+            - Path=/api/chat-agent/**,/api/aiChat/**
           filters:
             - AddRequestHeader=X-Gateway-Source, gateway-service
             - AddResponseHeader=X-Gateway-Response, true
@@ -132,7 +132,7 @@ resilience4j:
           - java.io.IOException
           - java.util.concurrent.TimeoutException
           - org.springframework.web.client.ResourceAccessException
-      aiAgent-service-breaker:
+      chat-agent-service-breaker:
         registerHealthIndicator: true
         slidingWindowType: COUNT_BASED
         slidingWindowSize: 10
@@ -168,7 +168,7 @@ resilience4j:
         timeoutDuration: 10s
       bgai-service-breaker:
         timeoutDuration: 30s
-      aiAgent-service-breaker:
+      chat-agent-service-breaker:
         timeoutDuration: 30s
       default-service-breaker:
         timeoutDuration: 30s
@@ -199,7 +199,7 @@ resilience4j:
         baseConfig: default
         maxRetryAttempts: 3
         waitDuration: 2s
-      aiAgent-service-retry:
+      chat-agent-service-retry:
         baseConfig: default
         maxRetryAttempts: 3
         waitDuration: 2s

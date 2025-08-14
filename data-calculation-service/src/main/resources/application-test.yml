@@ -6,7 +6,7 @@ spring:
 # 服务配置 - 测试环境
 service:
   ai-agent:
-    base-url: http://test-aiAgent-service
+    base-url: http://test-chat-agent-service
     timeout: 30000
   bgai:
     base-url: http://test-bgai-service

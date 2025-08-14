@@ -1,7 +1,7 @@
-package com.yue.aiAgent.mapper;
+package com.yue.chatAgent.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.yue.aiAgent.entity.AiAgent;
+import com.yue.chatAgent.entity.AiAgent;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

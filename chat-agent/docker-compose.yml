@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  aiAgent-service:
+  chat-agent-service:
     build: .
-    container_name: aiAgent-service
+    container_name: chat-agent-service
     ports:
       - "8690:8690"
     environment:
@@ -24,7 +24,7 @@ services:
       - ai-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8690/api/aiAgent/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8690/api/chat-agent/health"]
       interval: 30s
       timeout: 10s
       retries: 3

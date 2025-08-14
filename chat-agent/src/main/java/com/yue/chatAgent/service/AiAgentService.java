@@ -1,7 +1,7 @@
-package com.yue.aiAgent.service;
+package com.yue.chatAgent.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.yue.aiAgent.entity.AiAgent;
+import com.yue.chatAgent.entity.AiAgent;
 
 /**
  * AI代理服务接口

@@ -1,6 +1,6 @@
-package com.yue.aiAgent.service.impl;
+package com.yue.chatAgent.service.impl;
 
-import com.yue.aiAgent.service.AiChatService;
+import com.yue.chatAgent.service.AiChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

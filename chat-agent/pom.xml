@@ -8,8 +8,8 @@
 		<version>1.0.0-Final</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
-	<artifactId>aiAgent</artifactId>
-	<name>aiAgent</name>
+	    <artifactId>chat-agent</artifactId>
+	<name>chat-agent</name>
 	<description>AI智能代理服务</description>
 	
 	<properties>

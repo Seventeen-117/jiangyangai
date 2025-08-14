@@ -30,7 +30,7 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
   mapper-locations: classpath*:mapper/**/*.xml
-  type-aliases-package: com.yue.aiAgent.entity
+      type-aliases-package: com.yue.chatAgent.entity
   ai:
     openai:
       api-key: ${OPENAI_API_KEY:your-openai-api-key}

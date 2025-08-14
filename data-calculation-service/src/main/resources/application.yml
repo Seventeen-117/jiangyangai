@@ -26,7 +26,7 @@ spring:
 # 服务配置
 service:
   ai-agent:
-    base-url: http://aiAgent-service
+    base-url: http://chat-agent-service
     timeout: 30000
   bgai:
     base-url: http://bgai-service

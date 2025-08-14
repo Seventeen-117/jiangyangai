@@ -1,10 +1,10 @@
-package com.yue.aiAgent.service.impl;
+package com.yue.chatAgent.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.yue.aiAgent.entity.AiAgent;
-import com.yue.aiAgent.mapper.AiAgentMapper;
-import com.yue.aiAgent.service.AiAgentService;
+import com.yue.chatAgent.entity.AiAgent;
+import com.yue.chatAgent.mapper.AiAgentMapper;
+import com.yue.chatAgent.service.AiAgentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

@@ -1,9 +1,9 @@
-package com.yue.aiAgent.controller;
+package com.yue.chatAgent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.yue.aiAgent.entity.AiAgent;
-import com.yue.aiAgent.service.AiAgentService;
+import com.yue.chatAgent.entity.AiAgent;
+import com.yue.chatAgent.service.AiAgentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

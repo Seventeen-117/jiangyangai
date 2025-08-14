@@ -1,4 +1,4 @@
-package com.yue.aiAgent;
+package com.yue.chatAgent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,13 +11,13 @@ import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
  * @author yue
  * @version 1.0.0
  */
-@SpringBootApplication(scanBasePackages = "com.yue.aiAgent")
+@SpringBootApplication(scanBasePackages = "com.yue.chatAgent")
 @EnableDiscoveryClient
 @EnableDubbo
-public class AiAgentApplication {
+public class ChatAgentApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(AiAgentApplication.class, args);
+        SpringApplication.run(ChatAgentApplication.class, args);
     }
 
 }

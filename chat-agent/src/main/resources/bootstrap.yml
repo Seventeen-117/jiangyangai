@@ -3,7 +3,7 @@
 
 spring:
   application:
-    name: aiAgent-service
+    name: chat-agent-service
   config:
     import: optional:classpath:application-seata.yml
   # 禁用SQL初始化，避免ddlApplicationRunner bean创建问题
@@ -122,11 +122,11 @@ mybatis-plus:
 # Seata 最小必需配置
 seata:
   # 事务组名称
-  tx-service-group: aiAgent-service-group
+      tx-service-group: chat-agent-service-group
   service:
     # vgroup映射
     vgroup-mapping:
-      aiAgent-service-group: default
+      chat-agent-service-group: default
     # Seata Server 列表（default 集群名 -> 地址）
     grouplist:
       default: 8.133.246.113:8091

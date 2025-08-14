@@ -1,6 +1,6 @@
-package com.yue.aiAgent.controller;
+package com.yue.chatAgent.controller;
 
-import com.yue.aiAgent.service.AiChatService;
+import com.yue.chatAgent.service.AiChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
