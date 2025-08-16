@@ -1,4 +1,9 @@
 # 开发环境配置
+
+# 服务端口配置
+server:
+  port: 8081
+
 spring:
   # Seata配置
   cloud:

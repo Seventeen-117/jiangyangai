@@ -77,6 +77,14 @@ spring:
             - StripPrefix=1
             - AddRequestHeader=X-Gateway-Source, gateway-service
             - AddResponseHeader=X-Gateway-Response, true
+        # messages-service路由
+        - id: messages-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/messages/**
+          filters:
+            - AddRequestHeader=X-Gateway-Source, gateway-service
+            - AddResponseHeader=X-Gateway-Response, true
         - id: default-route
           uri: http://localhost:8688
           predicates:

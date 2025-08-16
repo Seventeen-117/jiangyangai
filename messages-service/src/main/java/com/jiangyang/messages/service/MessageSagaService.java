@@ -5,8 +5,7 @@ import com.jiangyang.base.datasource.annotation.DataSource;
 @DataSource("master")
 public interface MessageSagaService {
 
-
-    void sendMessageWithSaga(String messageId, String content);
+    void sendMessageWithSaga(String messageId, String content, String messageType);
 
     void consumeMessageWithSaga(String messageId, String content);
 

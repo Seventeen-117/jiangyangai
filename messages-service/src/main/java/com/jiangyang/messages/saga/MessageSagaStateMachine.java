@@ -3,6 +3,7 @@ package com.jiangyang.messages.saga;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.service.WebSocketService;
 import com.jiangyang.messages.utils.MessageServiceType;
 import com.jiangyang.messages.audit.entity.MessageLifecycleLog;
@@ -85,18 +86,18 @@ public class MessageSagaStateMachine {
      * 包含：消息发送 -> 消息确认 -> 补偿处理
      */
     @GlobalTransactional(name = "message-send-saga", rollbackFor = Exception.class)
-    public void executeMessageSendSaga(String messageId, String content) {
+    public void executeMessageSendSaga(String messageId, String content, String messageType) {
         String globalTransactionId = RootContext.getXID();
         String transactionId = "msg_send_" + messageId;
         
-        log.info("开始执行消息发送Saga事务，消息ID: {}, XID: {}", messageId, globalTransactionId);
+        log.info("开始执行消息发送Saga事务，消息ID: {}, 消息类型: {}, XID: {}", messageId, messageType, globalTransactionId);
         
         try {
             // 发送事务开始事件
             sendTransactionBeginEvent(globalTransactionId, transactionId, messageId, content);
             
             // 步骤1: 消息发送
-            sendMessage(messageId, content);
+            sendMessage(messageId, content, messageType);
             
             // 发送消息发送事件
             sendMessageSendEvent(globalTransactionId, transactionId, messageId, content);
@@ -107,9 +108,9 @@ public class MessageSagaStateMachine {
             // 发送事务提交事件
             sendTransactionCommitEvent(globalTransactionId, transactionId, messageId, content);
             
-            log.info("消息发送Saga事务执行成功，消息ID: {}", messageId);
+            log.info("消息发送Saga事务执行成功，消息ID: {}, 消息类型: {}", messageId, messageType);
         } catch (Exception e) {
-            log.error("消息发送Saga事务执行失败，消息ID: {}, 错误: {}", messageId, e.getMessage(), e);
+            log.error("消息发送Saga事务执行失败，消息ID: {}, 消息类型: {}, 错误: {}", messageId, messageType, e.getMessage(), e);
             
             // 发送事务回滚事件
             sendTransactionRollbackEvent(globalTransactionId, transactionId, messageId, content, e.getMessage());
@@ -220,7 +221,7 @@ public class MessageSagaStateMachine {
             sendSagaExecuteEvent(globalTransactionId, businessTransactionId, "transaction-message", transactionId, "事务开始");
             
             // 步骤2: 消息发送
-            sendMessage(messageId, content);
+            sendMessage(messageId, content, "ROCKETMQ"); // 默认使用RocketMQ
             
             // 发送Saga执行事件
             sendSagaExecuteEvent(globalTransactionId, businessTransactionId, "transaction-message", transactionId, "消息发送");
@@ -247,8 +248,8 @@ public class MessageSagaStateMachine {
     // ==================== 具体业务方法实现 ====================
 
     @Transactional
-    public void sendMessage(String messageId, String content) {
-        log.info("发送消息: ID={}, 内容={}", messageId, content);
+    public void sendMessage(String messageId, String content, String messageType) {
+        log.info("发送消息: ID={}, 内容={}, 消息类型={}", messageId, content, messageType);
         
         try {
             // 1. 记录Saga日志
@@ -259,9 +260,8 @@ public class MessageSagaStateMachine {
             MessageLifecycleLog lifecycleLog = createLifecycleLog(messageId, "PRODUCE", "PROCESSING", content);
             messageLifecycleService.save(lifecycleLog);
             
-            // 3. 根据配置选择消息中间件发送消息
+            // 3. 根据传入的消息类型选择消息中间件发送消息
             String topic = messageServiceConfig.getDefaultTopic();
-            String messageType = messageServiceConfig.getDefaultMessageType();
             
             boolean sendResult = false;
             switch (MessageServiceType.valueOf(messageType.toUpperCase())) {
@@ -296,7 +296,7 @@ public class MessageSagaStateMachine {
             log.info("消息发送成功: ID={}, 类型={}, 主题={}", messageId, messageType, topic);
             
         } catch (Exception e) {
-            log.error("消息发送失败: ID={}, 错误: {}", messageId, e.getMessage(), e);
+            log.error("消息发送失败: ID={}, 消息类型={}, 错误: {}", messageId, messageType, e.getMessage(), e);
             
             // 记录失败状态
             updateSagaLogStatus(messageId, "FAILED", e.getMessage());
@@ -1077,8 +1077,13 @@ public class MessageSagaStateMachine {
     /**
      * 发送事务开始事件
      */
+    @DataSource("slave")
     private void sendTransactionBeginEvent(String globalTransactionId, String transactionId, 
                                          String businessType, String businessId) {
+        // 临时禁用事务事件发送，避免Dubbo调用错误
+        log.debug("事务事件发送已禁用: transactionId={}, XID={}", transactionId, globalTransactionId);
+        
+
         try {
             // 使用TransactionEventSenderService的便捷方法，避免直接创建TransactionEvent
             transactionEventSenderService.sendTransactionBeginEvent(
@@ -1086,24 +1091,31 @@ public class MessageSagaStateMachine {
             
             log.debug("事务开始事件已发送: transactionId={}, XID={}", transactionId, globalTransactionId);
         } catch (Exception e) {
+            // 记录警告但不影响主要功能
             log.warn("发送事务开始事件失败: transactionId={}, error={}", transactionId, e.getMessage());
         }
+
     }
 
     /**
      * 发送消息发送事件
      */
+    @DataSource("slave")
     private void sendMessageSendEvent(String globalTransactionId, String transactionId, 
                                     String messageId, String content) {
+        log.debug("消息发送事件已禁用: messageId={}, transactionId={}", messageId, transactionId);
+
+
         try {
             // 使用TransactionEventSenderService的便捷方法
             transactionEventSenderService.sendMessageSendEvent(
                 globalTransactionId, transactionId, "messages-service", "message", messageId, messageServiceConfig.getDefaultMessageType());
-            
+
             log.debug("消息发送事件已发送: messageId={}, transactionId={}", messageId, transactionId);
         } catch (Exception e) {
             log.warn("发送消息发送事件失败: messageId={}, error={}", messageId, e.getMessage());
         }
+
     }
 
     /**

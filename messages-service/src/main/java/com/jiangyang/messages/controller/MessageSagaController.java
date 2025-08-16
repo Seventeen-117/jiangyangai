@@ -32,16 +32,20 @@ public class MessageSagaController {
     public ResponseEntity<Map<String, Object>> sendMessageWithSaga(@RequestBody Map<String, String> request) {
         String messageId = request.getOrDefault("messageId", UUID.randomUUID().toString());
         String content = request.get("content");
+        String messageType = request.getOrDefault("messageType", "ROCKETMQ"); // 默认使用RocketMQ
         
         if (content == null || content.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(createErrorResponse("消息内容不能为空"));
         }
         
         try {
-            messageSagaService.sendMessageWithSaga(messageId, content);
-            return ResponseEntity.ok(createSuccessResponse("消息发送成功", messageId));
+            messageSagaService.sendMessageWithSaga(messageId, content, messageType);
+            return ResponseEntity.ok(createSuccessResponse("消息发送成功", Map.of(
+                "messageId", messageId,
+                "messageType", messageType
+            )));
         } catch (Exception e) {
-            log.error("发送消息失败: messageId={}, error={}", messageId, e.getMessage(), e);
+            log.error("发送消息失败: messageId={}, messageType={}, error={}", messageId, messageType, e.getMessage(), e);
             return ResponseEntity.internalServerError().body(createErrorResponse("消息发送失败: " + e.getMessage()));
         }
     }
@@ -173,6 +177,41 @@ public class MessageSagaController {
             return ResponseEntity.ok(createSuccessResponse("同步消息消费成功", messageId));
         } else {
             return ResponseEntity.internalServerError().body(createErrorResponse("同步消息消费失败"));
+        }
+    }
+
+    /**
+     * 发送消息到指定消息中间件
+     * 
+     * @param request 请求参数
+     * @return 响应结果
+     */
+    @PostMapping("/send/to")
+    public ResponseEntity<Map<String, Object>> sendMessageToSpecificMQ(@RequestBody Map<String, String> request) {
+        String messageId = request.getOrDefault("messageId", UUID.randomUUID().toString());
+        String content = request.get("content");
+        String messageType = request.get("messageType");
+        String topic = request.getOrDefault("topic", "default-topic");
+        
+        if (content == null || content.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(createErrorResponse("消息内容不能为空"));
+        }
+        
+        if (messageType == null || messageType.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(createErrorResponse("消息类型不能为空"));
+        }
+        
+        try {
+            messageSagaService.sendMessageWithSaga(messageId, content, messageType.toUpperCase());
+            return ResponseEntity.ok(createSuccessResponse("消息发送成功", Map.of(
+                "messageId", messageId,
+                "messageType", messageType.toUpperCase(),
+                "topic", topic
+            )));
+        } catch (Exception e) {
+            log.error("发送消息失败: messageId={}, messageType={}, topic={}, error={}", 
+                    messageId, messageType, topic, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(createErrorResponse("消息发送失败: " + e.getMessage()));
         }
     }
 

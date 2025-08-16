@@ -1,5 +1,7 @@
 # DeepSearch Service 主配置文件
-
+# 服务端口配置
+server:
+  port: 8081
 spring:
   application:
     name: messages-service

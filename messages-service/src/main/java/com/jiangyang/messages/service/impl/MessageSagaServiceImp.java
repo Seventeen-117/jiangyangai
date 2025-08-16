@@ -24,16 +24,17 @@ public class MessageSagaServiceImp implements MessageSagaService {
      * 
      * @param messageId 消息ID
      * @param content 消息内容
+     * @param messageType 消息类型 (ROCKETMQ, KAFKA, RABBITMQ)
      */
     @Override
-    public void sendMessageWithSaga(String messageId, String content) {
-        log.info("开始发送消息，使用Saga事务: messageId={}, content={}", messageId, content);
+    public void sendMessageWithSaga(String messageId, String content, String messageType) {
+        log.info("开始发送消息，使用Saga事务: messageId={}, content={}, messageType={}", messageId, content, messageType);
         
         try {
-            messageSagaStateMachine.executeMessageSendSaga(messageId, content);
-            log.info("消息发送成功: messageId={}", messageId);
+            messageSagaStateMachine.executeMessageSendSaga(messageId, content, messageType);
+            log.info("消息发送成功: messageId={}, messageType={}", messageId, messageType);
         } catch (Exception e) {
-            log.error("消息发送失败: messageId={}, error={}", messageId, e.getMessage(), e);
+            log.error("消息发送失败: messageId={}, messageType={}, error={}", messageId, messageType, e.getMessage(), e);
             throw new RuntimeException("消息发送失败", e);
         }
     }
@@ -110,7 +111,7 @@ public class MessageSagaServiceImp implements MessageSagaService {
         log.info("同步发送消息: messageId={}, content={}", messageId, content);
         
         try {
-            messageSagaStateMachine.sendMessage(messageId, content);
+            messageSagaStateMachine.sendMessage(messageId, content, "ROCKETMQ"); // 默认使用RocketMQ
             messageSagaStateMachine.confirmMessage(messageId);
             log.info("同步消息发送成功: messageId={}", messageId);
             return true;
