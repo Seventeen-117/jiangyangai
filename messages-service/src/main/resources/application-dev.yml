@@ -27,6 +27,15 @@ spring:
           max-idle: 8
           min-idle: 0
 
+  # RabbitMQ配置（供 Spring AMQP 与健康检查使用）
+  rabbitmq:
+    host: 8.133.246.113
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    connection-timeout: 30s
+
 # 开发环境日志配置
 logging:
   level:

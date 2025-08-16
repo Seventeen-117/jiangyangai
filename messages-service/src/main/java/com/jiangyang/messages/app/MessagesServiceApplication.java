@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.sql.init.SqlInitializationAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 
@@ -17,7 +18,8 @@ import org.springframework.context.annotation.Bean;
     exclude = {
         SqlInitializationAutoConfiguration.class,
         DataSourceAutoConfiguration.class,
-        DataSourceTransactionManagerAutoConfiguration.class
+        DataSourceTransactionManagerAutoConfiguration.class,
+        MybatisPlusAutoConfiguration.class
     }
 )
 @EnableDiscoveryClient
