@@ -11,5 +11,4 @@ import org.springframework.data.elasticsearch.repository.config.EnableElasticsea
 @Configuration
 @EnableElasticsearchRepositories(basePackages = "com.jiangyang.messages.repository.elasticsearch")
 public class ElasticsearchConfig {
-    // Spring Boot会自动配置Elasticsearch客户端和ElasticsearchTemplate
 }

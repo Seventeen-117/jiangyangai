@@ -127,22 +127,28 @@ public class DataSourceConfig {
             // 初始化数据源
             druidDataSource.init();
             
+            // 检查Seata是否真正启用
+            String seataEnabled = environment.getProperty("seata.enabled", "true");
+            if ("false".equals(seataEnabled) || !dataSourceProperties.getDynamic().isSeata()) {
+                log.info("Seata已禁用，使用原始数据源");
+                return druidDataSource;
+            }
+            
             // 如果启用Seata，则包装为DataSourceProxy
-            if (dataSourceProperties.getDynamic().isSeata()) {
+            try {
+                // 检查Seata类是否可用
                 try {
-                    // 检查Seata是否真正启用
-                    String seataEnabled = environment.getProperty("seata.enabled", "true");
-                    if ("false".equals(seataEnabled)) {
-                        log.info("Seata已禁用，使用原始数据源");
-                        return druidDataSource;
-                    }
-                    
-                    // 尝试创建DataSourceProxy，如果Seata类不可用则使用原始数据源
-                    return new io.seata.rm.datasource.DataSourceProxy(druidDataSource);
-                } catch (NoClassDefFoundError | Exception e) {
-                    log.warn("Seata DataSourceProxy不可用，使用原始数据源: {}", e.getMessage());
+                    Class.forName("io.seata.rm.datasource.DataSourceProxy");
+                } catch (ClassNotFoundException e) {
+                    log.warn("Seata类不可用，使用原始数据源");
                     return druidDataSource;
                 }
+                
+                // 尝试创建DataSourceProxy，如果Seata类不可用则使用原始数据源
+                return new io.seata.rm.datasource.DataSourceProxy(druidDataSource);
+            } catch (NoClassDefFoundError | Exception e) {
+                log.warn("Seata DataSourceProxy不可用，使用原始数据源: {}", e.getMessage());
+                return druidDataSource;
             }
             
             return druidDataSource;
