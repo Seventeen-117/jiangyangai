@@ -150,9 +150,7 @@ public class DataSourceConfig {
                 log.warn("Seata DataSourceProxy不可用，使用原始数据源: {}", e.getMessage());
                 return druidDataSource;
             }
-            
-            return druidDataSource;
-            
+
         } catch (Exception e) {
             throw new RuntimeException("创建数据源失败: " + e.getMessage(), e);
         }

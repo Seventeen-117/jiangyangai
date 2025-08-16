@@ -27,6 +27,18 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 		
+		<!-- Spring Security Starter (required for Spring AI tool calling) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		
+		<!-- Spring Security OAuth2 Client (required for Spring AI tool calling) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+		</dependency>
+		
 		<!-- Spring Cloud Starter -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>

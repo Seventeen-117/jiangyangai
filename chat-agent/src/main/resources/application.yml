@@ -13,6 +13,10 @@ spring:
   datasource:
     dynamic:
       seata: false  # 禁用Seata分布式事务
+  ai:
+    tool:
+      calling:
+        enabled: false  # 禁用Spring AI工具调用功能
 
 # 服务配置
 service:
@@ -46,4 +50,12 @@ seata:
       degrade-check: false
       degrade-check-allow-times: 0
       degrade-check-period: 0
+
+# 日志配置
+logging:
+  level:
+    io.seata: OFF
+    com.jiangyang.base.config: DEBUG
+    org.springframework.ai: DEBUG
+    org.springframework.ai.model.tool: OFF  # 禁用工具调用相关日志
 
