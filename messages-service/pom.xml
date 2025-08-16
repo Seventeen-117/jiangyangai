@@ -226,6 +226,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-pool2</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.jiangyang</groupId>
+            <artifactId>base-service</artifactId>
+            <version>1.0.0-Final</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 </project>

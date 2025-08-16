@@ -1,9 +1,12 @@
 package com.jiangyang.messages.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
+
 /**
  * 消息监听器接口
  * 用于处理接收到的消息
  */
+@DataSource("master")
 public interface MessageListener<T> {
     
     /**

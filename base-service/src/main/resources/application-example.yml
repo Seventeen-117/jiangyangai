@@ -1,0 +1,157 @@
+# 多数据源配置示例
+# 将此配置复制到你的服务中，并根据实际情况修改
+
+spring:
+  datasource:
+    # 启用动态数据源
+    dynamic:
+      enabled: true
+      # 主数据源名称
+      primary: master
+      # 是否严格模式（严格模式下任何数据源创建失败都会导致应用启动失败）
+      strict: false
+      # 是否启用Seata分布式事务
+      seata: true
+      
+      # 数据源配置
+      # 支持任意数量的数据源，只需要按照以下格式配置即可
+      datasource:
+        # 主数据源
+        master:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/master_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+          username: root
+          password: password
+          type: com.alibaba.druid.pool.DruidDataSource
+          pool:
+            initial-size: 5
+            min-idle: 10
+            max-active: 20
+            max-wait: 60000
+            time-between-eviction-runs-millis: 60000
+            min-evictable-idle-time-millis: 300000
+            validation-query: SELECT 1
+            test-while-idle: true
+            test-on-borrow: false
+            test-on-return: false
+            pool-prepared-statements: true
+            max-pool-prepared-statement-per-connection-size: 20
+            filters: stat,wall
+            connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+        
+        # 从数据源
+        slave:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/slave_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+          username: root
+          password: password
+          type: com.alibaba.druid.pool.DruidDataSource
+          pool:
+            initial-size: 5
+            min-idle: 10
+            max-active: 20
+            max-wait: 60000
+            time-between-eviction-runs-millis: 60000
+            min-evictable-idle-time-millis: 300000
+            validation-query: SELECT 1
+            test-while-idle: true
+            test-on-borrow: false
+            test-on-return: false
+            pool-prepared-statements: true
+            max-pool-prepared-statement-per-connection-size: 20
+            filters: stat,wall
+            connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+        
+        # 审计日志数据源
+        audit:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/audit_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+          username: root
+          password: password
+          type: com.alibaba.druid.pool.DruidDataSource
+          pool:
+            initial-size: 3
+            min-idle: 5
+            max-active: 10
+            max-wait: 30000
+            time-between-eviction-runs-millis: 60000
+            min-evictable-idle-time-millis: 300000
+            validation-query: SELECT 1
+            test-while-idle: true
+            test-on-borrow: false
+            test-on-return: false
+            pool-prepared-statements: true
+            max-pool-prepared-statement-per-connection-size: 20
+            filters: stat,wall
+            connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+        
+        # 用户数据源（示例：支持更多数据源）
+        user_db:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/user_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+          username: root
+          password: password
+          type: com.alibaba.druid.pool.DruidDataSource
+          pool:
+            initial-size: 5
+            min-idle: 10
+            max-active: 20
+            max-wait: 60000
+            time-between-eviction-runs-millis: 60000
+            min-evictable-idle-time-millis: 300000
+            validation-query: SELECT 1
+            test-while-idle: true
+            test-on-borrow: false
+            test-on-return: false
+            pool-prepared-statements: true
+            max-pool-prepared-statement-per-connection-size: 20
+            filters: stat,wall
+            connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+        
+        # 订单数据源（示例：支持更多数据源）
+        order_db:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/order_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+          username: root
+          password: password
+          type: com.alibaba.druid.pool.DruidDataSource
+          pool:
+            initial-size: 5
+            min-idle: 10
+            max-active: 20
+            max-wait: 60000
+            time-between-eviction-runs-millis: 60000
+            min-evictable-idle-time-millis: 300000
+            validation-query: SELECT 1
+            test-while-idle: true
+            test-on-borrow: false
+            test-on-return: false
+            pool-prepared-statements: true
+            max-pool-prepared-statement-per-connection-size: 20
+            filters: stat,wall
+            connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+
+# Seata 配置（如果启用）
+seata:
+  tx-service-group: default
+  service:
+    vgroup-mapping:
+      default: default
+  registry:
+    type: nacos
+    nacos:
+      server-addr: localhost:8848
+      namespace: public
+      group: SEATA_GROUP
+  config:
+    type: nacos
+    nacos:
+      server-addr: localhost:8848
+      namespace: public
+      group: SEATA_GROUP
+
+# 日志配置
+logging:
+  level:
+    com.jiangyang.base: DEBUG
+    com.alibaba.druid: INFO

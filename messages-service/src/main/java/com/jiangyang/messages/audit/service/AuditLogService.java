@@ -1,5 +1,6 @@
 package com.jiangyang.messages.audit.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.audit.entity.BusinessTraceLog;
 import com.jiangyang.messages.audit.entity.MessageLifecycleLog;
 import com.jiangyang.messages.audit.entity.TransactionAuditLog;
@@ -12,6 +13,7 @@ import java.util.Map;
  * 审计日志服务接口
  * 提供事务追溯和业务处理轨迹记录功能
  */
+@DataSource("master")
 public interface AuditLogService {
 
     /**

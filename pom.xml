@@ -22,8 +22,9 @@
 		<module>gateway-service</module>
 		<module>dubbo-api</module>
 		<module>messages-service</module>
-		        <module>chat-agent</module>
-		<module>data-calculation-service</module>
+		<module>chat-agent</module>
+		<module>deepSearch-service</module>
+		<module>base-service</module>
 	</modules>
 
 	<!-- ====================== 统一版本管理 ====================== -->

@@ -1,12 +1,22 @@
-# Spring Cloud Bootstrap配置
-# 此文件在application.yml之前加载，用于配置配置中心、注册中心等
-
 spring:
   application:
     name: messages-service
   config:
     import: optional:classpath:application-audit.yml,optional:classpath:application-seata.yml
-  # 禁用SQL初始化，避免ddlApplicationRunner bean创建问题
+  # 启用配置调试
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  # 禁用Flyway和Liquibase
+  flyway:
+    enabled: false
+  liquibase:
+    enabled: false
+  # Elasticsearch配置
+  elasticsearch:
+    uris: http://8.133.246.113:9200
+    connection-timeout: 5000ms
+    socket-timeout: 10000ms
+  # SQL初始化配置
   sql:
     init:
       mode: never
@@ -19,7 +29,10 @@ spring:
       # 禁用自动检测
       detect-schema: false
       detect-data: false
-  # 禁用JPA自动DDL
+      # 明确禁用DDL执行器
+      ddl:
+        enabled: false
+  # JPA配置
   jpa:
     hibernate:
       ddl-auto: none
@@ -27,50 +40,31 @@ spring:
     # 禁用自动DDL
     generate-ddl: false
     defer-datasource-initialization: false
-  # 禁用Flyway和Liquibase
-  flyway:
-    enabled: false
-  liquibase:
-    enabled: false
-  # 配置中心配置（Nacos）
+    # 启用JPA自动配置
+    open-in-view: false
+    # JPA属性配置
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: false
+        use_sql_comments: false
+        # 禁用自动DDL
+        hbm2ddl:
+          auto: none
+  main:
+    web-application-type: reactive
+    allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
+    allow-bean-definition-overriding: true # 允许 Bean 覆盖，例如说 Feign 等会存在重复定义的服务
+    lazy-initialization: false # 禁用懒加载，确保实体类等在启动时加载
   cloud:
     nacos:
-      config:
-        # Nacos配置中心地址
-        server-addr: ${NACOS_SERVER_ADDR:8.133.246.113:8848}
-        # 配置文件的data-id
-        name: ${spring.application.name}
-        # 配置文件格式
-        file-extension: yaml
-        # 配置分组
-        group: ${NACOS_GROUP:DEFAULT_GROUP}
-        # 命名空间
-        namespace: ${NACOS_NAMESPACE:d750d92e-152f-4055-a641-3bc9dda85a29}
-        # 是否自动刷新
-        refresh-enabled: true
-        # 配置超时时间
-        timeout: 3000
-        # 配置重试次数
-        retry-count: 3
-        # 长轮询超时时间
-        long-poll-timeout: 46000
-        # 配置监听器长轮询超时时间
-        config-long-poll-timeout: 46000
-        # 配置重试时间
-        config-retry-time: 20000
-        # 是否启用配置监听
-        enable-remote-sync-config: true
-      
-      # 注册中心配置（Nacos）
       discovery:
-        # Nacos注册中心地址
-        server-addr: ${NACOS_SERVER_ADDR:8.133.246.113:8848}
-        # 服务分组
-        group: ${NACOS_DISCOVERY_GROUP:JIANGYANG}
-        # 命名空间
-        namespace: ${NACOS_NAMESPACE:}
-        # 是否启用服务注册
-        enabled: true
+        server-addr: ${NACOS_HOST:8.133.246.113}:${NACOS_PORT:8848}
+        namespace: ${NACOS_NAMESPACE:d750d92e-152f-4055-a641-3bc9dda85a29}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        # 禁用配置失败时导致应用启动失败
+        fail-fast: false
+        enabled: ${NACOS_DISCOVERY_ENABLED:true}
         # 是否启用服务发现
         register-enabled: true
         # 服务实例权重
@@ -93,100 +87,53 @@ spring:
         instance-heart-beat-interval: 5000
         # 实例IP删除超时时间
         instance-ip-delete-timeout: 30000
+        watch-delay: 30000
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        namespace: ${spring.cloud.nacos.discovery.namespace}
+        group: ${spring.cloud.nacos.discovery.group}
+        file-extension: yaml
+        # 强制使用 messages-service 作为配置前缀，避免意外读取其他服务配置
+        prefix: messages-service
+        # 显式加载本服务的 dataId（优先于默认解析）
+        extension-configs:
+          - data-id: messages-service-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+            group: ${spring.cloud.nacos.discovery.group}
+            refresh: true
+        # 警告处理配置
+        handle-warnings: true
+        # 使配置失败时更友好的处理，不会导致应用启动失败
+        fail-fast: false
+        # 设置超时时间，防止长时间等待
+        timeout: 10000
+        refresh-enabled: true
+        # 启用本地缓存配置
+        enabled: ${NACOS_CONFIG_ENABLED:true}
+        # 使用本地配置（即使连接失败也继续启动）
+        import-check:
+          enabled: false
+        # 使用默认缓存目录，确保容器能正确访问
+        shared-configs:
+          - data-id: common-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+            group: ${spring.cloud.nacos.discovery.group}
+            refresh: true
 
-# MyBatis-Plus配置
-mybatis-plus:
-  # 禁用DDL功能
-  global-config:
-    db-config:
-      # 禁用逻辑删除
-      logic-delete-field: ""
-      # 禁用自动填充
-      meta-object-handler: ""
-    # 禁用Banner
-    banner: false
-  # 禁用SQL执行器
-  configuration:
-    # 禁用SQL执行器
-    default-executor-type: SIMPLE
-    # 禁用缓存
-    cache-enabled: false
-    # 禁用延迟加载
-    lazy-loading-enabled: false
-    # 禁用激进延迟加载
-    aggressive-lazy-loading: false
-  # 禁用DDL执行器
-  ddl:
-    enabled: false
+# Elasticsearch配置
+elasticsearch:
+  enabled: true
 
-# Seata 最小必需配置，避免依赖 application-dev.yml
-seata:
-  # 事务组名称
-  tx-service-group: messages-service-group
-  service:
-    # vgroup映射
-    vgroup-mapping:
-      messages-service-group: default
-    # Seata Server 列表（default 集群名 -> 地址）
-    grouplist:
-      default: 8.133.246.113:8091
+# 日志配置
+logging:
+  level:
+    com.jiangyang.messages.config: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.autoconfigure.jdbc: WARN
+    org.springframework.boot.autoconfigure.orm.jpa: WARN
+    com.alibaba.druid: WARN
+    com.zaxxer.hikari: WARN
+    io.seata: WARN
+    # 减少条件评估报告的详细输出
+    org.springframework.boot.autoconfigure.logging: WARN
 
-# 消息服务配置
-message:
-  service:
-    # 默认消息服务类型
-    type: rocketmq
-    # RocketMQ配置
-    rocketmq:
-      enabled: true
-      name-server: 8.133.246.113:9876
-      producer-group: jiangyang-dev-producer-group
-      consumer-group: jiangyang-dev-consumer-group
-      retry-sync-times: 3
-      retry-async-times: 3
-      send-msg-timeout: 3000
-    # Kafka配置
-    kafka:
-      enabled: true
-      bootstrap-servers: 8.133.246.113:9092
-      consumer-group-id: jiangyang-dev-consumer-group
-      acks: all
-      retries: 3
-      batch-size: 16384
-      linger-ms: 1
-      buffer-memory: 33554432
-    # RabbitMQ配置
-    rabbitmq:
-      enabled: true
-      host: 8.133.246.113
-      port: 5672
-      username: guest
-      password: guest
-      virtual-host: /
-      connection-timeout: 60000
-      requested-heart-beat: 60
-      automatic-recovery-enabled: true
-
-# Dubbo配置
-dubbo:
-  application:
-    name: ${spring.application.name}
-    qos-enable: false
-  protocol:
-    name: dubbo
-    port: -1
-  registry:
-    address: ${NACOS_SERVER_ADDR:8.133.246.113:8848}
-    protocol: nacos
-    group: ${NACOS_GROUP:DEFAULT_GROUP}
-    namespace: ${NACOS_NAMESPACE:d750d92e-152f-4055-a641-3bc9dda85a29}
-  consumer:
-    timeout: 5000
-    retries: 2
-    check: false
-  provider:
-    timeout: 5000
-    retries: 2
-
-
-
+# 禁用条件评估报告
+debug: false

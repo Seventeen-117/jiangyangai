@@ -1,5 +1,7 @@
 package com.jiangyang.messages.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
+
 import java.util.Map;
 
 /**
@@ -9,6 +11,7 @@ import java.util.Map;
  * @author jiangyang
  * @version 1.0.0
  */
+@DataSource("master")
 public interface WebSocketService {
     
     /**

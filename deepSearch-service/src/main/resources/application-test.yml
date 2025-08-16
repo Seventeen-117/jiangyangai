@@ -1,0 +1,16 @@
+# 测试环境配置
+
+# 服务配置 - 测试环境
+service:
+  ai-agent:
+    base-url: http://test-chat-agent-service
+    timeout: 30000
+  bgai:
+    base-url: http://test-bgai-service
+    timeout: 30000
+
+# 日志配置 - 测试环境
+logging:
+  level:
+    com.jiangyang.datacalculation: INFO
+    org.springframework.cloud.openfeign: INFO

@@ -1,5 +1,6 @@
 package com.jiangyang.messages.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.saga.MessageSagaStateMachine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
+@DataSource("master")
 public class MessageSagaService {
 
     @Autowired

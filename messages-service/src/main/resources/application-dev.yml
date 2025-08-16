@@ -10,7 +10,7 @@ spring:
             messages-service-group: default
           grouplist:
             default: 8.133.246.113:8091
-        enable-auto-data-source-proxy: true
+        enable-auto-data-source-proxy: false
   
   # Redis配置
   data:
@@ -26,6 +26,14 @@ spring:
           max-wait: -1ms
           max-idle: 8
           min-idle: 0
+
+# 开发环境日志配置
+logging:
+  level:
+    root: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.autoconfigure.logging: WARN
+    org.springframework.boot.diagnostics: WARN
 
 # Dubbo配置
 dubbo:

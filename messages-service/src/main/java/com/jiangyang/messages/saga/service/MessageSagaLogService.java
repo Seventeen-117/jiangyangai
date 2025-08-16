@@ -1,12 +1,14 @@
 package com.jiangyang.messages.saga.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.saga.entity.MessageSagaLog;
 
 /**
  * 消息Saga日志服务接口
  * 提供Saga事务日志的增删改查服务
  */
+@DataSource("slave")
 public interface MessageSagaLogService extends IService<MessageSagaLog> {
 
     /**

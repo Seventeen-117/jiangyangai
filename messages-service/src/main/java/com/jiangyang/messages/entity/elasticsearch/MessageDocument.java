@@ -27,7 +27,7 @@ public class MessageDocument {
     @Field(type = FieldType.Keyword)
     private String messageId;
 
-    @Field(type = FieldType.Text, analyzer = "ik_max_word")
+    @Field(type = FieldType.Text, analyzer = "standard")
     private String content;
 
     @Field(type = FieldType.Keyword)

@@ -1,5 +1,6 @@
 package com.jiangyang.messages.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.entity.elasticsearch.MessageDocument;
 import com.jiangyang.messages.entity.elasticsearch.MessageHistoryDocument;
 import com.jiangyang.messages.repository.elasticsearch.MessageDocumentRepository;
@@ -18,6 +19,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
+@DataSource("master")
 public class ElasticsearchMessageService {
 
     @Autowired(required = false)

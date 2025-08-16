@@ -1,12 +1,14 @@
 package com.jiangyang.messages.audit.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.audit.entity.TransactionAuditLog;
 
 /**
  * 事务审计服务接口
  * 提供事务审计日志的增删改查服务
  */
+@DataSource("master")
 public interface TransactionAuditService extends IService<TransactionAuditLog> {
 
     /**

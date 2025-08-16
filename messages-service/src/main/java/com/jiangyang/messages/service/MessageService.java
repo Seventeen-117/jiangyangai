@@ -1,11 +1,13 @@
 package com.jiangyang.messages.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.utils.MessageServiceType;
 
 /**
  * 消息服务接口
  * 定义消息服务的基本操作方法
  */
+@DataSource("master")
 public interface MessageService {
 
     /**

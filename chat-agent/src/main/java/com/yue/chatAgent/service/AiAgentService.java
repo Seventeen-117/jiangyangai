@@ -1,6 +1,7 @@
 package com.yue.chatAgent.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.yue.chatAgent.entity.AiAgent;
 
 /**
@@ -9,6 +10,7 @@ import com.yue.chatAgent.entity.AiAgent;
  * @author yue
  * @version 1.0.0
  */
+@DataSource("master")
 public interface AiAgentService extends IService<AiAgent> {
 
     /**

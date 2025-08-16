@@ -6,12 +6,12 @@ import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.mapper.MapperScannerConfigurer;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -29,6 +29,7 @@ public class AuditLogConfig {
 
     /**
      * 审计日志数据源
+     * 使用@ConfigurationProperties动态获取配置
      */
     @Bean(name = "auditLogDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.audit-log")
@@ -38,6 +39,7 @@ public class AuditLogConfig {
 
     /**
      * 审计日志SqlSessionFactory
+     * 使用独立的审计日志数据源，不会与主数据源冲突
      */
     @Bean(name = "auditLogSqlSessionFactory")
     public SqlSessionFactory auditLogSqlSessionFactory(@Qualifier("auditLogDataSource") DataSource dataSource) throws Exception {
@@ -60,6 +62,18 @@ public class AuditLogConfig {
         sqlSessionFactory.setPlugins(interceptor);
         
         return sqlSessionFactory.getObject();
+    }
+    
+    /**
+     * 审计日志Mapper扫描配置
+     * 指定使用auditLogSqlSessionFactory
+     */
+    @Bean(name = "auditLogMapperScannerConfigurer")
+    public MapperScannerConfigurer auditLogMapperScannerConfigurer() {
+        MapperScannerConfigurer scannerConfigurer = new MapperScannerConfigurer();
+        scannerConfigurer.setBasePackage("com.jiangyang.messages.audit.mapper");
+        scannerConfigurer.setSqlSessionFactoryBeanName("auditLogSqlSessionFactory");
+        return scannerConfigurer;
     }
 
     /**

@@ -1,12 +1,14 @@
 package com.jiangyang.messages.audit.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.audit.entity.MessageLifecycleLog;
 
 /**
  * 消息生命周期服务接口
  * 提供消息生命周期日志的增删改查服务
  */
+@DataSource("master")
 public interface MessageLifecycleService extends IService<MessageLifecycleLog> {
 
     /**

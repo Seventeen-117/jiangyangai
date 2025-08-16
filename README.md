@@ -17,7 +17,8 @@
 - **bgai-service** (端口8688): AI服务，提供业务功能
 - **aiAgent-service** (端口8690): AI智能代理服务，集成多种AI模型，提供统一聊天接口
 - **messages-service** (端口8687): 消息服务，处理消息队列和事务事件
-- **data-calculation-service** (端口8691): 数据计算服务，处理图片识别、AI逻辑分析和数据计算任务
+- **deepSearch-service** (端口8691): 深度搜索服务，处理图片识别、AI逻辑分析和数据计算任务
+- **base-service**: 基础服务模块，提供多数据源、通用配置等基础功能
 
 ## 目录
 
@@ -271,7 +272,7 @@ PUT /api/sso/admin/user/user-001/lock
 
 ### 服务概述
 
-**data-calculation-service** 是一个专门处理图片识别、AI逻辑分析和数据计算任务的微服务。该服务通过集成AI代理和BGAI服务，实现智能化的数据处理流程。
+**deepSearch-service** 是一个专门处理图片识别、AI逻辑分析和数据计算任务的微服务。该服务通过集成AI代理和BGAI服务，实现智能化的数据处理流程。
 
 ### 核心功能
 

@@ -5,7 +5,7 @@ spring:
     audit-log:
       driver-class-name: com.mysql.cj.jdbc.Driver
       type: com.zaxxer.hikari.HikariDataSource
-      jdbc-url: jdbc:mysql://8.133.246.113:3306/seata?characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true
+      jdbc-url: jdbc:mysql://8.133.246.113:3306/messages_service?characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true
       username: ${AUDIT_LOG_DB_USERNAME:bgtech}
       password: ${AUDIT_LOG_DB_PASSWORD:Zly689258..}
       # HikariCP连接池配置

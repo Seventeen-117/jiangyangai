@@ -10,6 +10,12 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+// Add explicit imports for nested DTOs inside MessageService
+import com.jiangyang.dubbo.api.messages.MessageService.MessageResult;
+import com.jiangyang.dubbo.api.messages.MessageService.BatchMessageResult;
+import com.jiangyang.dubbo.api.messages.MessageService.MessageStatus;
+import com.jiangyang.dubbo.api.messages.MessageService.HealthStatus;
+
 /**
  * Dubbo消息服务提供者
  * 将本地的MessageService实现暴露为Dubbo服务

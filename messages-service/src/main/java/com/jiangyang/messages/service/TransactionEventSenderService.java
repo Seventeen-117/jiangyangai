@@ -1,5 +1,6 @@
 package com.jiangyang.messages.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.dubbo.api.transaction.TransactionEventService;
 import com.jiangyang.dubbo.api.transaction.model.TransactionEvent;
 import com.jiangyang.dubbo.api.transaction.model.TransactionEventResponse;
@@ -19,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @Slf4j
 @Service
+@DataSource("master")
 public class TransactionEventSenderService {
 
     @DubboReference(version = "1.0.0", timeout = 5000, retries = 2)

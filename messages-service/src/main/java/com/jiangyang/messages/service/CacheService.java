@@ -1,11 +1,14 @@
 package com.jiangyang.messages.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
+
 /**
  * 缓存服务接口
  * 
  * @author jiangyang
  * @since 1.0.0
  */
+@DataSource("master")
 public interface CacheService {
 
     /**
