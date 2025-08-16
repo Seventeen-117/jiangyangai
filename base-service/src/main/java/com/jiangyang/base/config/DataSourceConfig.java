@@ -2,13 +2,13 @@ package com.jiangyang.base.config;
 
 import com.jiangyang.base.datasource.DynamicDataSource;
 import com.jiangyang.base.datasource.properties.DataSourceProperties;
-import io.seata.rm.datasource.DataSourceProxy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
 import java.sql.DriverManager;
@@ -27,6 +27,9 @@ public class DataSourceConfig {
 
     @Autowired
     private DataSourceProperties dataSourceProperties;
+
+    @Autowired
+    private Environment environment;
 
     /**
      * 动态数据源 - 这是应用中使用的主要数据源
@@ -126,7 +129,20 @@ public class DataSourceConfig {
             
             // 如果启用Seata，则包装为DataSourceProxy
             if (dataSourceProperties.getDynamic().isSeata()) {
-                return new DataSourceProxy(druidDataSource);
+                try {
+                    // 检查Seata是否真正启用
+                    String seataEnabled = environment.getProperty("seata.enabled", "true");
+                    if ("false".equals(seataEnabled)) {
+                        log.info("Seata已禁用，使用原始数据源");
+                        return druidDataSource;
+                    }
+                    
+                    // 尝试创建DataSourceProxy，如果Seata类不可用则使用原始数据源
+                    return new io.seata.rm.datasource.DataSourceProxy(druidDataSource);
+                } catch (NoClassDefFoundError | Exception e) {
+                    log.warn("Seata DataSourceProxy不可用，使用原始数据源: {}", e.getMessage());
+                    return druidDataSource;
+                }
             }
             
             return druidDataSource;

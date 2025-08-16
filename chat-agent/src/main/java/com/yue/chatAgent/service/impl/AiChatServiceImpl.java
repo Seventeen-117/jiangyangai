@@ -10,6 +10,8 @@ import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.azure.openai.AzureOpenAiChatModel;
 import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -26,9 +28,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AiChatServiceImpl implements AiChatService {
 
-    private final OpenAiChatModel openAiChatModel;
-    private final AzureOpenAiChatModel azureOpenAiChatModel;
-    private final OllamaChatModel ollamaChatModel;
+    @Autowired(required = false)
+    private OpenAiChatModel openAiChatModel;
+    
+    @Autowired(required = false)
+    private AzureOpenAiChatModel azureOpenAiChatModel;
+    
+    @Autowired(required = false)
+    private OllamaChatModel ollamaChatModel;
 
     @Override
     public Map<String, Object> chat(String message, String type) {
@@ -38,7 +45,13 @@ public class AiChatServiceImpl implements AiChatService {
             ChatClient chatClient = getChatClient(type);
             if (chatClient == null) {
                 response.put("code", 400);
-                response.put("message", "不支持的AI类型: " + type);
+                response.put("message", "不支持的AI类型或AI服务未配置: " + type);
+                response.put("data", Map.of(
+                    "type", type,
+                    "message", message,
+                    "response", "请配置相应的AI服务API密钥",
+                    "timestamp", System.currentTimeMillis()
+                ));
                 return response;
             }
 
@@ -68,6 +81,12 @@ public class AiChatServiceImpl implements AiChatService {
             log.error("AI聊天失败，类型: {}, 消息: {}", type, message, e);
             response.put("code", 500);
             response.put("message", "聊天失败: " + e.getMessage());
+            response.put("data", Map.of(
+                "type", type,
+                "message", message,
+                "response", "AI服务暂时不可用，请稍后重试",
+                "timestamp", System.currentTimeMillis()
+            ));
         }
 
         return response;
@@ -78,7 +97,7 @@ public class AiChatServiceImpl implements AiChatService {
         try {
             ChatClient chatClient = getChatClient(type);
             if (chatClient == null) {
-                return "不支持的AI类型: " + type;
+                return "不支持的AI类型或AI服务未配置: " + type + "。请配置相应的AI服务API密钥。";
             }
 
             PromptTemplate promptTemplate = new PromptTemplate("""
@@ -96,7 +115,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         } catch (Exception e) {
             log.error("AI流式聊天失败，类型: {}, 消息: {}", type, message, e);
-            return "聊天失败: " + e.getMessage();
+            return "聊天失败: " + e.getMessage() + "。AI服务暂时不可用，请稍后重试。";
         }
     }
 
@@ -105,9 +124,9 @@ public class AiChatServiceImpl implements AiChatService {
      */
     private ChatClient getChatClient(String type) {
         return switch (type.toLowerCase()) {
-            case "openai" -> ChatClient.create(openAiChatModel);
-            case "azure" -> ChatClient.create(azureOpenAiChatModel);
-            case "ollama" -> ChatClient.create(ollamaChatModel);
+            case "openai" -> openAiChatModel != null ? ChatClient.create(openAiChatModel) : null;
+            case "azure" -> azureOpenAiChatModel != null ? ChatClient.create(azureOpenAiChatModel) : null;
+            case "ollama" -> ollamaChatModel != null ? ChatClient.create(ollamaChatModel) : null;
             default -> null;
         };
     }

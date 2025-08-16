@@ -74,8 +74,6 @@ public class RocketMQMonitoringService implements InitializingBean {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     Thread.sleep(MONITOR_INTERVAL_MS);
-                    // 监控消息积压
-                    monitorMessageBacklog();
                     // 监控端到端延迟
                     monitorEndToEndLatency();
                     // 监控消息丢失
@@ -94,31 +92,7 @@ public class RocketMQMonitoringService implements InitializingBean {
         log.info("RocketMQ monitoring thread started");
     }
 
-    /**
-     * 监控消息积压
-     */
-    private void monitorMessageBacklog() {
-        // 注释掉与DefaultMQAdminExt相关的监控代码，因为可能缺少rocketmq-tools依赖
-        /*
-        try {
-            TopicStatsTable statsTable = admin.examineTopicStats();
-            for (Map.Entry<String, TopicStatsTable.TopicStats> entry : statsTable.getStatsTable().entrySet()) {
-                String topic = entry.getKey();
-                TopicStatsTable.TopicStats stats = entry.getValue();
-                long backlog = stats.getOffsetTable().values().stream()
-                        .mapToLong(queueStat -> queueStat.getMaxOffset() - queueStat.getConsumerOffset())
-                        .sum();
-                if (backlog > BACKLOG_ALERT_THRESHOLD) {
-                    log.warn("High message backlog detected for topic: {}, backlog: {}", topic, backlog);
-                    triggerBacklogAlert(topic, backlog);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed to monitor message backlog", e);
-        }
-        */
-        log.debug("Message backlog monitoring is disabled due to missing dependency");
-    }
+
 
     /**
      * 监控端到端延迟

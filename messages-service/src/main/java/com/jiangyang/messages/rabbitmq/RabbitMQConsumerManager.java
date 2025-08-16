@@ -13,6 +13,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,25 +30,26 @@ import java.util.concurrent.atomic.AtomicLong;
  * 实现并发消费及高级特性
  */
 @Slf4j
+@Component
 public class RabbitMQConsumerManager implements InitializingBean, DisposableBean {
 
     @Setter
-    private String host = "8.133.246.113";
+    private String host;
 
     @Setter
-    private int port = 5672;
+    private int port;
 
     @Setter
-    private String username = "guest";
+    private String username;
 
     @Setter
-    private String password = "guest";
+    private String password;
 
     @Setter
-    private String virtualHost = "/";
+    private String virtualHost;
 
     @Setter
-    private int maxConsumeThreads = 64;
+    private int maxConsumeThreads;
 
     private final Map<String, Connection> consumerConnections = new ConcurrentHashMap<>();
     private final Map<String, Channel> consumerChannels = new ConcurrentHashMap<>();
@@ -56,8 +59,19 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
     private final AtomicLong backlogCount = new AtomicLong(0);
     private ConnectionFactory connectionFactory;
 
+    @Autowired
+    private RabbitConsumerProperties rabbitProps;
+
     @Override
     public void afterPropertiesSet() throws Exception {
+        // 首选自定义前缀配置，从 Nacos/本地 yml 绑定
+        this.host = coalesce(rabbitProps.getHost(), System.getProperty("spring.rabbitmq.host"));
+        this.port = coalesce(rabbitProps.getPort(), Integer.getInteger("spring.rabbitmq.port"), 5672);
+        this.username = coalesce(rabbitProps.getUsername(), System.getProperty("spring.rabbitmq.username"));
+        this.password = coalesce(rabbitProps.getPassword(), System.getProperty("spring.rabbitmq.password"));
+        this.virtualHost = coalesce(rabbitProps.getVirtualHost(), System.getProperty("spring.rabbitmq.virtual-host"), "/");
+        this.maxConsumeThreads = coalesce(rabbitProps.getMaxConsumeThreads(), 64);
+
         // 初始化connection factory
         connectionFactory = new ConnectionFactory();
         connectionFactory.setHost(host);
@@ -65,7 +79,21 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
         connectionFactory.setUsername(username);
         connectionFactory.setPassword(password);
         connectionFactory.setVirtualHost(virtualHost);
-        log.info("RabbitMQConsumerManager initialized");
+        log.info("RabbitMQConsumerManager initialized with host={}, port={}, vhost={}", host, port, virtualHost);
+    }
+
+    private static String coalesce(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isEmpty()) return v;
+        }
+        return null;
+    }
+
+    private static Integer coalesce(Integer... values) {
+        for (Integer v : values) {
+            if (v != null) return v;
+        }
+        return null;
     }
 
     @Override

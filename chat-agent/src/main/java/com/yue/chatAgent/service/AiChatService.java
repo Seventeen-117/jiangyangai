@@ -1,5 +1,7 @@
 package com.yue.chatAgent.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
+
 import java.util.Map;
 
 /**
@@ -8,6 +10,7 @@ import java.util.Map;
  * @author yue
  * @version 1.0.0
  */
+@DataSource("master")
 public interface AiChatService {
 
     /**
