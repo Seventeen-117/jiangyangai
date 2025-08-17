@@ -28,15 +28,15 @@ import com.jiangyang.dubbo.api.messages.MessageService.HealthStatus;
 @DubboService(version = "1.0.0", group = "messages-service")
 public class DubboMessageServiceProvider implements MessageService {
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("rocketMQMessageService")
     private com.jiangyang.messages.service.MessageService rocketMQMessageService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("kafkaMessageService")
     private com.jiangyang.messages.service.MessageService kafkaMessageService;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("rabbitMQMessageService")
     private com.jiangyang.messages.service.MessageService rabbitMQMessageService;
 
@@ -44,6 +44,18 @@ public class DubboMessageServiceProvider implements MessageService {
     public MessageResult sendMessage(String topic, String message, String tags) {
         try {
             log.info("Dubbo服务调用：发送消息，topic: {}, tags: {}", topic, tags);
+            
+            // 检查RocketMQ服务是否可用
+            if (rocketMQMessageService == null) {
+                log.warn("RocketMQ服务不可用，跳过消息发送");
+                MessageResult result = new MessageResult();
+                result.setSuccess(false);
+                result.setTopic(topic);
+                result.setTags(tags);
+                result.setSendTime(System.currentTimeMillis());
+                result.setErrorMessage("RocketMQ服务不可用");
+                return result;
+            }
             
             // 默认使用RocketMQ
             boolean success = rocketMQMessageService.sendMessage(topic, tags, message);

@@ -57,7 +57,7 @@ dubbo:
   # 协议配置（bgai-service 作为消费者，使用不同端口避免冲突）
   protocol:
     name: dubbo
-    port: 20880  # 使用 20880 端口，避免与 signature-service (20881) 冲突
+    port: 20883  # 使用 20880 端口，避免与 signature-service (20881) 冲突
     host: localhost
     threads: 200
     accepts: 0

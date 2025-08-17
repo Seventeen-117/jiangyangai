@@ -2,7 +2,7 @@ spring:
   application:
     name: messages-service
   config:
-    import: optional:classpath:application-audit.yml,optional:classpath:application-seata.yml
+    import: optional:classpath:application-seata.yml
   # 启用配置调试
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
@@ -29,30 +29,11 @@ spring:
       # 禁用自动检测
       detect-schema: false
       detect-data: false
-      # 明确禁用DDL执行器
+      # 禁用DDL执行器
       ddl:
         enabled: false
-  # JPA配置
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: false
-    # 禁用自动DDL
-    generate-ddl: false
-    defer-datasource-initialization: false
-    # 启用JPA自动配置
-    open-in-view: false
-    # JPA属性配置
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-        format_sql: false
-        use_sql_comments: false
-        # 禁用自动DDL
-        hbm2ddl:
-          auto: none
   main:
-    web-application-type: reactive
+    web-application-type: servlet
     allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
     allow-bean-definition-overriding: true # 允许 Bean 覆盖，例如说 Feign 等会存在重复定义的服务
     lazy-initialization: false # 禁用懒加载，确保实体类等在启动时加载

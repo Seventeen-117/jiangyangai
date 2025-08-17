@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
+@DataSource("master")
 public class MessageSagaStateMachine {
 
     @Autowired

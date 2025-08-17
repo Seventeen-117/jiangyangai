@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 public class RocketMQTemplateService implements MessageService {
 
-    @Autowired
+    @Autowired(required = false)
     private RocketMQTemplate rocketMQTemplate;
 
     private final ConcurrentHashMap<String, AtomicInteger> retryCountMap = new ConcurrentHashMap<>();

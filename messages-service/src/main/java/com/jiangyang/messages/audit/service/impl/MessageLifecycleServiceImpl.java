@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jiangyang.messages.audit.entity.MessageLifecycleLog;
 import com.jiangyang.messages.audit.mapper.MessageLifecycleLogMapper;
 import com.jiangyang.messages.audit.service.MessageLifecycleService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@DataSource("audit")
 public class MessageLifecycleServiceImpl extends ServiceImpl<MessageLifecycleLogMapper, MessageLifecycleLog> implements MessageLifecycleService {
 
     @Override

@@ -1,8 +1,0 @@
-# Elasticsearch配置
-elasticsearch:
-  enabled: false  # 本地环境默认不启用ES
-  host: localhost
-  port: 9200
-  scheme: http
-  username: 
-  password:
