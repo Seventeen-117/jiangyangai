@@ -54,19 +54,62 @@ dubbo:
   application:
     name: messages-service
     qos-enable: false
+    # 配置唯一的缓存路径，避免多实例冲突
+    metadata-type: local
+    # 禁用文件缓存，使用内存缓存
+    cache-file: false
+    # 配置应用实例ID，确保唯一性
+    environment: develop
   protocol:
     name: dubbo
     port: -1
+    # 配置协议级别的缓存控制
+    cache-file: false
   registry:
     address: nacos://8.133.246.113:8848
     timeout: 10000
+    # 配置注册中心缓存
+    cache-file: false
+    # 禁用注册中心文件缓存
+    file: false
+    # 禁用服务发现缓存
+    use-as-config-center: false
+    use-as-metadata-center: false
   consumer:
     timeout: 5000
     retries: 2
     check: false
+    # 禁用消费者缓存
+    cache-file: false
+    # 配置消费者元数据类型
+    metadata-type: local
   provider:
     timeout: 5000
     retries: 2
+    # 禁用提供者缓存
+    cache-file: false
+    # 配置提供者元数据类型
+    metadata-type: local
+  # 全局配置
+  config-center:
+    timeout: 3000
+    # 禁用配置中心文件缓存
+    file: false
+  metadata-report:
+    timeout: 3000
+    # 禁用元数据报告文件缓存
+    file: false
+  # 禁用所有文件缓存
+  cache:
+    file:
+      enabled: false
+  # 禁用服务名称映射
+  service-name-mapping:
+    enabled: false
+    # 禁用映射缓存
+    cache:
+      file:
+        enabled: false
 
 # Actuator配置 - 禁用数据源健康检查
 management:
@@ -132,7 +175,7 @@ message:
 # Elasticsearch配置
 elasticsearch:
   enabled: true  # 开发环境启用ES
-  host: localhost
+  host: 8.133.246.113
   port: 9200
   scheme: http
   username: 

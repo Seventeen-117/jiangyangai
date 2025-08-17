@@ -45,6 +45,54 @@ message:
       queue-count-per-topic: 1
       message-retention-hours: 1
 
+# Dubbo配置 - 测试环境
+dubbo:
+  application:
+    name: messages-service
+    qos-enable: false
+    # 配置唯一的缓存路径，避免多实例冲突
+    metadata-type: local
+    # 禁用文件缓存，使用内存缓存
+    cache-file: false
+    # 配置应用实例ID，确保唯一性
+    environment: test
+  protocol:
+    name: dubbo
+    port: -1
+    # 配置协议级别的缓存控制
+    cache-file: false
+  registry:
+    address: nacos://localhost:8848
+    timeout: 5000
+    # 配置注册中心缓存
+    cache-file: false
+    # 禁用注册中心文件缓存
+    file: false
+  consumer:
+    timeout: 3000
+    retries: 1
+    check: false
+    # 禁用消费者缓存
+    cache-file: false
+    # 配置消费者元数据类型
+    metadata-type: local
+  provider:
+    timeout: 3000
+    retries: 1
+    # 禁用提供者缓存
+    cache-file: false
+    # 配置提供者元数据类型
+    metadata-type: local
+  # 全局配置
+  config-center:
+    timeout: 2000
+    # 禁用配置中心文件缓存
+    file: false
+  metadata-report:
+    timeout: 2000
+    # 禁用元数据报告文件缓存
+    file: false
+
 # Elasticsearch配置 - 测试环境
 elasticsearch:
   enabled: false  # 测试环境禁用ES

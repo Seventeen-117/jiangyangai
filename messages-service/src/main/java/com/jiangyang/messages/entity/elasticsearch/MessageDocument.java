@@ -42,11 +42,11 @@ public class MessageDocument {
     @Field(type = FieldType.Long)
     private Long timestamp;
 
-    @Field(type = FieldType.Keyword)
-    private String createTime;
+    @Field(type = FieldType.Date)
+    private LocalDateTime createTime;
 
-    @Field(type = FieldType.Keyword)
-    private String updateTime;
+    @Field(type = FieldType.Date)
+    private LocalDateTime updateTime;
 
     @Field(type = FieldType.Integer)
     private Integer version;

@@ -56,7 +56,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 .messageType(messageType)
                 .topic(topic)
                 .timestamp(System.currentTimeMillis())
-                .createTime(LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .createTime(LocalDateTime.now())
                 .status("STORED")
                 .version(1)
                 .build();
@@ -95,7 +95,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 .messageType(documentData.get("messageType") != null ? documentData.get("messageType").toString() : "UNKNOWN")
                 .topic(documentData.get("topic") != null ? documentData.get("topic").toString() : "default")
                 .timestamp(System.currentTimeMillis())
-                .createTime(LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .createTime(LocalDateTime.now())
                 .status("STORED")
                 .version(1)
                 .build();
@@ -168,7 +168,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 
                 // 更新状态
                 messageDoc.setStatus(status);
-                messageDoc.setUpdateTime(LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                messageDoc.setUpdateTime(LocalDateTime.now());
                 messageDoc.setVersion(messageDoc.getVersion() + 1);
                 
                 // 保存更新
@@ -210,7 +210,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 .content(content)
                 .operation(operation)
                 .timestamp(System.currentTimeMillis())
-                .createTime(LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .createTime(LocalDateTime.now())
                 .status("RECORDED")
                 .build();
 
