@@ -19,6 +19,14 @@ public interface MessageLifecycleService extends IService<MessageLifecycleLog> {
     MessageLifecycleLog getByMessageId(String messageId);
 
     /**
+     * 根据消息ID和生命周期阶段查询日志
+     * @param messageId 消息ID
+     * @param lifecycleStage 生命周期阶段
+     * @return 生命周期日志
+     */
+    MessageLifecycleLog getByMessageIdAndStage(String messageId, String lifecycleStage);
+
+    /**
      * 根据业务消息ID查询生命周期日志
      * @param businessMessageId 业务消息ID
      * @return 生命周期日志列表

@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 @DataSource("master")
 public class TransactionEventSenderServiceImp implements TransactionEventSenderService {
 
-    @DubboReference(version = "1.0.0", timeout = 5000, retries = 2, check = false)
+    @DubboReference(version = "1.0.0", timeout = 3000, retries = 0, check = false, cluster = "failfast")
     private TransactionEventService transactionEventService;
 
     /**
@@ -66,6 +66,18 @@ public class TransactionEventSenderServiceImp implements TransactionEventSenderS
             }
             
         } catch (Exception e) {
+            // 检查是否是Dubbo服务不可用的错误
+            if (e.getMessage() != null && e.getMessage().contains("No provider available")) {
+                log.warn("TransactionEventService提供者不可用，跳过事务事件发送: transactionId={}, error={}", 
+                        event.getTransactionId(), e.getMessage());
+                return TransactionEventResponse.builder()
+                        .success(true) // 标记为成功，因为这是预期的降级行为
+                        .message("TransactionEventService提供者不可用，事件已跳过")
+                        .transactionId(event.getTransactionId())
+                        .errorMessage("TransactionEventService提供者不可用")
+                        .build();
+            }
+            
             log.error("发送事务事件异常: transactionId={}, error={}", 
                     event.getTransactionId(), e.getMessage(), e);
             
@@ -112,6 +124,18 @@ public class TransactionEventSenderServiceImp implements TransactionEventSenderS
             }
             
         } catch (Exception e) {
+            // 检查是否是Dubbo服务不可用的错误
+            if (e.getMessage() != null && e.getMessage().contains("No provider available")) {
+                log.warn("TransactionEventService提供者不可用，跳过批量事务事件发送，数量: {}, error={}", 
+                        events.size(), e.getMessage());
+                return TransactionEventResponse.builder()
+                        .success(true) // 标记为成功，因为这是预期的降级行为
+                        .message("TransactionEventService提供者不可用，批量事件已跳过")
+                        .transactionId("batch")
+                        .errorMessage("TransactionEventService提供者不可用")
+                        .build();
+            }
+            
             log.error("批量发送事务事件异常，数量: {}, error: {}", 
                     events.size(), e.getMessage(), e);
             

@@ -326,15 +326,14 @@ public class MessageSagaStateMachine {
                 throw new IllegalArgumentException("消息ID不能为空");
             }
             
-            // 3.2 检查消息是否已存在
-            MessageLifecycleLog existingLog = messageLifecycleService.getByMessageId(messageId);
+            // 3.2 检查消息是否已存在并获取PRODUCE阶段的记录
+            MessageLifecycleLog existingLog = messageLifecycleService.getByMessageIdAndStage(messageId, "PRODUCE");
             if (existingLog == null) {
-                throw new IllegalStateException("消息不存在: " + messageId);
+                throw new IllegalStateException("消息不存在或未完成发送: " + messageId);
             }
             
             // 3.3 验证消息状态是否允许确认
-            if (!"SEND".equals(existingLog.getLifecycleStage()) || 
-                !"SUCCESS".equals(existingLog.getStageStatus())) {
+            if (!"SUCCESS".equals(existingLog.getStageStatus())) {
                 throw new IllegalStateException("消息状态不允许确认: " + messageId + 
                     ", 当前阶段: " + existingLog.getLifecycleStage() + 
                     ", 状态: " + existingLog.getStageStatus());

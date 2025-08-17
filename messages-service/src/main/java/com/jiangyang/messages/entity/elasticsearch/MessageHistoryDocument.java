@@ -42,8 +42,8 @@ public class MessageHistoryDocument {
     @Field(type = FieldType.Long)
     private Long timestamp;
 
-    @Field(type = FieldType.Date)
-    private LocalDateTime createTime;
+    @Field(type = FieldType.Keyword)
+    private String createTime;
 
     @Field(type = FieldType.Keyword)
     private String userId;

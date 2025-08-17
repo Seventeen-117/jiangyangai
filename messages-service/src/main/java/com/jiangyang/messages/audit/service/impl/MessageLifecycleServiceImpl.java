@@ -30,6 +30,16 @@ public class MessageLifecycleServiceImpl extends ServiceImpl<MessageLifecycleLog
     }
 
     @Override
+    public MessageLifecycleLog getByMessageIdAndStage(String messageId, String lifecycleStage) {
+        LambdaQueryWrapper<MessageLifecycleLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MessageLifecycleLog::getMessageId, messageId)
+               .eq(MessageLifecycleLog::getLifecycleStage, lifecycleStage)
+               .orderByDesc(MessageLifecycleLog::getCreateTime)
+               .last("LIMIT 1");
+        return getOne(wrapper);
+    }
+
+    @Override
     public List<MessageLifecycleLog> getByBusinessMessageId(String businessMessageId) {
         LambdaQueryWrapper<MessageLifecycleLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(MessageLifecycleLog::getBusinessMessageId, businessMessageId)
