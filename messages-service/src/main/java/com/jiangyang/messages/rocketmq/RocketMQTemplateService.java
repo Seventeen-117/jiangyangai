@@ -44,6 +44,12 @@ public class RocketMQTemplateService implements MessageService {
     @Override
     public boolean sendMessage(String topic, String tag, String key, String content) {
         try {
+            // 检查RocketMQTemplate是否可用
+            if (rocketMQTemplate == null) {
+                log.error("RocketMQTemplate未初始化，无法发送消息: topic={}, tag={}, key={}", topic, tag, key);
+                return false;
+            }
+
             // 消息去重检查
             String dedupKey = generateDedupKey(topic, tag, key, content);
             if (isDuplicateMessage(dedupKey)) {

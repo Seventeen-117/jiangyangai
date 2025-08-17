@@ -16,7 +16,7 @@ spring:
     uris: http://8.133.246.113:9200
     connection-timeout: 5000ms
     socket-timeout: 10000ms
-  # SQL初始化配置
+  # SQL初始化配置 - 完全禁用
   sql:
     init:
       mode: never
@@ -31,6 +31,11 @@ spring:
       detect-data: false
       # 禁用DDL执行器
       ddl:
+        enabled: false
+      # 禁用所有SQL初始化功能
+      enabled: false
+      # 禁用DDL应用运行器
+      ddl-application-runner:
         enabled: false
   main:
     web-application-type: servlet

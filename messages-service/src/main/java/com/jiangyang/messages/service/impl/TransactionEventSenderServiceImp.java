@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 @DataSource("master")
 public class TransactionEventSenderServiceImp implements TransactionEventSenderService {
 
-    @DubboReference(version = "1.0.0", timeout = 5000, retries = 2)
+    @DubboReference(version = "1.0.0", timeout = 5000, retries = 2, check = false)
     private TransactionEventService transactionEventService;
 
     /**
@@ -35,6 +35,17 @@ public class TransactionEventSenderServiceImp implements TransactionEventSenderS
         try {
             log.info("开始发送事务事件: transactionId={}, operationType={}, status={}", 
                     event.getTransactionId(), event.getOperationType(), event.getStatus());
+
+            // 检查Dubbo服务是否可用
+            if (transactionEventService == null) {
+                log.warn("TransactionEventService不可用，跳过事务事件发送: transactionId={}", event.getTransactionId());
+                return TransactionEventResponse.builder()
+                        .success(false)
+                        .message("TransactionEventService不可用")
+                        .transactionId(event.getTransactionId())
+                        .errorMessage("TransactionEventService不可用")
+                        .build();
+            }
 
             Result<TransactionEventResponse> result = transactionEventService.processTransactionEvent(event);
             

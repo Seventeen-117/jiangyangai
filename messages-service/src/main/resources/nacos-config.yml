@@ -107,25 +107,16 @@ message:
       # Name Server地址
       name-server: ${ROCKETMQ_NAMESRV_ADDR:8.133.246.113:9876}
       # 生产者组
-      producer-group: jiangyang-producer-group
+      producer:
+        group: jiangyang-producer-group
+        send-message-timeout: 3000
+        retry-times-when-send-failed: 3
+        retry-times-when-send-async-failed: 3
+        compress-message-body-threshold: 4096
+        max-message-size: 4194304
       # 消费者组
-      consumer-group: jiangyang-consumer-group
-      # 压缩策略：LZ4, SNAPPY, ZSTD
-      compression-strategy: LZ4
-      # 同步发送重试次数
-      retry-sync-times: 3
-      # 异步发送重试次数
-      retry-async-times: 3
-      # 每个Topic的队列数量
-      queue-count-per-topic: 4
-      # 消息保留时间（小时）
-      message-retention-hours: 72
-      # 发送消息超时时间
-      send-msg-timeout: 3000
-      # 压缩消息体阈值
-      compress-msg-body-over-howmuch: 4096
-      # 最大消息大小
-      max-message-size: 4194304
+      consumer:
+        group: jiangyang-consumer-group
       # 是否启用消息轨迹
       enable-msg-trace: true
       # 消息轨迹存储类型
