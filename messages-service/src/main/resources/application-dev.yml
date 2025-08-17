@@ -41,6 +41,12 @@ spring:
     virtual-host: /
     connection-timeout: 30s
 
+# RocketMQ配置（参考bgai-service的配置方式）
+rocketmq:
+  name-server: 8.133.246.113:9876
+  producer:
+    group: jiangyang-dev-producer-group
+
 # 开发环境日志配置
 logging:
   level:

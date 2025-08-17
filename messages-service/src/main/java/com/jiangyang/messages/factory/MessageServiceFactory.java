@@ -5,7 +5,7 @@ import com.jiangyang.messages.utils.MessageServiceException;
 import com.jiangyang.messages.utils.MessageServiceType;
 import com.jiangyang.messages.kafka.KafkaMessageService;
 import com.jiangyang.messages.rabbitmq.RabbitMQMessageService;
-import com.jiangyang.messages.rocketmq.RocketMQMessageService;
+import com.jiangyang.messages.rocketmq.RocketMQTemplateService;
 import com.jiangyang.messages.service.MessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ public class MessageServiceFactory {
     private MessageServiceConfig config;
 
     @Autowired(required = false)
-    private RocketMQMessageService rocketMQMessageService;
+    private RocketMQTemplateService rocketMQMessageService;
 
     @Autowired(required = false)
     private KafkaMessageService kafkaMessageService;

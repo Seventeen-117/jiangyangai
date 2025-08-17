@@ -11,7 +11,7 @@ import com.jiangyang.messages.audit.entity.TransactionAuditLog;
 import com.jiangyang.messages.audit.service.MessageLifecycleService;
 import com.jiangyang.messages.audit.service.TransactionAuditService;
 import com.jiangyang.messages.config.MessageServiceConfig;
-import com.jiangyang.messages.rocketmq.RocketMQMessageService;
+import com.jiangyang.messages.rocketmq.RocketMQTemplateService;
 import com.jiangyang.messages.kafka.KafkaMessageService;
 import com.jiangyang.messages.rabbitmq.RabbitMQMessageService;
 import com.jiangyang.messages.saga.entity.MessageSagaLog;
@@ -46,7 +46,7 @@ public class MessageSagaStateMachine {
     private MessageServiceConfig messageServiceConfig;
     
     @Autowired
-    private RocketMQMessageService rocketMQMessageService;
+    private RocketMQTemplateService rocketMQMessageService;
     
     @Autowired
     private KafkaMessageService kafkaMessageService;
@@ -1080,10 +1080,6 @@ public class MessageSagaStateMachine {
     @DataSource("slave")
     private void sendTransactionBeginEvent(String globalTransactionId, String transactionId, 
                                          String businessType, String businessId) {
-        // 临时禁用事务事件发送，避免Dubbo调用错误
-        log.debug("事务事件发送已禁用: transactionId={}, XID={}", transactionId, globalTransactionId);
-        
-
         try {
             // 使用TransactionEventSenderService的便捷方法，避免直接创建TransactionEvent
             transactionEventSenderService.sendTransactionBeginEvent(
@@ -1094,7 +1090,6 @@ public class MessageSagaStateMachine {
             // 记录警告但不影响主要功能
             log.warn("发送事务开始事件失败: transactionId={}, error={}", transactionId, e.getMessage());
         }
-
     }
 
     /**
@@ -1103,9 +1098,6 @@ public class MessageSagaStateMachine {
     @DataSource("slave")
     private void sendMessageSendEvent(String globalTransactionId, String transactionId, 
                                     String messageId, String content) {
-        log.debug("消息发送事件已禁用: messageId={}, transactionId={}", messageId, transactionId);
-
-
         try {
             // 使用TransactionEventSenderService的便捷方法
             transactionEventSenderService.sendMessageSendEvent(
@@ -1115,7 +1107,6 @@ public class MessageSagaStateMachine {
         } catch (Exception e) {
             log.warn("发送消息发送事件失败: messageId={}, error={}", messageId, e.getMessage());
         }
-
     }
 
     /**
