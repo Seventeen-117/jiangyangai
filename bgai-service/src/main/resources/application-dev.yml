@@ -66,19 +66,43 @@ springdoc:
     
 # Dubbo配置
 dubbo:
+  # 禁用文件型缓存与服务名映射，避免使用用户目录下的 .dubbo 缓存
   application:
-    name: bgai-service
-    qos-enable: false
-  protocol:
-    name: dubbo
-    port: 20880
+    metadata-type: local
+  service-name-mapping:
+    enabled: false
+    cache:
+      file:
+        enabled: false
+  cache:
+    file:
+      enabled: false
+  metadata-report:
+    file: false
+  config-center:
+    file: false
+  # 注册中心本地文件缓存禁用（不同版本属性可能略有差异，双保险）
   registry:
-    address: nacos://${spring.cloud.nacos.discovery.server-addr}
-    timeout: 10000
-  provider:
-    timeout: 5000
-    retries: 2
-    filter: -exception
+    file: false
+    cache-file: false
+
+# Seata 分布式事务配置（修复 vgroupMapping 缺失导致的启动报错）
+seata:
+  enabled: true
+  tx-service-group: default_tx_group
+  service:
+    vgroup-mapping:
+      default_tx_group: default
+    grouplist:
+      default: 8.133.246.113:8091
+  registry:
+    type: file
+    file:
+      name: file.conf
+  config:
+    type: file
+    file:
+      name: file.conf
 
 # 自定义配置
 bgai:

@@ -9,6 +9,14 @@ import com.jiangyang.messages.service.ElasticsearchMessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.query.UpdateQuery;
+import org.springframework.data.elasticsearch.core.document.Document;
+import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -28,6 +36,9 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
 
     @Autowired(required = false)
     private MessageHistoryDocumentRepository messageHistoryDocumentRepository;
+
+    @Autowired(required = false)
+    private ElasticsearchOperations elasticsearchOperations;
 
     private static final String MESSAGE_INDEX = "messages";
     private static final String MESSAGE_HISTORY_INDEX = "message_history";
@@ -56,7 +67,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 .messageType(messageType)
                 .topic(topic)
                 .timestamp(System.currentTimeMillis())
-                .createTime(LocalDateTime.now())
+                .createTime(java.time.format.DateTimeFormatter.ISO_INSTANT.format(java.time.Instant.now()))
                 .status("STORED")
                 .version(1)
                 .build();
@@ -95,7 +106,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 .messageType(documentData.get("messageType") != null ? documentData.get("messageType").toString() : "UNKNOWN")
                 .topic(documentData.get("topic") != null ? documentData.get("topic").toString() : "default")
                 .timestamp(System.currentTimeMillis())
-                .createTime(LocalDateTime.now())
+                .createTime(java.time.format.DateTimeFormatter.ISO_INSTANT.format(java.time.Instant.now()))
                 .status("STORED")
                 .version(1)
                 .build();
@@ -126,7 +137,6 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 return null;
             }
 
-            // 使用Repository查找消息
             Optional<MessageDocument> messageOpt = messageDocumentRepository.findByMessageId(messageId);
             
             if (messageOpt.isPresent()) {
@@ -168,7 +178,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 
                 // 更新状态
                 messageDoc.setStatus(status);
-                messageDoc.setUpdateTime(LocalDateTime.now());
+                messageDoc.setUpdateTime(java.time.format.DateTimeFormatter.ISO_INSTANT.format(java.time.Instant.now()));
                 messageDoc.setVersion(messageDoc.getVersion() + 1);
                 
                 // 保存更新
@@ -210,7 +220,7 @@ public class ElasticsearchMessageServiceImp implements ElasticsearchMessageServi
                 .content(content)
                 .operation(operation)
                 .timestamp(System.currentTimeMillis())
-                .createTime(LocalDateTime.now())
+                .createTime(java.time.format.DateTimeFormatter.ISO_INSTANT.format(java.time.Instant.now()))
                 .status("RECORDED")
                 .build();
 

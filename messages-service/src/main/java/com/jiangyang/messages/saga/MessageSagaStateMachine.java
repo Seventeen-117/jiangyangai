@@ -49,10 +49,10 @@ public class MessageSagaStateMachine {
     @Autowired
     private RocketMQTemplateService rocketMQMessageService;
     
-    @Autowired
+    @Autowired(required = false)
     private KafkaMessageService kafkaMessageService;
     
-    @Autowired
+    @Autowired(required = false)
     private RabbitMQMessageService rabbitMQMessageService;
     
     @Autowired

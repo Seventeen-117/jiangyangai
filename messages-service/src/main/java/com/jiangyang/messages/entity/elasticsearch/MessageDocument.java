@@ -8,8 +8,9 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * Elasticsearch消息文档实体
@@ -42,11 +43,11 @@ public class MessageDocument {
     @Field(type = FieldType.Long)
     private Long timestamp;
 
-    @Field(type = FieldType.Date)
-    private LocalDateTime createTime;
+    @Field(type = FieldType.Date, format = DateFormat.date_optional_time)
+    private String createTime;
 
-    @Field(type = FieldType.Date)
-    private LocalDateTime updateTime;
+    @Field(type = FieldType.Date, format = DateFormat.date_optional_time)
+    private String updateTime;
 
     @Field(type = FieldType.Integer)
     private Integer version;

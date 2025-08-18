@@ -18,12 +18,19 @@ if exist "%TEMP%\dubbo" (
 )
 
 echo 启动服务...
+set "DUBBO_CACHE_DIR=%TEMP%\dubbo\messages-service"
+if not exist "%DUBBO_CACHE_DIR%" (
+    mkdir "%DUBBO_CACHE_DIR%"
+)
+
 java -Ddubbo.cache.file.enabled=false ^
      -Ddubbo.metadata.cache.file.enabled=false ^
      -Ddubbo.registry.cache.file.enabled=false ^
      -Ddubbo.service.name.mapping.enabled=false ^
      -Ddubbo.mapping.cache.file.enabled=false ^
      -Ddubbo.metadata.mapping.cache.file.enabled=false ^
+     -Duser.home="%DUBBO_CACHE_DIR%" ^
+     -Ddubbo.cache.file.directory="%DUBBO_CACHE_DIR%" ^
      -Ddubbo.registry.use-as-config-center=false ^
      -Ddubbo.registry.use-as-metadata-center=false ^
      -jar target/messages-service-1.0.0-Final.jar

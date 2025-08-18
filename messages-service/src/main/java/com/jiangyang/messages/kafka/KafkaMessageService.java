@@ -8,6 +8,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import jakarta.annotation.PreDestroy;
 
 import java.util.List;
+import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +48,12 @@ public class KafkaMessageService implements MessageService {
                 log.warn("Kafka bootstrapServers is not configured, skipping initialization");
                 return;
             }
+
+            // 预检查：解析并验证 bootstrapServers 中的主机是否可解析，避免 UnknownHostException 警告刷屏
+            if (!canResolveBootstrapServers(bootstrapServers)) {
+                log.warn("Kafka bootstrapServers contains unreachable host(s), skip init: {}", bootstrapServers);
+                return;
+            }
             
             Properties props = new Properties();
             props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -68,19 +76,55 @@ public class KafkaMessageService implements MessageService {
         }
     }
 
+    /**
+     * 解析并验证 bootstrap.servers 的主机是否可解析
+     */
+    private boolean canResolveBootstrapServers(String servers) {
+        try {
+            List<String> endpoints = Arrays.asList(servers.split(","));
+            for (String endpoint : endpoints) {
+                String trimmed = endpoint.trim();
+                String hostPort = trimmed.contains("://") ? trimmed.substring(trimmed.indexOf("://") + 3) : trimmed;
+                String host = hostPort.contains(":") ? hostPort.substring(0, hostPort.indexOf(":")) : hostPort;
+                // 忽略明显的本地和IP情况
+                if (host.equalsIgnoreCase("localhost")) {
+                    continue;
+                }
+                // 解析域名/主机
+                InetAddress.getByName(host);
+            }
+            return true;
+        } catch (Exception e) {
+            log.warn("无法解析Kafka主机: {}, error={}", servers, e.getMessage());
+            return false;
+        }
+    }
+
     @Override
     public boolean sendMessage(String topic, String content) {
+        if (producer == null) {
+            log.warn("Kafka producer not initialized, skip send. topic={}", topic);
+            return false;
+        }
         return sendMessage(topic, null, null, content);
     }
 
     @Override
     public boolean sendMessage(String topic, String tag, String content) {
+        if (producer == null) {
+            log.warn("Kafka producer not initialized, skip send. topic={}, tag={}", topic, tag);
+            return false;
+        }
         return sendMessage(topic, tag, null, content);
     }
 
     @Override
     public boolean sendMessage(String topic, String tag, String key, String content) {
         try {
+            if (producer == null) {
+                log.warn("Kafka producer not initialized, skip send. topic={}, tag={}, key={}", topic, tag, key);
+                return false;
+            }
             // 消息去重检查
             String dedupKey = generateDedupKey(topic, tag, key, content);
             if (isDuplicateMessage(dedupKey)) {
@@ -243,6 +287,10 @@ public class KafkaMessageService implements MessageService {
      */
     public void sendMessageAsync(String topic, String tag, String key, String content, Callback callback) {
         try {
+            if (producer == null) {
+                log.warn("Kafka producer not initialized, skip async send. topic={}, tag={}, key={}", topic, tag, key);
+                return;
+            }
             String messageKey = key != null ? key : (tag != null ? tag : null);
             ProducerRecord<String, String> record = new ProducerRecord<>(topic, messageKey, content);
             producer.send(record, callback);
