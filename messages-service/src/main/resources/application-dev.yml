@@ -79,6 +79,8 @@ dubbo:
     timeout: 5000
     retries: 2
     check: false
+    # 禁用 monitor 过滤器，避免调用 MonitorService
+    filter: -monitor
     # 禁用消费者缓存
     cache-file: false
     # 配置消费者元数据类型
@@ -95,10 +97,7 @@ dubbo:
     timeout: 3000
     # 禁用配置中心文件缓存
     file: false
-  metadata-report:
-    timeout: 3000
-    # 禁用元数据报告文件缓存
-    file: false
+  # 不配置 monitor，以避免 MonitorService 触发
   # 禁用所有文件缓存
   cache:
     file:
