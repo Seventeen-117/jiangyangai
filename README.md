@@ -171,6 +171,11 @@ jiangyangai/
 
 ## 🔧 快速开始
 
+> ⚠️ **安全提醒**: 本文档中的配置示例仅用于演示目的，实际部署时请：
+> - 使用强密码替换示例中的 `your_password`、`your_username` 等占位符
+> - 不要在代码仓库中提交包含真实密码的配置文件
+> - 使用环境变量或配置中心管理敏感信息
+
 ### 环境要求
 
 - **JDK**: 17+
@@ -210,7 +215,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name mysql8 \
-  -e MYSQL_ROOT_PASSWORD=root123 \
+  -e MYSQL_ROOT_PASSWORD=your_password \
   -e MYSQL_DATABASE=jiangyangai \
   -p 3306:3306 \
   mysql:8.0
@@ -232,6 +237,7 @@ docker run -d \
 CREATE DATABASE jiangyangai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 执行初始化脚本 (参考各服务的SQL文件)
+-- 注意：具体的表结构和数据请参考各服务的SQL文件
 ```
 
 ### 4. 编译项目
@@ -552,6 +558,8 @@ GET /api/calculation/result/{taskId}"
 
 ### 配置说明
 
+> ⚠️ **注意**: 以下配置示例中的数据库连接信息仅用于演示，实际使用时请替换为真实值。
+
 ```yaml
 # application-dev.yml
 server:
@@ -568,8 +576,8 @@ spring:
       datasource:
         master:
           url: jdbc:mysql://localhost:3306/deepsearch
-          username: root
-          password: root123
+          username: your_username
+          password: your_password
           
   redis:
     host: localhost
@@ -873,6 +881,8 @@ alerts:
 
 ### 配置说明
 
+> ⚠️ **注意**: 以下配置示例中的数据库连接信息仅用于演示，实际使用时请替换为真实值。
+
 ```yaml
 # application-dev.yml
 server:
@@ -889,16 +899,16 @@ spring:
       datasource:
         master:
           url: jdbc:mysql://localhost:3306/messages_master
-          username: root
-          password: root123
+          username: your_username
+          password: your_password
         slave:
           url: jdbc:mysql://localhost:3306/messages_slave
-          username: root
-          password: root123
+          username: your_username
+          password: your_password
         audit:
           url: jdbc:mysql://localhost:3306/messages_audit
-          username: root
-          password: root123
+          username: your_username
+          password: your_password
           
   redis:
     host: localhost
@@ -1212,7 +1222,7 @@ grep -r "dubbo" src/main/resources/
 **解决方案**:
 ```bash
 # 检查数据库状态
-docker exec -it mysql8 mysql -uroot -p
+docker exec -it mysql8 mysql -u your_username -p
 
 # 检查网络连接
 telnet localhost 3306
@@ -1301,6 +1311,48 @@ refactor: 代码重构
 test: 测试相关
 chore: 构建过程或辅助工具的变动
 ```
+
+## 🔒 安全配置最佳实践
+
+### 敏感信息管理
+
+1. **环境变量配置**
+   ```bash
+   # 使用环境变量管理敏感信息
+   export DB_USERNAME=your_username
+   export DB_PASSWORD=your_password
+   export NACOS_USERNAME=your_nacos_username
+   export NACOS_PASSWORD=your_nacos_password
+   ```
+
+2. **配置文件安全**
+   ```yaml
+   # 不要在配置文件中硬编码密码
+   spring:
+     datasource:
+       url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME}
+       username: ${DB_USERNAME}
+       password: ${DB_PASSWORD}
+   ```
+
+3. **密钥管理**
+   - 使用密钥管理服务（如HashiCorp Vault、AWS Secrets Manager）
+   - 定期轮换密钥和密码
+   - 使用强密码策略
+
+4. **网络安全**
+   - 生产环境使用HTTPS
+   - 配置防火墙规则
+   - 限制数据库访问IP范围
+
+### 生产环境部署检查清单
+
+- [ ] 所有默认密码已更改
+- [ ] 敏感配置使用环境变量
+- [ ] 数据库连接使用专用用户（非root）
+- [ ] 网络端口已限制访问
+- [ ] 日志中不包含敏感信息
+- [ ] 定期备份和恢复测试
 
 ## 📄 许可证
 
