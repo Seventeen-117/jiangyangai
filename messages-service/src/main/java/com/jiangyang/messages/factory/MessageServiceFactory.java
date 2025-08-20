@@ -1,6 +1,6 @@
 package com.jiangyang.messages.factory;
 
-import com.jiangyang.messages.utils.MessageServiceConfig;
+import com.jiangyang.messages.config.MessageServiceConfig;
 import com.jiangyang.messages.utils.MessageServiceException;
 import com.jiangyang.messages.utils.MessageServiceType;
 import com.jiangyang.messages.kafka.KafkaMessageService;

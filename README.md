@@ -814,7 +814,7 @@ public class MessageSagaStateMachineConfig extends StateMachineConfigurerAdapter
             .withExternal()
                 .source("SENDING").target("FAILED")
                 .event("FAILURE");
-    }
+  }
 }
 ```
 
@@ -846,7 +846,7 @@ public void executeMessageSendSaga(MessageRequest request) {
         // 6. 事务回滚处理
         rollbackTransaction(request.getBusinessKey());
         throw e;
-    }
+  }
 }
 ```
 
@@ -1046,7 +1046,7 @@ dubbo:
     iothreads: 4        # IO线程池
     accepts: 1000       # 最大连接数
     payload: 8388608    # 8MB最大包大小
-    
+
   consumer:
     connections: 4      # 每个提供者连接数
     actives: 200        # 最大并发调用数

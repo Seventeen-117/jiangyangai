@@ -7,6 +7,8 @@ import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.service.WebSocketService;
 import com.jiangyang.messages.utils.MessageServiceType;
 import com.jiangyang.messages.audit.entity.MessageLifecycleLog;
+import com.jiangyang.messages.audit.entity.BusinessTraceLog;
+import com.jiangyang.messages.audit.service.AuditLogService;
 import com.jiangyang.messages.audit.entity.TransactionAuditLog;
 import com.jiangyang.messages.audit.service.MessageLifecycleService;
 import com.jiangyang.messages.audit.service.TransactionAuditService;
@@ -81,6 +83,9 @@ public class MessageSagaStateMachine {
 
     // 线程池用于并行处理批量消息
     private final ExecutorService batchExecutor = Executors.newFixedThreadPool(10);
+
+    @Autowired(required = false)
+    private AuditLogService auditLogService;
 
     /**
      * 消息发送Saga事务
@@ -260,6 +265,25 @@ public class MessageSagaStateMachine {
             // 2. 记录消息生命周期
             MessageLifecycleLog lifecycleLog = createLifecycleLog(messageId, "PRODUCE", "PROCESSING", content);
             messageLifecycleService.save(lifecycleLog);
+
+            // 2.1 记录业务轨迹（发送阶段）
+            try {
+                if (auditLogService != null) {
+                    BusinessTraceLog trace = new BusinessTraceLog();
+                    trace.setGlobalTransactionId(RootContext.getXID());
+                    trace.setBusinessTransactionId("msg_send_" + messageId);
+                    trace.setTraceId(messageId);
+                    trace.setSpanId("SEND");
+                    trace.setServiceName("messages-service");
+                    trace.setOperationName("MessageSend");
+                    trace.setOperationType("MQ");
+                    trace.setCallDirection("OUTBOUND");
+                    trace.setTargetService(messageServiceConfig.getDefaultMessageType());
+                    trace.setCallStatus("PROCESSING");
+                    trace.setStartTime(LocalDateTime.now());
+                    auditLogService.recordBusinessTraceLog(trace);
+                }
+            } catch (Exception ignore) {}
             
             // 3. 根据传入的消息类型选择消息中间件发送消息
             String topic = messageServiceConfig.getDefaultTopic();
@@ -295,6 +319,25 @@ public class MessageSagaStateMachine {
             messageLifecycleService.updateById(lifecycleLog);
             
             log.info("消息发送成功: ID={}, 类型={}, 主题={}", messageId, messageType, topic);
+
+            // 5.1 完成业务轨迹（发送阶段）
+            try {
+                if (auditLogService != null) {
+                    BusinessTraceLog traceDone = new BusinessTraceLog();
+                    traceDone.setGlobalTransactionId(RootContext.getXID());
+                    traceDone.setBusinessTransactionId("msg_send_" + messageId);
+                    traceDone.setTraceId(messageId);
+                    traceDone.setSpanId("SEND");
+                    traceDone.setServiceName("messages-service");
+                    traceDone.setOperationName("MessageSend");
+                    traceDone.setOperationType("MQ");
+                    traceDone.setCallDirection("OUTBOUND");
+                    traceDone.setTargetService(messageServiceConfig.getDefaultMessageType());
+                    traceDone.setCallStatus("SUCCESS");
+                    traceDone.setEndTime(LocalDateTime.now());
+                    auditLogService.recordBusinessTraceLog(traceDone);
+                }
+            } catch (Exception ignore) {}
             
         } catch (Exception e) {
             log.error("消息发送失败: ID={}, 消息类型={}, 错误: {}", messageId, messageType, e.getMessage(), e);
