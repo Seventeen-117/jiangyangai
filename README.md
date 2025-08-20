@@ -1,274 +1,456 @@
-# 江阳AI微服务架构文档
+# 江阳AI微服务生态系统
 
-## 项目概述
+<div align="center">
 
-本项目是一个基于Spring Cloud Gateway的微服务架构，包含网关服务（gateway-service）、签名验证服务（signature-service）和AI服务（bgai-service）。项目实现了完整的API签名验证、JWT认证、SSO单点登录等功能。
+![Java](https://img.shields.io/badge/Java-17+-orange.svg)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen.svg)
+![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2023.0.1-blue.svg)
+![Dubbo](https://img.shields.io/badge/Dubbo-3.2.8-red.svg)
+![Nacos](https://img.shields.io/badge/Nacos-2.0+-green.svg)
+![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue.svg)
+![Redis](https://img.shields.io/badge/Redis-6.0+-red.svg)
 
-## 服务架构
+**企业级AI微服务架构 · 高性能RPC通信 · 分布式事务支持 · 智能消息处理**
+
+</div>
+
+## 📖 项目概述
+
+江阳AI微服务生态系统是一个基于Spring Cloud Gateway的企业级微服务架构，集成了AI智能服务、消息队列处理、深度搜索、分布式事务等核心功能。系统采用Dubbo RPC框架实现高性能服务间通信，支持多种消息中间件，并提供完整的API签名验证和SSO单点登录解决方案。
+
+### 🎯 核心特性
+
+- **🚀 高性能架构**: 基于Dubbo RPC的微服务通信，性能提升2-3倍
+- **🤖 AI智能服务**: 集成多种AI模型，提供智能对话和内容分析
+- **📨 消息处理**: 支持RocketMQ、Kafka、RabbitMQ多种消息中间件
+- **🔍 深度搜索**: 图片识别、AI逻辑分析、数据计算任务处理
+- **🔐 安全认证**: 完整的API签名验证和OAuth 2.0 SSO单点登录
+- **💾 分布式事务**: 基于Seata的Saga模式分布式事务支持
+- **📊 实时监控**: 完善的监控、日志和性能指标收集
+
+## 🏗️ 系统架构
+
+### 整体架构图
+
+```mermaid
+graph TB
+    Client[客户端] --> Gateway[Gateway Service<br/>API网关<br/>端口: 8080]
+    
+    Gateway --> Signature[Signature Service<br/>签名验证<br/>端口: 8689]
+    Gateway --> BGAI[BGAI Service<br/>AI核心服务<br/>端口: 8688]
+    Gateway --> Messages[Messages Service<br/>消息服务<br/>端口: 8687]
+    Gateway --> DeepSearch[DeepSearch Service<br/>深度搜索<br/>端口: 8691]
+    Gateway --> ChatAgent[Chat Agent<br/>AI代理<br/>端口: 8690]
+    
+    Signature --> BGAI
+    Messages --> BGAI
+    DeepSearch --> BGAI
+    
+    subgraph "基础设施层"
+        Nacos[Nacos<br/>注册中心/配置中心<br/>端口: 8848]
+        DubboAdmin[Dubbo Admin<br/>服务治理<br/>端口: 7001]
+        MySQL[(MySQL<br/>主数据库)]
+        Redis[(Redis<br/>缓存/会话)]
+        ES[(Elasticsearch<br/>搜索引擎)]
+        Seata[Seata<br/>分布式事务]
+    end
+    
+    subgraph "消息中间件"
+        RocketMQ[RocketMQ]
+        Kafka[Kafka]
+        RabbitMQ[RabbitMQ]
+    end
+    
+    BGAI --> Nacos
+    Signature --> Nacos
+    Messages --> Nacos
+    DeepSearch --> Nacos
+    ChatAgent --> Nacos
+    
+    Messages --> RocketMQ
+    Messages --> Kafka
+    Messages --> RabbitMQ
+    Messages --> Seata
+```
+
+### 服务端口分配
+
+| 服务名称 | HTTP端口 | Dubbo端口 | 主要功能 | 状态 |
+|---------|----------|-----------|----------|------|
+| **gateway-service** | 8080 | - | API网关、路由转发 | ✅ |
+| **signature-service** | 8689 | 20881 | 签名验证、SSO认证 | ✅ |
+| **bgai-service** | 8688 | 20880 | AI核心服务、业务逻辑 | ✅ |
+| **messages-service** | 8687 | 20882 | 消息队列、事务事件 | ✅ |
+| **deepSearch-service** | 8691 | 20883 | 深度搜索、图片识别 | ✅ |
+| **chat-agent** | 8690 | 20884 | AI智能代理、聊天服务 | ✅ |
+| **base-service** | - | - | 基础服务、多数据源 | ✅ |
+
+## 🚀 技术栈
+
+### 核心框架
+
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| **Java** | 17+ | 基础运行环境 |
+| **Spring Boot** | 3.2.5 | 应用框架 |
+| **Spring Cloud** | 2023.0.1 | 微服务框架 |
+| **Spring Cloud Alibaba** | 2022.0.0.0 | 阿里微服务组件 |
+| **Apache Dubbo** | 3.2.8 | RPC通信框架 |
+| **Nacos** | 2.0+ | 服务注册发现 |
+
+### 数据存储
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **MySQL** | 8.0+ | 主数据库 |
+| **Redis** | 6.0+ | 缓存、会话 |
+| **Elasticsearch** | 8.12.2 | 搜索引擎、日志 |
+| **MyBatis Plus** | 3.5.5 | ORM框架 |
+
+### 消息中间件
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **RocketMQ** | 2.2.3 | 消息队列 |
+| **Kafka** | - | 流处理 |
+| **RabbitMQ** | - | 消息代理 |
+
+### 监控运维
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Spring Boot Actuator** | 3.2.5 | 健康检查 |
+| **Micrometer** | - | 指标收集 |
+| **Dubbo Admin** | 3.2.8 | 服务治理 |
+
+## 📦 模块结构
 
 ```
-客户端 → 网关(路由+基础过滤) → signature-service(验证逻辑) → 业务服务
+jiangyangai/
+├── 📁 gateway-service/           # API网关服务
+│   ├── 路由配置
+│   ├── 过滤器链
+│   └── 负载均衡
+├── 📁 signature-service/         # 签名验证服务
+│   ├── API签名验证
+│   ├── SSO单点登录
+│   ├── OAuth 2.0授权
+│   └── 用户权限管理
+├── 📁 bgai-service/              # AI核心业务服务
+│   ├── AI模型集成
+│   ├── 业务逻辑处理
+│   ├── Dubbo服务提供
+│   └── 外部API调用
+├── 📁 messages-service/           # 消息处理服务
+│   ├── 消息队列管理
+│   ├── 事务事件处理
+│   ├── Saga状态机
+│   └── 消息生命周期
+├── 📁 deepSearch-service/         # 深度搜索服务
+│   ├── 图片识别处理
+│   ├── AI逻辑分析
+│   ├── 数据计算任务
+│   └── 结果存储管理
+├── 📁 chat-agent/                 # AI智能代理
+│   ├── 多模型集成
+│   ├── 智能对话
+│   ├── 上下文管理
+│   └── 响应优化
+├── 📁 base-service/               # 基础服务模块
+│   ├── 多数据源管理
+│   ├── 通用配置
+│   ├── 工具类库
+│   └── 基础组件
+├── 📁 dubbo-api/                  # 公共API接口
+│   ├── 服务接口定义
+│   ├── 数据传输对象
+│   ├── 通用响应模型
+│   └── 异常处理
+└── 📁 logs/                       # 日志文件
 ```
 
-### 服务列表
+## 🔧 快速开始
 
-- **gateway-service** (端口8080): API网关服务，负责路由和基础过滤
-- **signature-service** (端口8689): 签名验证服务，提供完整的认证和授权功能
-- **bgai-service** (端口8688): AI服务，提供业务功能
-- **aiAgent-service** (端口8690): AI智能代理服务，集成多种AI模型，提供统一聊天接口
-- **messages-service** (端口8687): 消息服务，处理消息队列和事务事件
-- **deepSearch-service** (端口8691): 深度搜索服务，处理图片识别、AI逻辑分析和数据计算任务
-- **base-service**: 基础服务模块，提供多数据源、通用配置等基础功能
+> ⚠️ **安全提醒**: 本文档中的配置示例仅用于演示目的，实际部署时请：
+> - 使用强密码替换示例中的 `your_password`、`your_username` 等占位符
+> - 不要在代码仓库中提交包含真实密码的配置文件
+> - 使用环境变量或配置中心管理敏感信息
 
-## 目录
+### 环境要求
 
-1. [网关架构优化](#网关架构优化)
-2. [SSO单点登录](#sso单点登录)
-3. [签名验证功能](#签名验证功能)
-4. [数据计算服务](#数据计算服务)
-5. [API使用指南](#api使用指南)
-6. [统计监控](#统计监控)
-7. [部署配置](#部署配置)
+- **JDK**: 17+
+- **Maven**: 3.6+
+- **MySQL**: 8.0+
+- **Redis**: 6.0+
+- **Nacos**: 2.0+
+- **Elasticsearch**: 8.12.2 (可选)
 
----
+### 1. 克隆项目
 
-## 网关架构优化
+```bash
+git clone https://github.com/your-username/jiangyangai.git
+cd jiangyangai
+```
 
-### 职责分工
+### 2. 启动基础设施
 
-#### 网关职责 (Gateway Service)
-1. **路由转发** - 将请求路由到正确的服务
-2. **基础过滤** - 限流、熔断、日志、基础防御
-3. **请求预处理** - 添加请求头、转换请求格式
+#### 启动Nacos (服务注册中心)
 
-#### signature-service职责
-1. **API Key验证** - 验证API密钥的有效性
-2. **签名验证** - 验证请求签名的正确性
-3. **权限验证** - 验证用户权限和访问控制
-4. **复杂认证逻辑** - JWT验证、OAuth2.0等
-5. **安全策略** - 防重放攻击、时间戳验证等
+```bash
+# 使用Docker启动
+docker run -d \
+  --name nacos-standalone \
+  -e MODE=standalone \
+  -e JVM_XMS=512m \
+  -e JVM_XMX=512m \
+  -p 8848:8848 \
+  nacos/nacos-server:latest
 
-### 网关过滤器配置
+# 访问控制台: http://localhost:8848/nacos
+# 用户名: nacos, 密码: nacos
+```
 
-#### 保留的过滤器
+#### 启动MySQL
+
+```bash
+docker run -d \
+  --name mysql8 \
+  -e MYSQL_ROOT_PASSWORD=your_password \
+  -e MYSQL_DATABASE=jiangyangai \
+  -p 3306:3306 \
+  mysql:8.0
+```
+
+#### 启动Redis
+
+```bash
+docker run -d \
+  --name redis6 \
+  -p 6379:6379 \
+  redis:6.0-alpine
+```
+
+### 3. 配置数据库
+
+```sql
+-- 创建数据库
+CREATE DATABASE jiangyangai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 执行初始化脚本 (参考各服务的SQL文件)
+-- 注意：具体的表结构和数据请参考各服务的SQL文件
+```
+
+### 4. 编译项目
+
+```bash
+# 编译所有模块
+mvn clean compile -DskipTests
+
+# 安装dubbo-api到本地仓库
+cd dubbo-api
+mvn clean install -DskipTests
+cd ..
+
+# 编译各服务
+mvn clean package -DskipTests
+```
+
+### 5. 启动服务
+
+#### 启动顺序
+
+1. **base-service** (基础服务)
+2. **signature-service** (签名验证)
+3. **bgai-service** (AI核心服务)
+4. **messages-service** (消息服务)
+5. **deepSearch-service** (深度搜索)
+6. **chat-agent** (AI代理)
+7. **gateway-service** (API网关)
+
+#### 启动命令
+
+```bash
+# 启动signature-service
+cd signature-service
+java -jar target/signature-service-1.0.0-Final.jar
+
+# 启动bgai-service
+cd ../bgai-service
+java -jar target/bgai-service-1.0.0-Final.jar
+
+# 启动messages-service
+cd ../messages-service
+java -jar target/messages-service-1.0.0-Final.jar
+
+# 启动gateway-service
+cd ../gateway-service
+java -jar target/gateway-service-1.0.0-Final.jar
+```
+
+### 6. 验证部署
+
+```bash
+# 检查服务健康状态
+curl http://localhost:8688/actuator/health  # bgai-service
+curl http://localhost:8689/actuator/health  # signature-service
+curl http://localhost:8687/actuator/health  # messages-service
+curl http://localhost:8080/actuator/health  # gateway-service
+
+# 测试网关路由
+curl http://localhost:8080/api/signature/health
+```
+
+## 🔐 认证与授权
+
+### API签名验证
+
+系统采用HMAC-SHA256签名算法，确保API调用的安全性：
+
+#### 签名参数
+
+- **appId**: 应用标识
+- **timestamp**: 时间戳 (毫秒)
+- **nonce**: 随机字符串
+- **sign**: 签名值
+- **params**: 业务参数
+
+#### 签名生成示例
+
+```bash
+POST /api/signature/generate
+Content-Type: application/json
+
+{
+  "appId": "test-app-001",
+  "secret": "your-secret-key",
+  "params": {
+    "userId": "user123",
+    "action": "getUserInfo"
+  }
+}
+```
+
+#### 签名验证示例
+
+```bash
+POST /api/signature/verify
+Content-Type: application/json
+
+{
+  "appId": "test-app-001",
+  "timestamp": "1703123456789",
+  "nonce": "a1b2c3d4e5f6",
+  "sign": "generated_signature",
+  "params": {
+    "userId": "user123"
+  }
+}
+```
+
+### SSO单点登录
+
+系统支持完整的OAuth 2.0流程：
+
+#### 授权码流程
+
+```bash
+# 1. 获取授权码
+GET /api/sso/authorize?client_id=client&response_type=code&redirect_uri=xxx
+
+# 2. 使用授权码获取令牌
+POST /api/sso/token
+{
+  "grant_type": "authorization_code",
+  "code": "auth_code",
+  "client_id": "client",
+  "client_secret": "secret"
+}
+```
+
+#### 密码授权流程
+
+```bash
+POST /api/sso/token
+{
+  "grant_type": "password",
+  "username": "user",
+  "password": "pass",
+  "client_id": "client",
+  "client_secret": "secret"
+}
+```
+
+## 📨 消息服务
+
+### 消息中间件支持
+
+**messages-service** 支持多种消息中间件，提供统一的消息处理接口：
+
+#### RocketMQ
+
 ```java
-// 基础功能过滤器
-- GlobalLogFilter          // 全局日志
-- RateLimitFilter          // 限流
-- CircuitBreakerFilter     // 熔断
-- DefensiveFilter          // 基础防御
-- LoggingFilter           // 请求日志
-- ValidationFilter        // 验证过滤器（调用signature-service）
+// 发送消息
+@Autowired
+private RocketMQTemplateService rocketMQTemplateService;
+
+boolean success = rocketMQTemplateService.sendMessage(
+    "topic-name", 
+    "tag-name", 
+    "message-key", 
+    "message-content"
+);
 ```
 
-#### 路由配置示例
-```yaml
-gateway:
-  routes:
-    # 签名验证服务路由
-    - id: signature-service
-      uri: http://localhost:8689
-      predicates:
-        - Path=/api/signature/**,/api/keys/**,/api/auth/**,/api/sso/**
+#### Kafka
+
+```java
+// 发送消息
+@Autowired
+private KafkaMessageService kafkaMessageService;
+
+boolean success = kafkaMessageService.sendMessage(
+    "topic-name", 
+    "message-key", 
+    "message-content"
+);
+```
+
+#### RabbitMQ
+
+```java
+// 发送消息
+@Autowired
+private RabbitMQMessageService rabbitMQMessageService;
+
+boolean success = rabbitMQMessageService.sendMessage(
+    "exchange-name", 
+    "routing-key", 
+    "message-content"
+);
+```
+
+### Saga分布式事务
+
+系统基于Seata实现Saga模式的分布式事务：
+
+```java
+@GlobalTransactional
+public void executeMessageSendSaga(MessageRequest request) {
+    // 1. 创建消息记录
+    Message message = createMessage(request);
     
-    # 需要验证的bgai服务路由
-    - id: bgai-service-validated
-      uri: http://localhost:8688
-      predicates:
-        - Path=/api/chatGatWay-internal/**,/api/admin/**
-      filters:
-        - ValidationFilter  # 自定义验证过滤器
-        - AddRequestHeader=X-Gateway-Source, gateway-service
-        - AddResponseHeader=X-Gateway-Response, true
+    // 2. 发送消息到队列
+    boolean sent = sendMessageToQueue(message);
     
-    # 公开的bgai服务路由
-    - id: bgai-service-public
-      uri: http://localhost:8688
-      predicates:
-        - Path=/api/bgai/**,/api/public/**
-```
-
-### 验证流程
-
-1. **请求到达gateway-service** (端口8080)
-2. **路由匹配**: 根据路径匹配相应的路由
-3. **ValidationFilter执行**: 对需要验证的路径调用signature-service进行验证
-4. **验证通过**: gateway-service将请求转发到目标服务
-5. **验证失败**: 直接返回401错误，不转发
-
----
-
-## SSO单点登录
-
-### 核心组件
-
-- **SsoService**: 主要的SSO服务类，处理OAuth 2.0流程
-- **AuthorizationCodeMapper**: 授权码数据访问层
-- **OAuthClientMapper**: OAuth客户端数据访问层
-- **SsoUserMapper**: SSO用户数据访问层
-- **PasswordUtils**: 密码加密工具类
-- **JwtUtils**: JWT令牌工具类
-
-### 数据库表结构
-
-#### authorization_code（授权码表）
-```sql
-CREATE TABLE `authorization_code` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(255) NOT NULL COMMENT '授权码',
-    `client_id` VARCHAR(255) NOT NULL COMMENT '客户端ID',
-    `user_id` VARCHAR(255) NOT NULL COMMENT '用户ID',
-    `redirect_uri` VARCHAR(500) NOT NULL COMMENT '重定向URI',
-    `scope` VARCHAR(500) DEFAULT NULL COMMENT '权限范围',
-    `state` VARCHAR(255) DEFAULT NULL COMMENT '状态参数',
-    `expires_at` DATETIME NOT NULL COMMENT '过期时间',
-    `used` BOOLEAN DEFAULT FALSE COMMENT '是否已使用',
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_code` (`code`)
-);
-```
-
-#### oauth_client（OAuth客户端表）
-```sql
-CREATE TABLE `oauth_client` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `client_id` VARCHAR(255) NOT NULL COMMENT '客户端ID',
-    `client_secret` VARCHAR(500) NOT NULL COMMENT '客户端密钥',
-    `client_name` VARCHAR(255) NOT NULL COMMENT '客户端名称',
-    `redirect_uri` VARCHAR(500) NOT NULL COMMENT '重定向URI',
-    `scope` VARCHAR(500) DEFAULT NULL COMMENT '权限范围',
-    `grant_types` VARCHAR(500) DEFAULT NULL COMMENT '授权类型',
-    `status` TINYINT DEFAULT 1 COMMENT '状态：1-启用，0-禁用',
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_client_id` (`client_id`)
-);
-```
-
-#### sso_user（SSO用户表）
-```sql
-CREATE TABLE `sso_user` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_id` VARCHAR(255) NOT NULL COMMENT '用户ID',
-    `username` VARCHAR(255) NOT NULL COMMENT '用户名',
-    `password` VARCHAR(500) NOT NULL COMMENT '密码',
-    `email` VARCHAR(255) DEFAULT NULL COMMENT '邮箱',
-    `nickname` VARCHAR(255) DEFAULT NULL COMMENT '昵称',
-    `avatar` VARCHAR(500) DEFAULT NULL COMMENT '头像',
-    `role` VARCHAR(100) DEFAULT 'USER' COMMENT '角色',
-    `department` VARCHAR(255) DEFAULT NULL COMMENT '部门',
-    `position` VARCHAR(255) DEFAULT NULL COMMENT '职位',
-    `phone` VARCHAR(50) DEFAULT NULL COMMENT '手机号',
-    `gender` VARCHAR(20) DEFAULT NULL COMMENT '性别',
-    `status` VARCHAR(50) DEFAULT 'ACTIVE' COMMENT '状态',
-    `enabled` BOOLEAN DEFAULT TRUE COMMENT '是否启用',
-    `locked` BOOLEAN DEFAULT FALSE COMMENT '是否锁定',
-    `last_login_at` DATETIME DEFAULT NULL COMMENT '最后登录时间',
-    `last_login_ip` VARCHAR(100) DEFAULT NULL COMMENT '最后登录IP',
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_user_id` (`user_id`),
-    UNIQUE KEY `uk_username` (`username`)
-);
-```
-
-### 管理接口
-
-#### 授权码管理
-```bash
-# 创建授权码
-POST /api/sso/admin/auth-code
-{
-    "clientId": "default-client",
-    "userId": "user-001",
-    "redirectUri": "http://localhost:8080/api/sso/callback",
-    "scope": "read write",
-    "state": "random-state"
-}
-
-# 清理过期授权码
-DELETE /api/sso/admin/auth-code/cleanup
-```
-
-#### OAuth客户端管理
-```bash
-# 创建客户端
-POST /api/sso/admin/client
-{
-    "clientId": "new-client",
-    "clientSecret": "secret123",
-    "clientName": "新客户端",
-    "redirectUri": "http://localhost:3000/callback",
-    "scope": "read write",
-    "grantTypes": "authorization_code refresh_token password"
-}
-
-# 获取所有客户端
-GET /api/sso/admin/clients
-```
-
-#### 用户管理
-```bash
-# 创建用户
-POST /api/sso/admin/user
-{
-    "username": "newuser",
-    "password": "password123",
-    "email": "newuser@example.com",
-    "nickname": "新用户",
-    "role": "USER",
-    "department": "IT",
-    "position": "Developer"
-}
-
-# 更新用户密码
-PUT /api/sso/admin/user/user-001/password
-{
-    "password": "newpassword123"
-}
-
-# 锁定/解锁用户
-PUT /api/sso/admin/user/user-001/lock
-{
-    "locked": true
+    // 3. 更新消息状态
+    updateMessageStatus(message.getId(), "SENT");
+    
+    // 4. 记录审计日志
+    recordAuditLog(message.getId(), "SAGA_COMPLETED");
 }
 ```
 
----
-
-## 签名验证功能
-
-### 签名算法
-
-采用HMAC-SHA256签名算法：
-
-1. **参数排序**: 将所有参数按字典序排序
-2. **构造签名字符串**: `key1=value1&key2=value2&...`
-3. **计算签名**: 使用HMAC-SHA256算法和密钥计算签名
-4. **返回结果**: 十六进制字符串
-
-### 签名参数
-
-- **appId**: 应用ID（必需）
-- **timestamp**: 时间戳（必需，毫秒级）
-- **nonce**: 随机字符串（必需，防重放攻击）
-- **sign**: 签名值（必需）
-- **params**: 业务参数（可选）
-
-### 验证规则
-
-1. **时间戳验证**: 时间戳不能超过5分钟
-2. **Nonce验证**: Nonce不能重复使用（30分钟内）
-3. **签名验证**: 签名必须正确
-4. **参数完整性**: 所有必需参数必须存在
-
----
-
-## 数据计算服务
+## 🔍 深度搜索服务
 
 ### 服务概述
 
@@ -276,20 +458,23 @@ PUT /api/sso/admin/user/user-001/lock
 
 ### 核心功能
 
-1. **图片上传与识别**
-   - 支持多图片上传（Base64或URL）
-   - 异步发送图片到BGAI服务进行内容识别
-   - 自动生成SQL语句并存储到MySQL数据库
+#### 1. 图片上传与识别
+- **多格式支持**: 支持JPG、PNG、GIF、PDF等多种格式
+- **批量处理**: 支持多图片同时上传和处理
+- **智能识别**: 自动识别图片内容并生成结构化数据
+- **SQL生成**: 基于识别结果自动生成SQL语句
 
-2. **AI逻辑分析**
-   - 自动请求AI代理服务分析业务逻辑
-   - 生成完整的逻辑流程图和文字描述
-   - 支持多种业务类型的智能分析
+#### 2. AI逻辑分析
+- **业务流程分析**: 自动分析业务逻辑流程
+- **流程图生成**: 生成完整的业务流程图
+- **文字描述**: 提供详细的逻辑说明文档
+- **多业务类型**: 支持订单管理、用户管理等多种业务场景
 
-3. **数据计算处理**
-   - 基于BGAI服务返回的计算规则执行数据计算
-   - 支持同步和异步计算模式
-   - 提供计算任务状态跟踪和取消功能
+#### 3. 数据计算处理
+- **同步计算**: 实时数据计算和结果返回
+- **异步任务**: 支持长时间运行的计算任务
+- **任务跟踪**: 提供计算任务状态跟踪
+- **结果存储**: 自动存储计算结果到MySQL数据库
 
 ### 技术架构
 
@@ -299,19 +484,69 @@ PUT /api/sso/admin/user/user-001/lock
 - **MyBatis Plus**: 数据持久化
 - **Redis**: 缓存和会话管理
 - **MySQL**: 数据存储
-
-### 服务端口
-
-- **开发环境**: 8691
-- **测试环境**: 8691
-- **生产环境**: 8691
+- **Elasticsearch**: 搜索结果存储
 
 ### 主要接口
 
-- `POST /api/calculation/upload`: 图片上传和识别
-- `POST /api/calculation/execute`: 执行数据计算
-- `GET /api/calculation/status/{taskId}`: 查询计算状态
-- `POST /api/calculation/cancel/{taskId}`: 取消计算任务
+#### 图片处理接口
+
+```bash
+# 图片上传和识别
+POST /api/calculation/upload
+Content-Type: multipart/form-data
+
+# 查询识别结果
+GET /api/calculation/result/{taskId}
+
+# 批量图片处理
+POST /api/calculation/batch-upload
+```
+
+#### AI分析接口
+
+```bash
+# 业务逻辑分析
+POST /api/calculation/analyze
+Content-Type: application/json
+
+{
+  "businessType": "order_management",
+  "requirements": "分析订单处理流程",
+  "inputData": "订单数据样本"
+}
+
+# 获取分析结果
+GET /api/calculation/analysis/{analysisId}
+```
+
+#### 数据计算接口
+
+```bash
+# 执行数据计算
+POST /api/calculation/execute
+Content-Type: application/json
+
+{
+  "taskType": "data_aggregation",
+  "parameters": {
+    "table": "orders",
+    "groupBy": "status",
+    "aggregation": "count",
+    "filters": {
+      "dateRange": "2024-01-01,2024-12-31"
+    }
+  }
+}
+
+# 查询计算状态
+GET /api/calculation/status/{taskId}
+
+# 取消计算任务
+POST /api/calculation/cancel/{taskId}
+
+# 获取计算结果
+GET /api/calculation/result/{taskId}"
+```
 
 ### 业务流程
 
@@ -321,510 +556,488 @@ PUT /api/sso/admin/user/user-001/lock
 4. **逻辑提交** → 通过Dubbo发送到BGAI服务
 5. **数据计算** → 执行计算规则 → 返回结果
 
----
+### 配置说明
 
-## API使用指南
-
-### 1. 生成API密钥
-
-```bash
-POST http://localhost:8689/api/keys/generate
-Content-Type: application/json
-
-{
-  "clientId": "test-client-001",
-  "clientName": "测试客户端",
-  "description": "用于测试的API密钥"
-}
-```
-
-**响应示例:**
-```json
-{
-  "apiKey": "sk-1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-  "clientId": "test-client-001",
-  "clientName": "测试客户端",
-  "description": "用于测试的API密钥",
-  "createdAt": "2024-01-15T10:30:00",
-  "expiresAt": "2025-01-15T10:30:00",
-  "active": true
-}
-```
-
-### 2. 生成签名
-
-```bash
-POST http://localhost:8689/api/signature/generate
-Content-Type: application/json
-
-{
-  "appId": "test-app-001",
-  "secret": "your-secret-key",
-  "params": {
-    "userId": "user123",
-    "action": "getUserInfo",
-    "data": "test-data"
-  }
-}
-```
-
-**响应示例:**
-```json
-{
-  "success": true,
-  "message": "Signature generated successfully",
-  "data": {
-    "appId": "test-app-001",
-    "timestamp": "1703123456789",
-    "nonce": "a1b2c3d4e5f678901234567890123456",
-    "sign": "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567",
-    "userId": "user123",
-    "action": "getUserInfo",
-    "data": "test-data"
-  }
-}
-```
-
-### 3. 验证签名
-
-```bash
-POST http://localhost:8689/api/signature/verify
-Content-Type: application/json
-
-{
-  "appId": "test-app-001",
-  "timestamp": "1703123456789",
-  "nonce": "a1b2c3d4e5f678901234567890123456",
-  "sign": "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567",
-  "params": {
-    "userId": "user123",
-    "action": "getUserInfo",
-    "data": "test-data"
-  }
-}
-```
-
-### 4. 通过网关访问
-
-#### 需要验证的接口（通过ValidationFilter）
-```bash
-POST http://localhost:8080/api/chatGatWay-internal
-X-API-Key: b9c4046cb9124dc6883376f86a6bf9a4
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-Content-Type: application/json
-
-{
-  "message": "test"
-}
-```
-
-#### 无需验证的接口
-```bash
-POST http://localhost:8080/api/signature/generate
-Content-Type: application/json
-
-{
-  "appId": "test-app-123",
-  "secret": "test-secret",
-  "params": {"message": "test"}
-}
-```
-
-### SSO认证流程
-
-#### 1. 授权码流程
-```bash
-# 1. 创建授权码
-POST http://localhost:8080/api/sso/admin/auth-code
-{
-  "clientId": "default-client",
-  "userId": "user-001",
-  "redirectUri": "http://localhost:8080/api/sso/callback",
-  "scope": "read write",
-  "state": "random-state"
-}
-
-# 2. 使用授权码交换令牌
-POST http://localhost:8080/api/sso/token
-{
-  "grant_type": "authorization_code",
-  "code": "generated-auth-code",
-  "client_id": "default-client",
-  "client_secret": "your-client-secret"
-}
-```
-
-#### 2. 密码授权流程
-```bash
-POST http://localhost:8080/api/sso/token
-{
-  "grant_type": "password",
-  "username": "admin",
-  "password": "123456",
-  "client_id": "default-client",
-  "client_secret": "your-client-secret"
-}
-```
-
-#### 3. 刷新令牌流程
-```bash
-POST http://localhost:8080/api/sso/token
-{
-  "grant_type": "refresh_token",
-  "refresh_token": "your-refresh-token",
-  "client_id": "default-client",
-  "client_secret": "your-client-secret"
-}
-```
-
----
-
-## 统计监控
-
-### 事件驱动架构
-
-签名验证统计功能采用事件驱动架构：
-
-- **SignatureVerificationEvent**: 签名验证事件
-- **SignatureVerificationEventListener**: 事件监听器，收集统计信息
-- **SignatureStatisticsService**: 统计服务，提供统计信息查询接口
-
-### 统计API
-
-#### 1. 获取应用统计信息
-```bash
-GET /api/signature/stats/app/{appId}
-```
-
-**响应示例:**
-```json
-{
-    "appId": "test-app-001",
-    "successCount": 150,
-    "failureCount": 5,
-    "replayAttackCount": 2,
-    "totalCount": 155,
-    "failureRate": 0.032,
-    "averageVerificationTime": 45
-}
-```
-
-#### 2. 获取所有应用统计信息
-```bash
-GET /api/signature/stats/all
-```
-
-#### 3. 重置统计信息
-```bash
-# 重置特定应用
-DELETE /api/signature/stats/app/{appId}
-
-# 重置所有应用
-DELETE /api/signature/stats/all
-```
-
-### 告警机制
-
-#### 失败率告警
-当失败率超过10%时记录错误日志
-
-#### 重放攻击告警
-当重放攻击次数超过5次时记录错误日志
-
-#### 性能告警
-当验证时间超过1秒时记录警告日志
-
----
-
-## 部署配置
-
-### 1. 数据库配置
+> ⚠️ **注意**: 以下配置示例中的数据库连接信息仅用于演示，实际使用时请替换为真实值。
 
 ```yaml
+# application-dev.yml
+server:
+  port: 8691
+
 spring:
+  application:
+    name: deepSearch-service
+    
   datasource:
-    url: jdbc:mysql://localhost:3306/signature_service
-    username: your_username
-    password: your_password
-    driver-class-name: com.mysql.cj.jdbc.Driver
-```
-
-### 2. SSO配置
-
-```yaml
-sso:
-  client-id: "default-client"
-  client-secret: "your-client-secret"
-  redirect-uri: "http://localhost:8080/api/sso/callback"
-  security:
-    jwt-secret: "your-super-secret-jwt-key-here-must-be-at-least-256-bits-long"
-    jwt-expiration: 3600000
-    refresh-token-expiration: 2592000000
-```
-
-### 3. 网关配置
-
-```yaml
-server:
-  port: 8080
-
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: signature-service
-          uri: http://localhost:8689
-          predicates:
-            - Path=/api/signature/**,/api/keys/**,/api/auth/**,/api/sso/**
-        - id: bgai-service-validated
-          uri: http://localhost:8688
-          predicates:
-            - Path=/api/chatGatWay-internal/**,/api/admin/**
-          filters:
-            - ValidationFilter
-```
-
-### 4. 签名服务配置
-
-```yaml
-server:
-  port: 8689
-
-signature:
-  enabled: true
-  timestamp-expire-seconds: 300
-  nonce-cache-expire-seconds: 1800
-  
-feign:
-  client:
-    config:
-      bgai-service:
-        url: http://localhost:8688
-```
-
-## 安全特性
-
-### 1. 密码安全
-- **BCrypt加密**: 使用BCrypt算法加密密码
-- **盐值**: 自动生成随机盐值
-- **验证**: 安全的密码验证机制
-
-### 2. 授权码安全
-- **一次性使用**: 授权码只能使用一次
-- **过期机制**: 授权码10分钟后自动过期
-- **客户端验证**: 验证授权码与客户端的关联
-
-### 3. 令牌安全
-- **JWT签名**: 使用HMAC-SHA256签名
-- **过期检查**: 自动检查令牌过期时间
-- **黑名单**: 支持令牌撤销
-
-### 4. 签名安全
-- **防重放攻击**: Nonce机制防止重放攻击
-- **时间戳验证**: 防止过期请求
-- **参数完整性**: 确保请求参数完整性
-
-## 最佳实践
-
-### 1. 安全建议
-- **强密码策略**: 实施强密码要求
-- **定期清理**: 定期清理过期的授权码
-- **监控日志**: 监控异常登录行为
-- **HTTPS**: 使用HTTPS传输敏感数据
-
-### 2. 性能优化
-- **数据库索引**: 为常用查询字段添加索引
-- **连接池**: 配置合适的数据库连接池
-- **缓存**: 对频繁查询的数据进行缓存
-
-### 3. 监控运维
-- **日志监控**: 监控应用日志和错误率
-- **性能监控**: 监控接口响应时间
-- **资源监控**: 监控CPU、内存使用情况
-- **告警机制**: 配置合适的告警阈值
-
-## 常见问题
-
-### 1. 服务未启动
-- 确保signature-service在端口8689启动
-- 确保gateway-service在端口8080启动
-- 确保bgai-service在端口8688启动
-
-### 2. 签名验证失败
-- 检查appId和secret是否正确
-- 检查时间戳是否在有效期内
-- 检查nonce是否重复使用
-- 检查参数排序是否正确
-
-### 3. 网关访问失败
-- 确保网关路由配置正确
-- 检查网关日志中的错误信息
-- 确认所有服务都已正确启动
-
-### 4. JWT令牌问题
-- 检查JWT密钥配置
-- 验证令牌是否过期
-- 确认令牌格式正确
-
-## 总结
-
-本项目实现了完整的微服务架构，包括：
-
-1. **清晰的职责分工**: 网关专注路由，signature-service专注验证
-2. **完整的OAuth 2.0流程**: 授权码、密码、刷新令牌授权
-3. **安全的签名验证**: HMAC-SHA256签名算法
-4. **灵活的用户管理**: 支持用户、客户端、权限管理
-5. **完善的监控统计**: 详细的验证统计和告警机制
-6. **高性能架构**: 事件驱动、缓存机制、异步处理
-
-这个架构确保了系统的安全性、可靠性和可维护性，为企业级应用提供了完整的解决方案。
-
----
-
-## Dubbo 微服务通信框架
-
-### 🚀 升级概述
-
-本项目已完成从 Feign HTTP 调用到 Apache Dubbo RPC 调用的完整迁移，实现了高性能的微服务间通信。
-
-### 💎 核心价值
-
-#### 🚀 性能提升
-- **响应时间降低 30-50%**: 二进制协议减少序列化开销
-- **吞吐量提升 2-3倍**: 长连接复用和高效序列化
-- **资源使用优化 20-30%**: 更少的CPU和内存消耗
-
-#### 🛡️ 服务治理增强
-- **类型安全**: 编译时接口一致性检查
-- **智能负载均衡**: 支持多种负载均衡算法
-- **精细化监控**: 方法级调用统计和链路追踪
-- **容错能力**: 熔断器、重试、降级等机制
-
-### 🏗️ 技术架构
-
-#### 整体架构图
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    江阳AI微服务生态系统                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────┐ Dubbo RPC ┌─────────────────┐              │
-│  │   bgai-service  │◄─────────►│ signature-service│              │
-│  │   (消费者/提供者) │           │   (提供者)      │              │
-│  │   Port: 8688    │           │   Port: 8689    │              │
-│  │   Dubbo: 20880  │           │   Dubbo: 20881  │              │
-│  └─────────────────┘           └─────────────────┘              │
-│           │                              │                      │
-│           │                              │                      │
-│  ┌─────────────────┐           ┌─────────────────┐              │
-│  │  gateway-service│           │   dubbo-api     │              │
-│  │   (API网关)     │           │   (公共接口)     │              │
-│  │   Port: 8080    │           │                 │              │
-│  └─────────────────┘           └─────────────────┘              │
-│           │                              │                      │
-│           └──────────────┬───────────────┘                      │
-│                          │                                      │
-│  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────┐    │
-│  │     Nacos       │   │     Dubbo       │   │    MySQL    │    │
-│  │ (注册中心/配置)   │   │     Admin       │   │   (数据库)   │    │
-│  │   Port: 8848    │   │   Port: 7001    │   │ Port: 3306  │    │
-│  └─────────────────┘   └─────────────────┘   └─────────────┘    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 技术栈
-
-| 组件 | 技术选型 | 版本 | 说明 |
-|------|----------|------|------|
-| RPC框架 | Apache Dubbo | 3.2.8 | 高性能RPC通信框架 |
-| 注册中心 | Nacos | 2.0+ | 服务注册发现和配置管理 |
-| 序列化 | Hessian2 | 4.0.66 | 高效二进制序列化 |
-| 负载均衡 | Dubbo内置 | - | 多种算法支持 |
-| 服务治理 | Dubbo Admin | 3.2.8 | 可视化管理平台 |
-| 监控追踪 | Micrometer | - | 指标收集和监控 |
-
-### 📦 模块结构
-
-```
-jiangyangai/
-├── bgai-service/              # 核心业务服务
-├── signature-service/         # 签名验证服务
-├── gateway-service/           # API网关服务
-├── dubbo-api/                 # 公共API接口定义
-│   ├── common/                # 通用模型
-│   ├── signature/             # 签名服务接口
-│   └── auth/                  # 认证服务接口
-└── test-dubbo-integration.sh  # 测试脚本
-```
-
-### 🎯 核心接口设计
-
-#### SignatureService 接口
-
-```java
-public interface SignatureService {
-    // 基础功能
-    Result<SignatureResponse> generateSignature(SignatureRequest request);
-    Result<Boolean> verifySignature(ValidationRequest request);
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/deepsearch
+          username: your_username
+          password: your_password
+          
+  redis:
+    host: localhost
+    port: 6379
     
-    // 高级功能
-    Result<List<Boolean>> batchVerifySignature(List<ValidationRequest> requests);
-    CompletableFuture<Result<Boolean>> verifySignatureAsync(ValidationRequest request);
-    Result<Boolean> verifySignatureQuick(ValidationRequest request);
+  elasticsearch:
+    uris: http://localhost:9200
     
-    // 工具功能
-    Result<SignatureResponse> generateExampleSignature(String appId, String secret);
-    Result<SignatureStatsResponse> getSignatureStats(String appId);
-}
-```
-
-#### 统一响应模型
-
-```java
-public class Result<T> {
-    private int code;           // 响应码
-    private String message;     // 响应消息
-    private T data;            // 响应数据
-    private long timestamp;     // 时间戳
-    private String traceId;     // 链路追踪ID
-}
-```
-
-### ⚙️ Dubbo 配置
-
-#### 核心配置
-
-```yaml
 dubbo:
   application:
-    name: ${spring.application.name}
-    version: 1.0.0
-  
+    name: deepSearch-service
   registry:
     address: nacos://localhost:8848
-    namespace: dubbo
-    group: DEFAULT_GROUP
-    
   protocol:
-    name: dubbo
-    port: 20881
-    serialization: hessian2
-    
-  provider:
-    timeout: 5000
-    retries: 0
-    loadbalance: roundrobin
-    
-  consumer:
-    timeout: 5000
-    retries: 2
-    loadbalance: roundrobin
-    cluster: failover
+    port: 20883
 ```
 
-#### 性能优化配置
+## 📨 消息服务
+
+### 服务概述
+
+**messages-service** 是一个专门处理消息队列、事务事件和消息生命周期的微服务。该服务支持多种消息中间件，提供统一的消息处理接口，并基于Seata实现分布式事务管理。
+
+### 核心功能
+
+#### 1. 消息队列管理
+- **多中间件支持**: RocketMQ、Kafka、RabbitMQ
+- **统一接口**: 提供标准化的消息发送和接收接口
+- **消息路由**: 智能路由消息到合适的队列
+- **负载均衡**: 支持消息的负载均衡分发
+
+#### 2. 事务事件处理
+- **分布式事务**: 基于Seata的Saga模式
+- **事件驱动**: 支持事件驱动的业务流程
+- **状态管理**: 完整的消息状态生命周期管理
+- **回滚机制**: 支持事务失败时的自动回滚
+
+#### 3. 消息生命周期
+- **创建**: 消息创建和初始化
+- **发送**: 消息发送到队列
+- **确认**: 消息发送确认和状态更新
+- **消费**: 消息消费和处理
+- **归档**: 消息历史记录和审计
+
+#### 4. 审计日志
+- **操作记录**: 记录所有消息操作
+- **状态跟踪**: 实时跟踪消息状态变化
+- **性能监控**: 监控消息处理性能
+- **异常记录**: 记录处理异常和错误
+
+### 技术架构
+
+- **Spring Boot 3.2.5**: 核心框架
+- **Spring Cloud**: 服务发现和配置管理
+- **Dubbo**: 服务间RPC通信
+- **MyBatis Plus**: 数据持久化
+- **Seata**: 分布式事务管理
+- **RocketMQ**: 消息队列
+- **Kafka**: 流处理
+- **RabbitMQ**: 消息代理
+- **Elasticsearch**: 消息日志存储
+- **Redis**: 缓存和会话管理
+
+### 主要接口
+
+#### 消息发送接口
+
+```bash
+# 发送消息到指定队列
+POST /api/messages/saga/send
+Content-Type: application/json
+
+{
+  "messageId": "msg-001",
+  "topic": "user-events",
+  "tag": "user-register",
+  "key": "user-123",
+  "content": "用户注册事件数据",
+  "messageType": "ROCKETMQ"
+}
+
+# 批量发送消息
+POST /api/messages/batch-send
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "topic": "order-events",
+      "content": "订单创建事件"
+    },
+    {
+      "topic": "payment-events", 
+      "content": "支付完成事件"
+    }
+  ]
+}
+```
+
+#### 消息查询接口
+
+```bash
+# 查询消息状态
+GET /api/messages/status/{messageId}
+
+# 查询消息历史
+GET /api/messages/history?topic={topic}&startDate={startDate}&endDate={endDate}
+
+# 查询消息统计
+GET /api/messages/stats?topic={topic}&timeRange={timeRange}
+```
+
+#### 事务管理接口
+
+```bash
+# 开始分布式事务
+POST /api/messages/saga/begin
+Content-Type: application/json
+
+{
+  "businessKey": "order-123",
+  "timeout": 30000
+}
+
+# 提交事务
+POST /api/messages/saga/commit/{transactionId}
+
+# 回滚事务
+POST /api/messages/saga/rollback/{transactionId}
+
+# 查询事务状态
+GET /api/messages/saga/status/{transactionId}
+```
+
+#### 健康检查接口
+
+```bash
+# 服务健康状态
+GET /api/messages/saga/health
+
+# 消息队列健康状态
+GET /api/messages/health/queues
+
+# 数据库连接状态
+GET /api/messages/health/database
+```
+
+### 消息中间件配置
+
+#### RocketMQ配置
+
+```yaml
+message:
+  service:
+    rocketmq:
+      name-server: localhost:9876
+      producer:
+        group: messages-producer-group
+        send-message-timeout: 3000
+        retry-times-when-send-failed: 2
+      consumer:
+        group: messages-consumer-group
+        pull-batch-size: 10
+```
+
+#### Kafka配置
+
+```yaml
+message:
+  service:
+    kafka:
+      bootstrap-servers: localhost:9092
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        acks: all
+      consumer:
+        group-id: messages-consumer-group
+        auto-offset-reset: earliest
+        enable-auto-commit: false
+```
+
+#### RabbitMQ配置
+
+```yaml
+message:
+  service:
+    rabbitmq:
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      virtual-host: /
+      publisher-confirm-type: correlated
+      publisher-returns: true
+```
+
+### Saga分布式事务实现
+
+#### 状态机定义
+
+```java
+@Configuration
+@EnableStateMachine
+public class MessageSagaStateMachineConfig extends StateMachineConfigurerAdapter<String, String> {
+    
+    @Override
+    public void configure(StateMachineStateConfigurer<String, String> states) throws Exception {
+        states
+            .withStates()
+            .initial("INIT")
+            .state("CREATED")
+            .state("SENDING")
+            .state("SENT")
+            .state("CONFIRMED")
+            .state("FAILED");
+    }
+    
+    @Override
+    public void configure(StateMachineTransitionConfigurer<String, String> transitions) throws Exception {
+        transitions
+            .withExternal()
+                .source("INIT").target("CREATED")
+                .event("CREATE")
+                .and()
+            .withExternal()
+                .source("CREATED").target("SENDING")
+                .event("SEND")
+                .and()
+            .withExternal()
+                .source("SENDING").target("SENT")
+                .event("SUCCESS")
+                .and()
+            .withExternal()
+                .source("SENDING").target("FAILED")
+                .event("FAILURE");
+    }
+}
+```
+
+#### 事务执行流程
+
+```java
+@GlobalTransactional
+public void executeMessageSendSaga(MessageRequest request) {
+    try {
+        // 1. 创建消息记录
+        Message message = createMessage(request);
+        
+        // 2. 发送消息到队列
+        boolean sent = sendMessageToQueue(message);
+        
+        if (sent) {
+            // 3. 更新消息状态
+            updateMessageStatus(message.getId(), "SENT");
+            
+            // 4. 记录审计日志
+            recordAuditLog(message.getId(), "SAGA_COMPLETED");
+            
+            // 5. 发送事务事件
+            sendTransactionEvent(message.getId(), "SUCCESS");
+        } else {
+            throw new RuntimeException("消息发送失败");
+        }
+    } catch (Exception e) {
+        // 6. 事务回滚处理
+        rollbackTransaction(request.getBusinessKey());
+        throw e;
+    }
+}
+```
+
+### 监控和告警
+
+#### 性能指标
+
+- **消息发送成功率**: 目标 > 99.5%
+- **消息处理延迟**: 目标 < 100ms
+- **事务成功率**: 目标 > 99.9%
+- **队列积压监控**: 实时监控队列深度
+
+#### 告警规则
+
+```yaml
+alerts:
+  message-send-failure:
+    threshold: 5
+    time-window: 1m
+    action: "发送告警通知"
+    
+  queue-accumulation:
+    threshold: 1000
+    time-window: 5m
+    action: "扩容消费者实例"
+    
+  transaction-failure:
+    threshold: 3
+    time-window: 1m
+    action: "立即告警并人工介入"
+```
+
+### 配置说明
+
+> ⚠️ **注意**: 以下配置示例中的数据库连接信息仅用于演示，实际使用时请替换为真实值。
+
+```yaml
+# application-dev.yml
+server:
+  port: 8687
+
+spring:
+  application:
+    name: messages-service
+    
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/messages_master
+          username: your_username
+          password: your_password
+        slave:
+          url: jdbc:mysql://localhost:3306/messages_slave
+          username: your_username
+          password: your_password
+        audit:
+          url: jdbc:mysql://localhost:3306/messages_audit
+          username: your_username
+          password: your_password
+          
+  redis:
+    host: localhost
+    port: 6379
+    
+  elasticsearch:
+    uris: http://localhost:9200
+    
+dubbo:
+  application:
+    name: messages-service
+  registry:
+    address: nacos://localhost:8848
+  protocol:
+    port: 20882
+    
+seata:
+  tx-service-group: messages-service-group
+  service:
+    vgroup-mapping:
+      messages-service-group: default
+    grouplist:
+      default: localhost:8091
+  registry:
+    type: nacos
+    nacos:
+      server-addr: localhost:8848
+      namespace: public
+      group: SEATA_GROUP
+  config:
+    type: nacos
+    nacos:
+      server-addr: localhost:8848
+      namespace: public
+      group: SEATA_GROUP
+      data-id: seataServer.properties
+```
+
+## 🤖 AI智能服务
+
+### 多模型集成
+
+**chat-agent** 集成多种AI模型，提供统一的智能对话接口：
+
+#### 支持的模型
+
+- **OpenAI GPT**: 文本生成和对话
+- **Claude**: 智能问答和分析
+- **本地模型**: 离线AI推理
+- **自定义模型**: 业务专用AI
+
+#### 使用示例
+
+```bash
+POST /api/chat/conversation
+Content-Type: application/json
+
+{
+  "model": "gpt-4",
+  "messages": [
+    {"role": "user", "content": "你好，请介绍一下自己"}
+  ],
+  "temperature": 0.7
+}
+```
+
+## 📊 监控与运维
+
+### 健康检查
+
+所有服务都集成了Spring Boot Actuator：
+
+```bash
+# 健康状态
+GET /actuator/health
+
+# 指标信息
+GET /actuator/metrics
+
+# 环境信息
+GET /actuator/env
+
+# 配置信息
+GET /actuator/configprops
+```
+
+### Dubbo服务治理
+
+访问Dubbo Admin查看服务状态：
+
+```bash
+# 启动Dubbo Admin
+docker run -d \
+  --name dubbo-admin \
+  -p 7001:7001 \
+  -e admin.registry.address=nacos://localhost:8848 \
+  apache/dubbo-admin:latest
+
+# 访问: http://localhost:7001
+```
+
+### 日志管理
+
+系统使用统一的日志配置，支持结构化日志输出：
+
+```yaml
+logging:
+  level:
+    com.jiangyang: INFO
+    org.apache.dubbo: INFO
+    org.springframework.cloud.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+```
+
+## 🚀 性能优化
+
+### Dubbo RPC优化
+
+相比HTTP调用，Dubbo RPC带来显著性能提升：
+
+| 指标 | HTTP调用 | Dubbo RPC | 提升幅度 |
+|------|----------|-----------|----------|
+| 响应时间 | 50-100ms | 30-50ms | **30-50%** |
+| 吞吐量 | 1000 TPS | 2000-3000 TPS | **2-3倍** |
+| 序列化效率 | JSON | Hessian2 | **3-5倍** |
+| 连接复用 | 短连接 | 长连接 | **显著提升** |
+
+### 配置优化
 
 ```yaml
 dubbo:
@@ -837,415 +1050,24 @@ dubbo:
   consumer:
     connections: 4      # 每个提供者连接数
     actives: 200        # 最大并发调用数
-```
-
----
-
-## Dubbo 部署和使用指南
-
-### 🚀 快速开始
-
-#### 1. 环境要求
-
-- **JDK**: 17+
-- **Maven**: 3.6+
-- **Nacos**: 2.0+ (服务注册中心)
-- **MySQL**: 8.0+ (可选，如需数据库功能)
-- **Redis**: 6.0+ (可选，如需缓存功能)
-
-#### 2. 启动 Nacos
-
-```bash
-# 使用 Docker 启动 Nacos
-docker run -d \
-  --name nacos-standalone \
-  -e MODE=standalone \
-  -e JVM_XMS=512m \
-  -e JVM_XMX=512m \
-  -p 8848:8848 \
-  nacos/nacos-server:latest
-
-# 检查 Nacos 状态
-curl http://localhost:8848/nacos
-```
-
-访问 Nacos 控制台：http://localhost:8848/nacos
-- 用户名：nacos
-- 密码：nacos
-
-#### 3. 编译项目
-
-```bash
-# 在项目根目录执行
-mvn clean compile -DskipTests
-
-# 编译 dubbo-api 模块
-cd dubbo-api
-mvn clean install -DskipTests
-cd ..
-
-# 编译 signature-service
-cd signature-service
-mvn clean compile -DskipTests
-cd ..
-
-# 编译 bgai-service
-cd bgai-service
-mvn clean compile -DskipTests
-cd ..
-```
-
-#### 4. 启动服务
-
-##### 4.1 启动 signature-service (Dubbo 提供者)
-
-```bash
-cd signature-service
-mvn spring-boot:run
-
-# 或者使用 java -jar
-mvn clean package -DskipTests
-java -jar target/signature-service-1.0.0-Final.jar
-```
-
-##### 4.2 启动 bgai-service (Dubbo 消费者)
-
-```bash
-cd bgai-service
-mvn spring-boot:run
-
-# 或者使用 java -jar
-mvn clean package -DskipTests
-java -jar target/bgai-service-1.0.0-Final.jar
-```
-
-#### 5. 验证部署
-
-##### 5.1 运行自动化测试
-
-```bash
-# 给测试脚本执行权限（Linux/macOS）
-chmod +x test-dubbo-integration.sh
-
-# 运行测试
-./test-dubbo-integration.sh
-```
-
-##### 5.2 手动验证
-
-```bash
-# 检查服务健康状态
-curl http://localhost:8688/actuator/health  # bgai-service
-curl http://localhost:8689/actuator/health  # signature-service
-
-# 测试 Dubbo 调用
-curl -X POST "http://localhost:8688/api/test/dubbo/signature/generate" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "appId": "test-app-001",
-    "secret": "test-secret-001",
-    "params": {
-      "userId": "12345",
-      "action": "test"
-    }
-  }'
-```
-
-### 📊 服务端口分配
-
-| 服务 | HTTP端口 | Dubbo端口 | 说明 |
-|------|----------|-----------|------|
-| bgai-service | 8688 | 20880 | 消费者/提供者 |
-| signature-service | 8689 | 20881 | 提供者 |
-| gateway-service | 8080 | - | API网关 |
-| Nacos | 8848 | - | 注册中心 |
-
-### 🧪 Dubbo 测试接口
-
-bgai-service 提供了完整的 Dubbo 测试接口：
-
-#### 1. 生成签名
-
-```bash
-POST /api/test/dubbo/signature/generate
-Content-Type: application/json
-
-{
-  "appId": "test-app-001",
-  "secret": "test-secret-001",
-  "params": {
-    "userId": "12345",
-    "action": "test"
-  }
-}
-```
-
-#### 2. 验证签名
-
-```bash
-POST /api/test/dubbo/signature/verify
-Content-Type: application/json
-
-{
-  "appId": "test-app-001",
-  "timestamp": "1703123456789",
-  "nonce": "abc123def456",
-  "signature": "generated_signature_1703123456789",
-  "params": {
-    "userId": "12345"
-  }
-}
-```
-
-#### 3. 快速验证签名
-
-```bash
-POST /api/test/dubbo/signature/verify-quick
-Content-Type: application/json
-
-{
-  "appId": "test-app-001",
-  "signature": "test_signature",
-  "params": {
-    "userId": "12345"
-  }
-}
-```
-
-#### 4. 异步验证签名
-
-```bash
-POST /api/test/dubbo/signature/verify-async
-Content-Type: application/json
-
-{
-  "appId": "test-app-001",
-  "timestamp": "1703123456789",
-  "nonce": "abc123def456",
-  "signature": "generated_signature_1703123456789",
-  "params": {
-    "userId": "12345"
-  }
-}
-```
-
-#### 5. 生成示例签名
-
-```bash
-GET /api/test/dubbo/signature/example?appId=test-app-001&secret=test-secret-001
-```
-
-#### 6. 获取签名统计
-
-```bash
-GET /api/test/dubbo/signature/stats?appId=test-app-001
-```
-
-#### 7. 健康检查
-
-```bash
-GET /api/test/dubbo/health
-```
-
-### 📈 监控和管理
-
-#### 1. 应用监控端点
-
-```bash
-# bgai-service 监控
-curl http://localhost:8688/actuator/health
-curl http://localhost:8688/actuator/metrics
-curl http://localhost:8688/actuator/dubbo
-
-# signature-service 监控
-curl http://localhost:8689/actuator/health
-curl http://localhost:8689/actuator/metrics
-```
-
-#### 2. Nacos 服务发现
-
-访问 Nacos 控制台查看服务注册状态：
-- URL: http://localhost:8848/nacos
-- 服务列表 → 服务管理 → 服务列表
-
-#### 3. 部署 Dubbo Admin（可选）
-
-```bash
-# 使用 Docker 部署 Dubbo Admin
-docker run -d \
-  --name dubbo-admin \
-  -p 7001:7001 \
-  -e admin.registry.address=nacos://localhost:8848 \
-  -e admin.config-center=nacos://localhost:8848 \
-  -e admin.metadata-report.address=nacos://localhost:8848 \
-  apache/dubbo-admin:latest
-```
-
-访问 Dubbo Admin：http://localhost:7001
-
-### 🔄 平滑迁移机制
-
-bgai-service 提供了 SignatureServiceAdapter，支持 Dubbo 和 Feign 之间的平滑切换：
-
-```java
-@Autowired
-private SignatureServiceAdapter signatureAdapter;
-
-// 使用适配器调用
-SignatureResponse response = signatureAdapter.generateSignature(appId, secret, params);
-boolean isValid = signatureAdapter.verifySignature(appId, timestamp, nonce, signature, params);
-```
-
-#### 配置开关
-
-```yaml
-app:
-  use-dubbo: true          # true-使用Dubbo，false-使用Feign
-  dubbo-fallback: true     # true-启用降级，false-禁用降级
-```
-
-### 🐛 故障排除
-
-#### 常见问题
-
-##### 1. 服务注册失败
-
-**症状**: 服务启动后在 Nacos 中看不到注册信息
-
-**解决方案**:
-```bash
-# 检查 Nacos 连接
-curl http://localhost:8848/nacos/v1/ns/instance/list?serviceName=signature-service
-
-# 检查网络连接
-telnet localhost 8848
-
-# 检查配置文件中的注册中心地址
-```
-
-##### 2. Dubbo 调用超时
-
-**症状**: 调用时出现超时异常
-
-**解决方案**:
-```yaml
-# 增加超时时间
-dubbo:
-  consumer:
-    timeout: 10000  # 增加到10秒
-  provider:
-    timeout: 10000
-```
-
-##### 3. 序列化异常
-
-**症状**: 调用时出现序列化错误
-
-**解决方案**:
-```java
-// 确保 DTO 类实现 Serializable
-public class SignatureRequest implements Serializable {
-    private static final long serialVersionUID = 1L;
-    // ...
-}
-```
-
-##### 4. 服务提供者未找到
-
-**症状**: No provider available for the service
-
-**解决方案**:
-```bash
-# 检查提供者是否启动
-curl http://localhost:8689/actuator/health
-
-# 检查消费者配置
-dubbo:
-  consumer:
-    check: false  # 启动时不检查提供者
-```
-
-#### 日志配置
-
-##### 启用详细日志
-
-```yaml
-logging:
-  level:
-    org.apache.dubbo: DEBUG
-    com.jiangyang.dubbo: DEBUG
-    org.apache.dubbo.registry: INFO
-    org.apache.dubbo.remoting: INFO
-```
-
-##### 查看日志文件
-
-```bash
-# 查看服务日志
-tail -f signature-service/logs/signature-service.log
-tail -f bgai-service/logs/bgai-service.log
-
-# 查看 Dubbo 相关日志
-grep "Dubbo" signature-service/logs/signature-service.log
-grep "Dubbo" bgai-service/logs/bgai-service.log
-```
-
-### 🚀 性能优化
-
-#### 1. 连接池配置
-
-```yaml
-dubbo:
-  consumer:
-    connections: 4      # 每个提供者连接数
-    actives: 200        # 最大并发调用数
-    
-  protocol:
-    threads: 200        # 业务线程池
-    iothreads: 4        # IO线程池
-```
-
-#### 2. 负载均衡策略
-
-```yaml
-dubbo:
-  consumer:
     loadbalance: leastactive  # 最少活跃调用数
-    # 其他策略：
-    # roundrobin - 轮询
-    # random - 随机
-    # consistenthash - 一致性哈希
 ```
 
-#### 3. 容错机制
+## 🐳 容器化部署
 
-```yaml
-dubbo:
-  consumer:
-    cluster: failover   # 失败自动切换
-    retries: 2          # 重试次数
+### Docker部署
+
+#### 构建镜像
+
+```bash
+# 构建各服务镜像
+docker build -t jiangyang/signature-service:1.0.0 signature-service/
+docker build -t jiangyang/bgai-service:1.0.0 bgai-service/
+docker build -t jiangyang/messages-service:1.0.0 messages-service/
+docker build -t jiangyang/gateway-service:1.0.0 gateway-service/
 ```
 
-### 📦 生产部署
-
-#### 1. Docker 部署
-
-##### Dockerfile 示例
-
-```dockerfile
-# signature-service/Dockerfile
-FROM openjdk:17-jdk-slim
-
-EXPOSE 8689 20881
-
-COPY target/signature-service-1.0.0-Final.jar app.jar
-
-ENTRYPOINT ["java", "-jar", "/app.jar", \
-  "--dubbo.protocol.host=${DUBBO_HOST:localhost}", \
-  "--dubbo.registry.address=nacos://${NACOS_HOST:localhost}:8848"]
-```
-
-##### Docker Compose
+#### Docker Compose
 
 ```yaml
 version: '3.8'
@@ -1258,33 +1080,38 @@ services:
       - "8848:8848"
     
   signature-service:
-    build: ./signature-service
-    environment:
-      - NACOS_HOST=nacos
-      - DUBBO_HOST=signature-service
+    image: jiangyang/signature-service:1.0.0
     ports:
       - "8689:8689"
       - "20881:20881"
     depends_on:
       - nacos
+      - mysql
+      - redis
     
   bgai-service:
-    build: ./bgai-service
-    environment:
-      - NACOS_HOST=nacos
-      - DUBBO_HOST=bgai-service
+    image: jiangyang/bgai-service:1.0.0
     ports:
       - "8688:8688"
       - "20880:20880"
     depends_on:
       - nacos
       - signature-service
+    
+  gateway-service:
+    image: jiangyang/gateway-service:1.0.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      - nacos
+      - signature-service
+      - bgai-service
 ```
 
-#### 2. Kubernetes 部署
+### Kubernetes部署
 
 ```yaml
-# k8s/signature-service.yaml
+# k8s/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1306,86 +1133,254 @@ spec:
         - containerPort: 8689
         - containerPort: 20881
         env:
+        - name: NACOS_HOST
+          value: "nacos-service"
         - name: DUBBO_HOST
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-        - name: NACOS_HOST
-          value: "nacos-service"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: signature-service
-spec:
-  selector:
-    app: signature-service
-  ports:
-  - name: http
-    port: 8689
-    targetPort: 8689
-  - name: dubbo
-    port: 20881
-    targetPort: 20881
 ```
 
-### 📊 性能指标
+## 🧪 测试指南
 
-#### 预期性能对比
+### 单元测试
 
-| 指标 | Feign HTTP | Dubbo RPC | 提升幅度 |
-|------|------------|-----------|----------|
-| 响应时间 | 50-100ms | 30-50ms | **30-50%** |
-| 吞吐量 | 1000 TPS | 2000-3000 TPS | **2-3倍** |
-| 序列化效率 | JSON | Hessian2 | **3-5倍** |
-| 连接复用 | 短连接 | 长连接 | **显著提升** |
+```bash
+# 运行所有测试
+mvn test
 
-### 💰 成本效益分析
+# 运行特定模块测试
+cd signature-service
+mvn test
 
-#### 实施成本
+# 生成测试报告
+mvn surefire-report:report
+```
 
-| 项目 | 人力 | 时间 | 说明 |
-|------|------|------|------|
-| 方案设计 | 1人 | 2天 | 架构设计和技术选型 |
-| 开发实施 | 2人 | 8天 | 代码开发和配置 |
-| 测试验证 | 1人 | 3天 | 功能和性能测试 |
-| 部署上线 | 1人 | 2天 | 生产环境部署 |
-| **总计** | **2-3人** | **15天** | **约3周完成** |
+### 集成测试
 
-#### 预期收益
+```bash
+# 启动测试环境
+docker-compose -f docker-compose.test.yml up -d
 
-- **短期收益（1-3个月）**
-  - 响应时间降低30-50%
-  - 系统吞吐量提升2-3倍
-  - 资源成本节省20-30%
+# 运行集成测试
+mvn verify -P integration-test
 
-- **长期收益（6-12个月）**
-  - 开发效率提升（类型安全）
-  - 运维成本降低（更好的监控）
-  - 系统稳定性提升（容错机制）
+# 清理测试环境
+docker-compose -f docker-compose.test.yml down
+```
 
-- **ROI计算**
-  - 硬件成本节省：20-30%
-  - 开发效率提升：25%
-  - 运维成本降低：30%
-  - **预期ROI：300-500%**
+### 性能测试
+
+```bash
+# 使用JMeter进行性能测试
+jmeter -n -t performance-test.jmx -l results.jtl
+
+# 使用Gatling进行负载测试
+mvn gatling:test
+```
+
+## 🔧 故障排除
+
+### 常见问题
+
+#### 1. 服务启动失败
+
+**症状**: 服务启动时出现异常
+
+**解决方案**:
+```bash
+# 检查端口占用
+netstat -tulpn | grep :8080
+
+# 检查依赖服务
+curl http://localhost:8848/nacos
+
+# 查看详细日志
+tail -f logs/application.log
+```
+
+#### 2. Dubbo服务调用失败
+
+**症状**: No provider available for the service
+
+**解决方案**:
+```bash
+# 检查服务注册状态
+curl http://localhost:8848/nacos/v1/ns/instance/list?serviceName=signature-service
+
+# 检查Dubbo配置
+grep -r "dubbo" src/main/resources/
+
+# 重启相关服务
+```
+
+#### 3. 数据库连接失败
+
+**症状**: Could not create connection to database server
+
+**解决方案**:
+```bash
+# 检查数据库状态
+docker exec -it mysql8 mysql -u your_username -p
+
+# 检查网络连接
+telnet localhost 3306
+
+# 验证连接配置
+cat src/main/resources/application.yml
+```
+
+### 日志分析
+
+#### 启用调试日志
+
+```yaml
+logging:
+  level:
+    com.jiangyang: DEBUG
+    org.apache.dubbo: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: DEBUG
+```
+
+#### 查看关键日志
+
+```bash
+# 查看错误日志
+grep "ERROR" logs/application.log
+
+# 查看Dubbo相关日志
+grep "Dubbo" logs/application.log
+
+# 查看网关日志
+grep "Gateway" logs/gateway-service.log
+```
+
+## 📚 API文档
+
+### Swagger文档
+
+各服务都集成了Swagger文档：
+
+```bash
+# signature-service
+http://localhost:8689/swagger-ui.html
+
+# bgai-service
+http://localhost:8688/swagger-ui.html
+
+# messages-service
+http://localhost:8687/swagger-ui.html
+```
+
+### Postman集合
+
+项目提供了完整的Postman测试集合：
+
+```bash
+# 导入Postman集合
+docs/postman/jiangyangai-api-collection.json
+```
+
+## 🤝 贡献指南
+
+### 开发流程
+
+1. **Fork项目**
+2. **创建特性分支**: `git checkout -b feature/amazing-feature`
+3. **提交更改**: `git commit -m 'Add amazing feature'`
+4. **推送分支**: `git push origin feature/amazing-feature`
+5. **创建Pull Request**
+
+### 代码规范
+
+- 遵循Java编码规范
+- 使用统一的代码格式化配置
+- 编写完整的单元测试
+- 更新相关文档
+
+### 提交规范
+
+```
+feat: 新功能
+fix: 修复bug
+docs: 文档更新
+style: 代码格式调整
+refactor: 代码重构
+test: 测试相关
+chore: 构建过程或辅助工具的变动
+```
+
+## 🔒 安全配置最佳实践
+
+### 敏感信息管理
+
+1. **环境变量配置**
+   ```bash
+   # 使用环境变量管理敏感信息
+   export DB_USERNAME=your_username
+   export DB_PASSWORD=your_password
+   export NACOS_USERNAME=your_nacos_username
+   export NACOS_PASSWORD=your_nacos_password
+   ```
+
+2. **配置文件安全**
+   ```yaml
+   # 不要在配置文件中硬编码密码
+   spring:
+     datasource:
+       url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME}
+       username: ${DB_USERNAME}
+       password: ${DB_PASSWORD}
+   ```
+
+3. **密钥管理**
+   - 使用密钥管理服务（如HashiCorp Vault、AWS Secrets Manager）
+   - 定期轮换密钥和密码
+   - 使用强密码策略
+
+4. **网络安全**
+   - 生产环境使用HTTPS
+   - 配置防火墙规则
+   - 限制数据库访问IP范围
+
+### 生产环境部署检查清单
+
+- [ ] 所有默认密码已更改
+- [ ] 敏感配置使用环境变量
+- [ ] 数据库连接使用专用用户（非root）
+- [ ] 网络端口已限制访问
+- [ ] 日志中不包含敏感信息
+- [ ] 定期备份和恢复测试
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE) 许可证。
+
+## 📞 联系我们
+
+- **项目维护者**: 江阳AI团队
+- **邮箱**: support@jiangyang.ai
+- **项目地址**: https://github.com/jiangyangai/jiangyangai
+- **文档地址**: https://docs.jiangyang.ai
+
+## 🙏 致谢
+
+感谢以下开源项目和技术社区的支持：
+
+- [Spring Boot](https://spring.io/projects/spring-boot)
+- [Apache Dubbo](https://dubbo.apache.org/)
+- [Nacos](https://nacos.io/)
+- [Seata](https://seata.io/)
+- [RocketMQ](https://rocketmq.apache.org/)
 
 ---
 
-## 技术支持
+<div align="center">
 
-如遇到问题，请按以下步骤排查：
+**如果这个项目对你有帮助，请给它一个 ⭐️**
 
-1. **检查服务状态**: 确认所有服务正常启动
-2. **检查网络连接**: 确认端口可访问
-3. **查看日志**: 检查详细错误信息
-4. **运行测试**: 使用提供的测试脚本验证
-5. **检查配置**: 确认 Dubbo 和 Nacos 配置正确
+*让AI技术更好地服务人类*
 
-### 相关链接
-
-- **Nacos 控制台**: http://localhost:8848/nacos (nacos/nacos)
-- **bgai-service**: http://localhost:8688
-- **signature-service**: http://localhost:8689
-- **Dubbo 测试接口**: http://localhost:8688/api/test/dubbo
-- **测试脚本**: `test-dubbo-integration.sh`
+</div>
