@@ -446,34 +446,77 @@ public void executeMessageSendSaga(MessageRequest request) {
 
 ## 🔍 深度搜索服务
 
+### 服务概述
+
+**deepSearch-service** 是一个专门处理图片识别、AI逻辑分析和数据计算任务的微服务。该服务通过集成AI代理和BGAI服务，实现智能化的数据处理流程。
+
 ### 核心功能
 
-**deepSearch-service** 提供智能化的数据处理和分析能力：
+#### 1. 图片上传与识别
+- **多格式支持**: 支持JPG、PNG、GIF、PDF等多种格式
+- **批量处理**: 支持多图片同时上传和处理
+- **智能识别**: 自动识别图片内容并生成结构化数据
+- **SQL生成**: 基于识别结果自动生成SQL语句
 
-#### 图片识别处理
+#### 2. AI逻辑分析
+- **业务流程分析**: 自动分析业务逻辑流程
+- **流程图生成**: 生成完整的业务流程图
+- **文字描述**: 提供详细的逻辑说明文档
+- **多业务类型**: 支持订单管理、用户管理等多种业务场景
+
+#### 3. 数据计算处理
+- **同步计算**: 实时数据计算和结果返回
+- **异步任务**: 支持长时间运行的计算任务
+- **任务跟踪**: 提供计算任务状态跟踪
+- **结果存储**: 自动存储计算结果到MySQL数据库
+
+### 技术架构
+
+- **Spring Boot 3.2.5**: 核心框架
+- **Spring Cloud**: 服务发现和配置管理
+- **Dubbo**: 服务间RPC通信
+- **MyBatis Plus**: 数据持久化
+- **Redis**: 缓存和会话管理
+- **MySQL**: 数据存储
+- **Elasticsearch**: 搜索结果存储
+
+### 主要接口
+
+#### 图片处理接口
 
 ```bash
+# 图片上传和识别
 POST /api/calculation/upload
 Content-Type: multipart/form-data
 
-# 上传图片文件，自动识别内容并生成SQL
+# 查询识别结果
+GET /api/calculation/result/{taskId}
+
+# 批量图片处理
+POST /api/calculation/batch-upload
 ```
 
-#### AI逻辑分析
+#### AI分析接口
 
 ```bash
+# 业务逻辑分析
 POST /api/calculation/analyze
 Content-Type: application/json
 
 {
   "businessType": "order_management",
-  "requirements": "分析订单处理流程"
+  "requirements": "分析订单处理流程",
+  "inputData": "订单数据样本"
 }
+
+# 获取分析结果
+GET /api/calculation/analysis/{analysisId}
 ```
 
-#### 数据计算任务
+#### 数据计算接口
 
 ```bash
+# 执行数据计算
 POST /api/calculation/execute
 Content-Type: application/json
 
@@ -482,9 +525,416 @@ Content-Type: application/json
   "parameters": {
     "table": "orders",
     "groupBy": "status",
-    "aggregation": "count"
+    "aggregation": "count",
+    "filters": {
+      "dateRange": "2024-01-01,2024-12-31"
+    }
   }
 }
+
+# 查询计算状态
+GET /api/calculation/status/{taskId}
+
+# 取消计算任务
+POST /api/calculation/cancel/{taskId}
+
+# 获取计算结果
+GET /api/calculation/result/{taskId}"
+```
+
+### 业务流程
+
+1. **图片上传** → 网关路由 → 认证服务验证
+2. **异步识别** → BGAI服务处理图片 → 生成SQL并存储
+3. **AI分析** → 请求AI代理 → 生成逻辑流程图
+4. **逻辑提交** → 通过Dubbo发送到BGAI服务
+5. **数据计算** → 执行计算规则 → 返回结果
+
+### 配置说明
+
+```yaml
+# application-dev.yml
+server:
+  port: 8691
+
+spring:
+  application:
+    name: deepSearch-service
+    
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/deepsearch
+          username: root
+          password: root123
+          
+  redis:
+    host: localhost
+    port: 6379
+    
+  elasticsearch:
+    uris: http://localhost:9200
+    
+dubbo:
+  application:
+    name: deepSearch-service
+  registry:
+    address: nacos://localhost:8848
+  protocol:
+    port: 20883
+```
+
+## 📨 消息服务
+
+### 服务概述
+
+**messages-service** 是一个专门处理消息队列、事务事件和消息生命周期的微服务。该服务支持多种消息中间件，提供统一的消息处理接口，并基于Seata实现分布式事务管理。
+
+### 核心功能
+
+#### 1. 消息队列管理
+- **多中间件支持**: RocketMQ、Kafka、RabbitMQ
+- **统一接口**: 提供标准化的消息发送和接收接口
+- **消息路由**: 智能路由消息到合适的队列
+- **负载均衡**: 支持消息的负载均衡分发
+
+#### 2. 事务事件处理
+- **分布式事务**: 基于Seata的Saga模式
+- **事件驱动**: 支持事件驱动的业务流程
+- **状态管理**: 完整的消息状态生命周期管理
+- **回滚机制**: 支持事务失败时的自动回滚
+
+#### 3. 消息生命周期
+- **创建**: 消息创建和初始化
+- **发送**: 消息发送到队列
+- **确认**: 消息发送确认和状态更新
+- **消费**: 消息消费和处理
+- **归档**: 消息历史记录和审计
+
+#### 4. 审计日志
+- **操作记录**: 记录所有消息操作
+- **状态跟踪**: 实时跟踪消息状态变化
+- **性能监控**: 监控消息处理性能
+- **异常记录**: 记录处理异常和错误
+
+### 技术架构
+
+- **Spring Boot 3.2.5**: 核心框架
+- **Spring Cloud**: 服务发现和配置管理
+- **Dubbo**: 服务间RPC通信
+- **MyBatis Plus**: 数据持久化
+- **Seata**: 分布式事务管理
+- **RocketMQ**: 消息队列
+- **Kafka**: 流处理
+- **RabbitMQ**: 消息代理
+- **Elasticsearch**: 消息日志存储
+- **Redis**: 缓存和会话管理
+
+### 主要接口
+
+#### 消息发送接口
+
+```bash
+# 发送消息到指定队列
+POST /api/messages/saga/send
+Content-Type: application/json
+
+{
+  "messageId": "msg-001",
+  "topic": "user-events",
+  "tag": "user-register",
+  "key": "user-123",
+  "content": "用户注册事件数据",
+  "messageType": "ROCKETMQ"
+}
+
+# 批量发送消息
+POST /api/messages/batch-send
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "topic": "order-events",
+      "content": "订单创建事件"
+    },
+    {
+      "topic": "payment-events", 
+      "content": "支付完成事件"
+    }
+  ]
+}
+```
+
+#### 消息查询接口
+
+```bash
+# 查询消息状态
+GET /api/messages/status/{messageId}
+
+# 查询消息历史
+GET /api/messages/history?topic={topic}&startDate={startDate}&endDate={endDate}
+
+# 查询消息统计
+GET /api/messages/stats?topic={topic}&timeRange={timeRange}
+```
+
+#### 事务管理接口
+
+```bash
+# 开始分布式事务
+POST /api/messages/saga/begin
+Content-Type: application/json
+
+{
+  "businessKey": "order-123",
+  "timeout": 30000
+}
+
+# 提交事务
+POST /api/messages/saga/commit/{transactionId}
+
+# 回滚事务
+POST /api/messages/saga/rollback/{transactionId}
+
+# 查询事务状态
+GET /api/messages/saga/status/{transactionId}
+```
+
+#### 健康检查接口
+
+```bash
+# 服务健康状态
+GET /api/messages/saga/health
+
+# 消息队列健康状态
+GET /api/messages/health/queues
+
+# 数据库连接状态
+GET /api/messages/health/database
+```
+
+### 消息中间件配置
+
+#### RocketMQ配置
+
+```yaml
+message:
+  service:
+    rocketmq:
+      name-server: localhost:9876
+      producer:
+        group: messages-producer-group
+        send-message-timeout: 3000
+        retry-times-when-send-failed: 2
+      consumer:
+        group: messages-consumer-group
+        pull-batch-size: 10
+```
+
+#### Kafka配置
+
+```yaml
+message:
+  service:
+    kafka:
+      bootstrap-servers: localhost:9092
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        acks: all
+      consumer:
+        group-id: messages-consumer-group
+        auto-offset-reset: earliest
+        enable-auto-commit: false
+```
+
+#### RabbitMQ配置
+
+```yaml
+message:
+  service:
+    rabbitmq:
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      virtual-host: /
+      publisher-confirm-type: correlated
+      publisher-returns: true
+```
+
+### Saga分布式事务实现
+
+#### 状态机定义
+
+```java
+@Configuration
+@EnableStateMachine
+public class MessageSagaStateMachineConfig extends StateMachineConfigurerAdapter<String, String> {
+    
+    @Override
+    public void configure(StateMachineStateConfigurer<String, String> states) throws Exception {
+        states
+            .withStates()
+            .initial("INIT")
+            .state("CREATED")
+            .state("SENDING")
+            .state("SENT")
+            .state("CONFIRMED")
+            .state("FAILED");
+    }
+    
+    @Override
+    public void configure(StateMachineTransitionConfigurer<String, String> transitions) throws Exception {
+        transitions
+            .withExternal()
+                .source("INIT").target("CREATED")
+                .event("CREATE")
+                .and()
+            .withExternal()
+                .source("CREATED").target("SENDING")
+                .event("SEND")
+                .and()
+            .withExternal()
+                .source("SENDING").target("SENT")
+                .event("SUCCESS")
+                .and()
+            .withExternal()
+                .source("SENDING").target("FAILED")
+                .event("FAILURE");
+    }
+}
+```
+
+#### 事务执行流程
+
+```java
+@GlobalTransactional
+public void executeMessageSendSaga(MessageRequest request) {
+    try {
+        // 1. 创建消息记录
+        Message message = createMessage(request);
+        
+        // 2. 发送消息到队列
+        boolean sent = sendMessageToQueue(message);
+        
+        if (sent) {
+            // 3. 更新消息状态
+            updateMessageStatus(message.getId(), "SENT");
+            
+            // 4. 记录审计日志
+            recordAuditLog(message.getId(), "SAGA_COMPLETED");
+            
+            // 5. 发送事务事件
+            sendTransactionEvent(message.getId(), "SUCCESS");
+        } else {
+            throw new RuntimeException("消息发送失败");
+        }
+    } catch (Exception e) {
+        // 6. 事务回滚处理
+        rollbackTransaction(request.getBusinessKey());
+        throw e;
+    }
+}
+```
+
+### 监控和告警
+
+#### 性能指标
+
+- **消息发送成功率**: 目标 > 99.5%
+- **消息处理延迟**: 目标 < 100ms
+- **事务成功率**: 目标 > 99.9%
+- **队列积压监控**: 实时监控队列深度
+
+#### 告警规则
+
+```yaml
+alerts:
+  message-send-failure:
+    threshold: 5
+    time-window: 1m
+    action: "发送告警通知"
+    
+  queue-accumulation:
+    threshold: 1000
+    time-window: 5m
+    action: "扩容消费者实例"
+    
+  transaction-failure:
+    threshold: 3
+    time-window: 1m
+    action: "立即告警并人工介入"
+```
+
+### 配置说明
+
+```yaml
+# application-dev.yml
+server:
+  port: 8687
+
+spring:
+  application:
+    name: messages-service
+    
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://localhost:3306/messages_master
+          username: root
+          password: root123
+        slave:
+          url: jdbc:mysql://localhost:3306/messages_slave
+          username: root
+          password: root123
+        audit:
+          url: jdbc:mysql://localhost:3306/messages_audit
+          username: root
+          password: root123
+          
+  redis:
+    host: localhost
+    port: 6379
+    
+  elasticsearch:
+    uris: http://localhost:9200
+    
+dubbo:
+  application:
+    name: messages-service
+  registry:
+    address: nacos://localhost:8848
+  protocol:
+    port: 20882
+    
+seata:
+  tx-service-group: messages-service-group
+  service:
+    vgroup-mapping:
+      messages-service-group: default
+    grouplist:
+      default: localhost:8091
+  registry:
+    type: nacos
+    nacos:
+      server-addr: localhost:8848
+      namespace: public
+      group: SEATA_GROUP
+  config:
+    type: nacos
+    nacos:
+      server-addr: localhost:8848
+      namespace: public
+      group: SEATA_GROUP
+      data-id: seataServer.properties
 ```
 
 ## 🤖 AI智能服务
