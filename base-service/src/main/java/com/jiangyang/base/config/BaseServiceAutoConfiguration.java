@@ -31,7 +31,11 @@ import javax.sql.DataSource;
     DataSourceConfig.class,
     MyBatisPlusConfig.class,
     DynamicDataSourceRegistry.class,
-    DynamicDataSourceManager.class
+    DynamicDataSourceManager.class,
+    // Seata分布式事务配置
+    com.jiangyang.base.seata.config.SeataAutoConfiguration.class,
+    com.jiangyang.base.seata.config.SeataSagaConfig.class,
+    com.jiangyang.base.seata.util.SeataConfigValidator.class
 })
 public class BaseServiceAutoConfiguration {
     

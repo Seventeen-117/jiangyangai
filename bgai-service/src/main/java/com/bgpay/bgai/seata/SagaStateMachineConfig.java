@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.ApplicationContext;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
@@ -30,9 +30,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * Saga状态机配置
  * 用于配置Saga模式的状态机引擎
+ * 注意：此配置仅用于bgai-service特有的Saga功能，基础Seata功能由base-service提供
  */
-@com.jiangyang.base.datasource.annotation.DataSource("master")
 @Configuration
+@ConditionalOnProperty(prefix = "seata.saga", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class SagaStateMachineConfig implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(SagaStateMachineConfig.class);
     
@@ -150,6 +151,7 @@ public class SagaStateMachineConfig implements ApplicationRunner {
         logger.info("Saga解析器状态: {}", customSagaJsonParser.getJsonParserType());
         logger.info(customSagaJsonParser.getParsingResultSummary());
         logger.info("状态机自动注册已禁用(saga.state-machine.auto-register=false)，避免重复注册错误");
+        logger.info("基础Seata功能由base-service提供");
         logger.info("=============================================================");
     }
 } 

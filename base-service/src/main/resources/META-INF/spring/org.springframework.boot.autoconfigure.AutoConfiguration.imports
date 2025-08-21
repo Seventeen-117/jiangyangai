@@ -1,2 +1,3 @@
-com.jiangyang.base.config.BaseServiceAutoConfiguration
+com.jiangyang.base.seata.config.SeataAutoConfiguration
+com.jiangyang.base.seata.config.SeataSagaConfig
 

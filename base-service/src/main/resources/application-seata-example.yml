@@ -1,0 +1,75 @@
+# Seata分布式事务配置示例
+# 将此配置复制到你的服务中使用，并根据实际情况修改配置值
+
+seata:
+  # 基础配置
+  enabled: true
+  application-id: ${spring.application.name:unknown}
+  tx-service-group: ${spring.application.name:unknown}-tx-group
+  timeout: 60000
+  enable-auto-data-source-proxy: true
+  data-source-proxy-mode: AT
+  
+  # 注册中心配置
+  registry:
+    type: nacos
+    server-addr: localhost:8848
+    namespace: ""
+    group: SEATA_GROUP
+    cluster: default
+    username: ""
+    password: ""
+  
+  # 配置中心配置
+  config:
+    type: nacos
+    server-addr: localhost:8848
+    namespace: ""
+    group: SEATA_GROUP
+    username: ""
+    password: ""
+  
+  # 事务存储配置
+  store:
+    # 存储模式：file（文件存储）或 db（数据库存储）
+    mode: file
+    # 文件存储路径（当mode=file时使用）
+    file-dir: file_store/data
+    
+    # 数据库存储配置（当mode=db时使用）
+    database:
+      # 数据源类型
+      datasource: druid
+      # 数据库类型
+      db-type: mysql
+      # 驱动类名
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      # 数据库URL
+      url: jdbc:mysql://localhost:3306/seata?useUnicode=true&characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false
+      # 用户名
+      username: root
+      # 密码
+      password: password
+      # 最小连接数
+      min-conn: 1
+      # 最大连接数
+      max-conn: 20
+      # 全局事务表
+      global-table: global_table
+      # 分支事务表
+      branch-table: branch_table
+      # 全局锁表
+      lock-table: lock_table
+      # 查询超时时间
+      query-timeout: 60
+  
+  # Saga配置（可选）
+  saga:
+    enabled: false
+    state-machine-auto-register: false
+
+# 日志配置
+logging:
+  level:
+    io.seata: DEBUG
+    com.jiangyang.base.seata: DEBUG

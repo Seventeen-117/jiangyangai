@@ -1,7 +1,5 @@
-package com.bgpay.bgai.seata;
+package com.jiangyang.base.seata.listener;
 
-import com.bgpay.bgai.service.TransactionLogService;
-import com.jiangyang.base.datasource.annotation.DataSource;
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
 import io.seata.tm.api.transaction.TransactionHook;
@@ -11,10 +9,7 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
@@ -28,12 +23,7 @@ import jakarta.annotation.PostConstruct;
 @Slf4j
 @Aspect
 @Component
-@DataSource("master")
 public class SeataTransactionListener implements ApplicationListener<ApplicationReadyEvent>, InitializingBean {
-    private static final Logger logger = LoggerFactory.getLogger(SeataTransactionListener.class);
-
-    @Autowired
-    private TransactionLogService transactionLogService;
 
     @PostConstruct
     public void init() {
@@ -52,11 +42,6 @@ public class SeataTransactionListener implements ApplicationListener<Application
                 String xid = RootContext.getXID();
                 if (xid != null) {
                     log.info("Transaction began: XID={}", xid);
-                    try {
-                        transactionLogService.updateTransactionStatus(xid, "ACTIVE", null);
-                    } catch (Exception e) {
-                        log.error("Failed to record transaction begin: XID={}", xid, e);
-                    }
                 }
             }
 
@@ -65,11 +50,6 @@ public class SeataTransactionListener implements ApplicationListener<Application
                 String xid = RootContext.getXID();
                 if (xid != null) {
                     log.info("Transaction committing: XID={}", xid);
-                    try {
-                        transactionLogService.updateTransactionStatus(xid, "COMMITTING", null);
-                    } catch (Exception e) {
-                        log.error("Failed to record transaction commit: XID={}", xid, e);
-                    }
                 }
             }
 
@@ -78,11 +58,6 @@ public class SeataTransactionListener implements ApplicationListener<Application
                 String xid = RootContext.getXID();
                 if (xid != null) {
                     log.info("Transaction committed: XID={}", xid);
-                    try {
-                        transactionLogService.updateTransactionStatus(xid, "COMMITTED", null);
-                    } catch (Exception e) {
-                        log.error("Failed to record transaction completion: XID={}", xid, e);
-                    }
                 }
             }
 
@@ -91,11 +66,6 @@ public class SeataTransactionListener implements ApplicationListener<Application
                 String xid = RootContext.getXID();
                 if (xid != null) {
                     log.info("Transaction rolling back: XID={}", xid);
-                    try {
-                        transactionLogService.updateTransactionStatus(xid, "ROLLBACKING", null);
-                    } catch (Exception e) {
-                        log.error("Failed to record transaction rollback: XID={}", xid, e);
-                    }
                 }
             }
 
@@ -104,11 +74,6 @@ public class SeataTransactionListener implements ApplicationListener<Application
                 String xid = RootContext.getXID();
                 if (xid != null) {
                     log.info("Transaction rolled back: XID={}", xid);
-                    try {
-                        transactionLogService.updateTransactionStatus(xid, "ROLLBACKED", null);
-                    } catch (Exception e) {
-                        log.error("Failed to record transaction rollback completion: XID={}", xid, e);
-                    }
                 }
             }
 
@@ -130,7 +95,8 @@ public class SeataTransactionListener implements ApplicationListener<Application
         String xid = RootContext.getXID();
         if (xid != null) {
             String methodName = point.getSignature().getName();
-            log.info("Transaction method starting: XID={}, method={}", xid, methodName);
+            String className = point.getTarget().getClass().getSimpleName();
+            log.info("Transaction method starting: XID={}, class={}, method={}", xid, className, methodName);
         }
     }
 
@@ -142,33 +108,25 @@ public class SeataTransactionListener implements ApplicationListener<Application
         String xid = RootContext.getXID();
         if (xid != null) {
             String methodName = point.getSignature().getName();
-            log.info("Transaction method completed: XID={}, method={}", xid, methodName);
+            String className = point.getTarget().getClass().getSimpleName();
+            log.info("Transaction method completed: XID={}, class={}, method={}", xid, className, methodName);
         }
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        // 在bean初始化时执行
-        logger.info("Seata事务监听器初始化");
-        
-        // 设置系统属性，确保Saga状态机不会自动注册
-        System.setProperty("seata.saga.state-machine.auto-register", "false");
-        
-        logger.info("已设置seata.saga.state-machine.auto-register=false，防止状态机重复注册");
+        log.info("Seata事务监听器初始化完成");
     }
     
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        // 应用程序就绪后执行
-        logger.info("应用程序已就绪，Seata事务监听器激活");
+        log.info("应用程序已就绪，Seata事务监听器激活");
         
         // 输出Seata相关配置信息
-        logger.info("Seata配置信息:");
-        logger.info(" - seata.saga.state-machine.auto-register: {}", 
+        log.info("Seata配置信息:");
+        log.info(" - seata.saga.state-machine.auto-register: {}", 
                 System.getProperty("seata.saga.state-machine.auto-register", "未设置"));
-        logger.info(" - seata.enabled: {}", 
+        log.info(" - seata.enabled: {}", 
                 System.getProperty("seata.enabled", "未设置"));
-        logger.info(" - saga.enabled: {}", 
-                System.getProperty("saga.enabled", "未设置"));
     }
-} 
+}
