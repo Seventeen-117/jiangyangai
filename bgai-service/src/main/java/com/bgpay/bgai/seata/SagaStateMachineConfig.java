@@ -39,7 +39,7 @@ public class SagaStateMachineConfig implements ApplicationRunner {
     @Autowired
     private CustomSagaJsonParser customSagaJsonParser;
     
-    @Value("${spring.application.name:bgai-application}")
+    @Value("${spring.application.name}")
     private String applicationId;
     
     private final List<String> loadedStateMachines = new ArrayList<>();

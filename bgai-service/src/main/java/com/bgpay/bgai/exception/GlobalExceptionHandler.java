@@ -30,17 +30,7 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    
-    @ExceptionHandler(ApiKeyAuthenticationException.class)
-    public ResponseEntity<CustomErrorResponse> handleApiKeyAuthenticationException(ApiKeyAuthenticationException ex) {
-        log.warn("API密钥认证失败: {}", ex.getMessage());
-        CustomErrorResponse response = new CustomErrorResponse(
-            HttpStatus.UNAUTHORIZED,
-            "UNAUTHORIZED",
-            ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-    }
+
     
     @ExceptionHandler(BillingException.class)
     public ResponseEntity<CustomErrorResponse> handleBillingException(BillingException ex) {
