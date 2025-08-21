@@ -2,6 +2,7 @@ package com.bgpay.bgai.service.deepseek;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 
 
 @Service
+@DataSource("master")
 public class ConversationHistoryService {
     private final Cache<String, List<Map<String, Object>>> historyCache =
             CacheBuilder.newBuilder()

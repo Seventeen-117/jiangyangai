@@ -8,6 +8,7 @@ import com.bgpay.bgai.service.UsageInfoService;
 import com.bgpay.bgai.transaction.TransactionCoordinator;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 @RocketMQTransactionListener(rocketMQTemplateBeanName = "rocketMQTemplate")
 @Slf4j
+@DataSource("master")
 public class BillingTransactionListenerImpl implements RocketMQLocalTransactionListener {
     private static final String PROCESSED_KEY_PREFIX = "PROCESSED:";
     private static final int LOCAL_CACHE_MAX_SIZE = 100_000;

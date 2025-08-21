@@ -1,5 +1,6 @@
 package com.bgpay.bgai.service.deepseek;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.time.format.DateTimeFormatter;
  */
 @Service
 @Slf4j
+@DataSource("master")
 public class FileWriterService {
 
     @Value("${app.file-storage.base-path:./file-storage}")

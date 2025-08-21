@@ -3,6 +3,7 @@ package com.bgpay.bgai.transaction;
 import com.bgpay.bgai.entity.ChatCompletions;
 import com.bgpay.bgai.service.ChatCompletionsService;
 import com.bgpay.bgai.service.impl.FallbackService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 @Slf4j
+@DataSource("master")
 public class TransactionCoordinator {
 
     private static final String TRANSACTION_KEY_PREFIX = "TX:CHAT:";

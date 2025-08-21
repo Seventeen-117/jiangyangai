@@ -1,12 +1,13 @@
 package com.bgpay.bgai.service.deepseek;
 
-import com.bgpay.bgai.datasource.DS;
+
 import com.bgpay.bgai.entity.UsageCalculationDTO;
 import com.bgpay.bgai.response.ChatResponse;
 import com.bgpay.bgai.service.ChatCompletionsService;
 import com.bgpay.bgai.service.UsageInfoService;
 import com.bgpay.bgai.service.mq.MQCallback;
 import com.bgpay.bgai.service.mq.RocketMQProducerService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import io.seata.spring.annotation.GlobalTransactional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -57,6 +58,7 @@ import com.bgpay.bgai.service.impl.BGAIServiceImpl;
  * to the DeepSeek API, including content sanitization, request building, retry mechanisms,
  * and asynchronous data saving.
  */
+@DataSource("master")
 @Service("deepSeekService")
 public class DeepSeekServiceImp implements DeepSeekService {
     private static final ObjectMapper mapper = new ObjectMapper()
@@ -167,7 +169,7 @@ public class DeepSeekServiceImp implements DeepSeekService {
      * @param modelName The name of the model to use
      * @return A ChatResponse object containing the response content and usage information
      */
-        @GlobalTransactional(name = "deepseek-process-tx", rollbackFor = Exception.class)    @DS("master")
+        @GlobalTransactional(name = "deepseek-process-tx", rollbackFor = Exception.class)    @DataSource("master")
         public ChatResponse processRequest(String content,
                                        String apiUrl,
                                        String apiKey,
@@ -256,7 +258,7 @@ public class DeepSeekServiceImp implements DeepSeekService {
      * @return A Mono that emits a ChatResponse object containing the response content and usage information.
      */
     @GlobalTransactional(name = "deepseek-process-tx", rollbackFor = Exception.class)
-    @DS("master")
+    @DataSource("master")
     @Override
     public Mono<ChatResponse> processRequestReactive(String content,
                                                      String apiUrl,
@@ -979,7 +981,7 @@ public class DeepSeekServiceImp implements DeepSeekService {
      * 处理Map格式的请求体，兼容OpenAI格式的API请求
      */
     @GlobalTransactional(name = "deepseek-process-tx", rollbackFor = Exception.class)
-    @DS("master")
+    @DataSource("master")
     @Override
     public Mono<ChatResponse> processRequestReactive(Map<String, Object> requestBody,
                                                      String apiUrl,

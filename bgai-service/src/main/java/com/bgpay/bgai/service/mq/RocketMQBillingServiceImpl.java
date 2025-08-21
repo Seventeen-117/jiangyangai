@@ -14,6 +14,7 @@ import com.bgpay.bgai.service.UsageRecordService;
 import com.bgpay.bgai.service.impl.BGAIServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ import static com.bgpay.bgai.entity.PriceConstants.INPUT_TYPE;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@DataSource("master")
 public class RocketMQBillingServiceImpl implements BillingService {
     private static final String BILLING_TOPIC = "BILLING_TOPIC";
     private static final String BILLING_TAG = "USER_BILLING";

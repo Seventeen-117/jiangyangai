@@ -31,6 +31,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Saga状态机配置
  * 用于配置Saga模式的状态机引擎
  */
+@com.jiangyang.base.datasource.annotation.DataSource("master")
 @Configuration
 public class SagaStateMachineConfig implements ApplicationRunner {
     private static final Logger logger = LoggerFactory.getLogger(SagaStateMachineConfig.class);

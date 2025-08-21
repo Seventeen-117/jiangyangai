@@ -1,5 +1,6 @@
 package com.bgpay.bgai.transaction;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@DataSource("master")
 public class TransactionStatus implements Serializable {
     
     private static final long serialVersionUID = 1L;

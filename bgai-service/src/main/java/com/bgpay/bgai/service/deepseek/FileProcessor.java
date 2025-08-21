@@ -1,6 +1,7 @@
 package com.bgpay.bgai.service.deepseek;
 
 import com.bgpay.bgai.entity.MimeTypeConfig;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Component
+@DataSource("master")
 public class FileProcessor {
     private final FileTypeService fileTypeService;
     private static final ThreadLocal<Tesseract> TESSERACT_THREAD_LOCAL = ThreadLocal.withInitial(() -> {

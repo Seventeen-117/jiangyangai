@@ -2,6 +2,7 @@ package com.bgpay.bgai.service;
 
 import com.bgpay.bgai.entity.ApiConfig;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 
 import java.util.List;
 
@@ -13,6 +14,7 @@ import java.util.List;
  * @author zly
  * @since 2025-03-08 20:03:01
  */
+@DataSource("master")
 public interface ApiConfigService extends IService<ApiConfig> {
     /**
      * 根据用户ID获取最新的API配置

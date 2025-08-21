@@ -54,8 +54,14 @@
 			<groupId>com.caucho</groupId>
 			<artifactId>hessian</artifactId>
 		</dependency>
-		
-		<!-- 如果需要特殊的依赖，可以在这里添加 -->
+        <dependency>
+            <groupId>com.jiangyang</groupId>
+            <artifactId>base-service</artifactId>
+            <version>1.0.0-Final</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- 如果需要特殊的依赖，可以在这里添加 -->
 	</dependencies>
 
 	<build>

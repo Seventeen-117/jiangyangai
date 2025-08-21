@@ -7,6 +7,7 @@ import com.bgpay.bgai.entity.PriceVersion;
 import com.bgpay.bgai.priceEnum.ModelType;
 import com.bgpay.bgai.priceEnum.PriceType;
 import com.bgpay.bgai.priceEnum.TimePeriod;
+import com.jiangyang.base.datasource.annotation.DataSource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import java.util.List;
  * @author zly
  * @since 2025-03-08 23:09:50
  */
+@DataSource("master")
 public interface PriceConfigService extends IService<PriceConfig> {
 
     /**

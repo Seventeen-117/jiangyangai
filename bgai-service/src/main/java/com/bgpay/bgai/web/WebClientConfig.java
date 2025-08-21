@@ -30,10 +30,6 @@ public class WebClientConfig {
     // 条件化注入，只有在LoadBalancer可用时才注入
     @Autowired(required = false)
     private ReactorLoadBalancerExchangeFilterFunction loadBalancerFilter;
-    
-    @Autowired(required = false)
-    private LoadBalancerClient loadBalancerClient;
-
     /**
      * 配置默认的WebClient，用于调用DeepSeek API
      */
@@ -90,48 +86,6 @@ public class WebClientConfig {
         });
     }
     
-    /**
-     * 根据服务ID获取服务URL
-     * 用于非响应式环境中获取服务地址
-     * 
-     * @param serviceId 服务ID
-     * @return 服务地址
-     */
-    public String getServiceUrl(String serviceId) {
-        if (loadBalancerClient == null) {
-            log.warn("LoadBalancerClient not available, returning service ID as URL: {}", serviceId);
-            return serviceId; // 返回服务ID作为URL，让调用方处理
-        }
-        
-        ServiceInstance serviceInstance = loadBalancerClient.choose(serviceId);
-        if (serviceInstance == null) {
-            throw new IllegalStateException("No instances available for service: " + serviceId);
-        }
-        
-        return UriComponentsBuilder.fromUri(serviceInstance.getUri())
-                .build()
-                .toUriString();
-    }
-    
-    /**
-     * 创建针对特定服务的WebClient
-     * 
-     * @param serviceId 服务ID
-     * @return 配置好的WebClient
-     */
-    public WebClient createWebClientForService(String serviceId) {
-        WebClient.Builder builder = WebClient.builder()
-                .filter(logRequest());
-        
-        // 只有在LoadBalancer可用时才使用lb://协议和负载均衡过滤器
-        if (loadBalancerFilter != null) {
-            builder = builder.baseUrl("lb://" + serviceId)
-                    .filter(loadBalancerFilter);
-        } else {
-            log.warn("LoadBalancer not available, using service ID as base URL: {}", serviceId);
-            builder = builder.baseUrl(serviceId);
-        }
-        
-        return builder.build();
-    }
+
+
 }

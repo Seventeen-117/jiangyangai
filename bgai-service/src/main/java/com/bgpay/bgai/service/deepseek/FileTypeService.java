@@ -3,11 +3,12 @@ package com.bgpay.bgai.service.deepseek;
 
 import cn.hutool.core.collection.ConcurrentHashSet;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.bgpay.bgai.datasource.DS;
+
 import com.bgpay.bgai.entity.AllowedFileType;
 import com.bgpay.bgai.entity.MimeTypeConfig;
 import com.bgpay.bgai.mapper.AllowedFileTypeMapper;
 import com.bgpay.bgai.mapper.FileTypeMapper;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@DataSource("master")
 public class FileTypeService {
     private final FileTypeMapper fileTypeMapper;
     private final AllowedFileTypeMapper allowedFileTypeMapper;
@@ -89,7 +91,7 @@ public class FileTypeService {
      * 获取所有允许的文件类型
      * @return 允许的文件类型列表
      */
-    @DS("slave")
+    @DataSource("slave")
     public List<AllowedFileType> getAllowedFileTypes() {
         try {
             return allowedFileTypeMapper.selectList(null);
@@ -103,7 +105,7 @@ public class FileTypeService {
      * 获取所有MIME类型配置
      * @return MIME类型配置列表
      */
-    @DS("slave")
+    @DataSource("slave")
     public List<MimeTypeConfig> getAllMimeTypeConfigs() {
         try {
             List<MimeTypeConfig> configs = fileTypeMapper.selectActiveMimeTypes();
@@ -120,7 +122,7 @@ public class FileTypeService {
      * @return 保存后的实体
      */
     @Transactional
-    @DS("master")
+    @DataSource("slave")
     public AllowedFileType addAllowedFileType(AllowedFileType fileType) {
         try {
             allowedFileTypeMapper.insert(fileType);
@@ -137,7 +139,7 @@ public class FileTypeService {
      * @param id 文件类型ID
      */
     @Transactional
-    @DS("master")
+    @DataSource("slave")
     public void deleteAllowedFileType(Long id) {
         try {
             allowedFileTypeMapper.deleteById(id);

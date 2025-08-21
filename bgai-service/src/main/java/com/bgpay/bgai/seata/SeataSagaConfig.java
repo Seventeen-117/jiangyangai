@@ -1,5 +1,6 @@
 package com.bgpay.bgai.seata;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import io.seata.spring.boot.autoconfigure.properties.SeataProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -14,6 +15,7 @@ import org.springframework.core.annotation.Order;
  * Seata Saga配置
  * 用于自定义Seata Saga的行为，特别是避免状态机重复注册
  */
+@DataSource("master")
 @Configuration
 @ConditionalOnProperty(prefix = "saga", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Order(Ordered.HIGHEST_PRECEDENCE)

@@ -1,10 +1,12 @@
 package com.bgpay.bgai.service;
 
 import com.bgpay.bgai.entity.TransactionLog;
+import com.jiangyang.base.datasource.annotation.DataSource;
 
 /**
  * 事务日志服务接口
  */
+@DataSource("master")
 public interface TransactionLogService {
 
     /**

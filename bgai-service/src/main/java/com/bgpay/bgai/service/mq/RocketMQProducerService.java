@@ -6,6 +6,7 @@ import com.bgpay.bgai.response.ChatResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -31,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
+@DataSource("master")
 public class RocketMQProducerService {
     private static final String BILLING_DESTINATION = "BILLING_TOPIC:USER_BILLING";
 

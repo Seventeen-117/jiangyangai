@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.bgpay.bgai.entity.UsageCalculationDTO;
 import com.bgpay.bgai.entity.UsageRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ import java.util.Map;
  * @author zly
  * @since 2025-03-09 21:17:29
  */
+@DataSource("master")
 public interface UsageRecordService extends IService<UsageRecord> {
     public void insertUsageRecord(UsageRecord usageRecord);
 

@@ -1,11 +1,13 @@
 package com.bgpay.bgai.service.deepseek;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+@DataSource("master")
 public class ConfigLoader {
     // 配置文件路径常量，方便后续修改
     private static final String CONFIG_FILE = "deepseek-config.properties";

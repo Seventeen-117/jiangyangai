@@ -1,5 +1,6 @@
 package com.bgpay.bgai.seata;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
  * Seata认证配置
  * 用于处理Seata的安全认证配置
  */
+@DataSource("master")
 @Configuration
 @ConditionalOnProperty(prefix = "seata", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class SeataAuthConfig {

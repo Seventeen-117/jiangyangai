@@ -1,10 +1,13 @@
 package com.bgpay.bgai.service.deepseek;
 
 import com.bgpay.bgai.response.ChatResponse;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+
+@DataSource("master")
 public interface DeepSeekService {
      ChatResponse processRequest(String content,
                                        String apiUrl,

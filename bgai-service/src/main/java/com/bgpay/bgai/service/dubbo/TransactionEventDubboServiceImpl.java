@@ -1,6 +1,7 @@
 package com.bgpay.bgai.service.dubbo;
 
 import com.bgpay.bgai.service.TransactionEventService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.dubbo.api.common.Result;
 import com.jiangyang.dubbo.api.transaction.model.TransactionEvent;
 import com.jiangyang.dubbo.api.transaction.model.TransactionEventResponse;
@@ -17,6 +18,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@DataSource("master")
 @DubboService(version = "1.0.0", timeout = 5000, retries = 2)
 public class TransactionEventDubboServiceImpl implements com.jiangyang.dubbo.api.transaction.TransactionEventService {
 

@@ -1,6 +1,7 @@
 package com.bgpay.bgai.seata;
 
 import com.bgpay.bgai.service.TransactionLogService;
+import com.jiangyang.base.datasource.annotation.DataSource;
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
 import io.seata.tm.api.transaction.TransactionHook;
@@ -27,6 +28,7 @@ import jakarta.annotation.PostConstruct;
 @Slf4j
 @Aspect
 @Component
+@DataSource("master")
 public class SeataTransactionListener implements ApplicationListener<ApplicationReadyEvent>, InitializingBean {
     private static final Logger logger = LoggerFactory.getLogger(SeataTransactionListener.class);
 

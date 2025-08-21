@@ -1,5 +1,6 @@
 package com.bgpay.bgai.service.deepseek;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -12,6 +13,7 @@ import java.nio.file.Path;
 
 @Service
 @Slf4j
+@DataSource("master")
 public class ReactiveFileProcessor {
     private static final int MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     

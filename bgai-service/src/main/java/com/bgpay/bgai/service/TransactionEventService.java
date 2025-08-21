@@ -2,12 +2,14 @@ package com.bgpay.bgai.service;
 
 import com.bgpay.bgai.model.TransactionEvent;
 import com.bgpay.bgai.model.TransactionEventResponse;
+import com.jiangyang.base.datasource.annotation.DataSource;
 
 import java.util.List;
 
 /**
  * 事务事件服务接口
  */
+@DataSource("master")
 public interface TransactionEventService {
 
     /**

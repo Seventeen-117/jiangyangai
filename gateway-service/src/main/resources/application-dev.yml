@@ -40,6 +40,14 @@ spring:
         locator:
           enabled: true  # 启用自动路由发现，Nacos服务可用
           lower-case-service-id: true
+      # HTTP客户端配置 - 解决超时问题
+      httpclient:
+        connect-timeout: 10000  # 连接超时 10秒
+        response-timeout: 30s   # 响应超时 30秒
+        pool:
+          max-connections: 200
+          max-idle-time: 15s
+          acquire-timeout: 5000  # 获取连接超时 5秒
       routes:
         # 签名验证服务路由 - 最高优先级
         - id: signature-service
@@ -68,6 +76,19 @@ spring:
             - ValidationFilter
             - AddRequestHeader=X-Gateway-Source, gateway-service
             - AddResponseHeader=X-Gateway-Response, true
+            - name: CircuitBreaker
+              args:
+                name: bgai-service-breaker
+                fallbackUri: forward:/fallback/bgai-service
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE,INTERNAL_SERVER_ERROR
+                methods: GET,POST
+                backoff:
+                  firstBackoff: 1000ms
+                  maxBackoff: 5000ms
+                  factor: 2
         # bgai服务路由 - 公开接口
         - id: bgai-service-public
           uri: http://localhost:8688
@@ -77,6 +98,10 @@ spring:
             - StripPrefix=1
             - AddRequestHeader=X-Gateway-Source, gateway-service
             - AddResponseHeader=X-Gateway-Response, true
+            - name: CircuitBreaker
+              args:
+                name: bgai-service-breaker
+                fallbackUri: forward:/fallback/bgai-service
         # messages-service路由
         - id: messages-service
           uri: http://localhost:8081
@@ -133,12 +158,14 @@ resilience4j:
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
         failureRateThreshold: 50
-        waitDurationInOpenState: 10s
+        waitDurationInOpenState: 30s  # 增加到30秒
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
         recordExceptions:
           - java.io.IOException
           - java.util.concurrent.TimeoutException
+          - java.net.SocketTimeoutException  # 添加Socket超时异常
+          - org.springframework.web.client.ResourceAccessException
           - org.springframework.web.client.ResourceAccessException
       chat-agent-service-breaker:
         registerHealthIndicator: true
@@ -175,7 +202,7 @@ resilience4j:
       signature-service-breaker:
         timeoutDuration: 10s
       bgai-service-breaker:
-        timeoutDuration: 30s
+        timeoutDuration: 60s
       chat-agent-service-breaker:
         timeoutDuration: 30s
       default-service-breaker:
@@ -205,8 +232,8 @@ resilience4j:
         waitDuration: 1s
       bgai-service-retry:
         baseConfig: default
-        maxRetryAttempts: 3
-        waitDuration: 2s
+        maxRetryAttempts: 5  # 增加到5次
+        waitDuration: 3s      # 增加到3秒
       chat-agent-service-retry:
         baseConfig: default
         maxRetryAttempts: 3
@@ -243,6 +270,13 @@ gateway:
   # 启用动态路由功能
   dynamic-routes:
     enabled: true
+  # 降级处理器配置
+  fallback:
+    bgai-service:
+      enabled: true
+      message: "bgai-service暂时不可用，请稍后重试"
+      status: 503
+      retry-after: 30
   # signature-service配置
   signature-service:
     base-url: http://localhost:8689

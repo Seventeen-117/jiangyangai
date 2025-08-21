@@ -1,5 +1,6 @@
 package com.bgpay.bgai.service.mq;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +17,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
+@DataSource("master")
 public class RocketMQConfig {
 
     @Value("${rocketmq.producer.group}")

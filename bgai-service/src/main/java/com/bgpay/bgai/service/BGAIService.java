@@ -1,5 +1,8 @@
 package com.bgpay.bgai.service;
 
+import com.jiangyang.base.datasource.annotation.DataSource;
+
+@DataSource("master")
 public interface BGAIService {
     boolean executeFirstStep(String businessKey);
     

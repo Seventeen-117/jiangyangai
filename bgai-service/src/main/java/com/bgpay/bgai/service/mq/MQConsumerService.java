@@ -1,6 +1,7 @@
 package com.bgpay.bgai.service.mq;
 
 
+import com.jiangyang.base.datasource.annotation.DataSource;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -20,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
+@DataSource("master")
 public class MQConsumerService {
     private final MeterRegistry meterRegistry;
     private final RedisTemplate<String, String> redisTemplate;
