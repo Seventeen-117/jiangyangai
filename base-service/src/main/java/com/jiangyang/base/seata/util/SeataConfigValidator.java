@@ -114,6 +114,12 @@ public class SeataConfigValidator implements ApplicationListener<ApplicationRead
             return false;
         }
         
+        SeataProperties.Nacos nacos = registry.getNacos();
+        if (nacos == null) {
+            log.error("❌ seata.registry.nacos 配置缺失");
+            return false;
+        }
+        
         boolean isValid = true;
         
         // 检查type
@@ -125,19 +131,19 @@ public class SeataConfigValidator implements ApplicationListener<ApplicationRead
         }
         
         // 检查serverAddr
-        if (!StringUtils.hasText(registry.getServerAddr())) {
-            log.error("❌ seata.registry.server-addr 未配置");
+        if (!StringUtils.hasText(nacos.getServerAddr())) {
+            log.error("❌ seata.registry.nacos.server-addr 未配置");
             isValid = false;
         } else {
-            log.info("✅ seata.registry.server-addr = {}", registry.getServerAddr());
+            log.info("✅ seata.registry.nacos.server-addr = {}", nacos.getServerAddr());
         }
         
         // 检查group
-        if (!StringUtils.hasText(registry.getGroup())) {
-            log.error("❌ seata.registry.group 未配置");
+        if (!StringUtils.hasText(nacos.getGroup())) {
+            log.error("❌ seata.registry.nacos.group 未配置");
             isValid = false;
         } else {
-            log.info("✅ seata.registry.group = {}", registry.getGroup());
+            log.info("✅ seata.registry.nacos.group = {}", nacos.getGroup());
         }
         
         return isValid;
@@ -155,6 +161,12 @@ public class SeataConfigValidator implements ApplicationListener<ApplicationRead
             return false;
         }
         
+        SeataProperties.Nacos nacos = config.getNacos();
+        if (nacos == null) {
+            log.error("❌ seata.config.nacos 配置缺失");
+            return false;
+        }
+        
         boolean isValid = true;
         
         // 检查type
@@ -166,19 +178,19 @@ public class SeataConfigValidator implements ApplicationListener<ApplicationRead
         }
         
         // 检查serverAddr
-        if (!StringUtils.hasText(config.getServerAddr())) {
-            log.error("❌ seata.config.server-addr 未配置");
+        if (!StringUtils.hasText(nacos.getServerAddr())) {
+            log.error("❌ seata.config.nacos.server-addr 未配置");
             isValid = false;
         } else {
-            log.info("✅ seata.config.server-addr = {}", config.getServerAddr());
+            log.info("✅ seata.config.nacos.server-addr = {}", nacos.getServerAddr());
         }
         
         // 检查group
-        if (!StringUtils.hasText(config.getGroup())) {
-            log.error("❌ seata.config.group 未配置");
+        if (!StringUtils.hasText(nacos.getGroup())) {
+            log.error("❌ seata.config.nacos.group 未配置");
             isValid = false;
         } else {
-            log.info("✅ seata.config.group = {}", config.getGroup());
+            log.info("✅ seata.config.nacos.group = {}", nacos.getGroup());
         }
         
         return isValid;
@@ -204,7 +216,7 @@ public class SeataConfigValidator implements ApplicationListener<ApplicationRead
             
             // 如果使用数据库存储，验证数据库配置
             if ("db".equals(store.getMode())) {
-                return validateDatabaseConfig(store.getDatabase());
+                return validateDatabaseConfig(store.getDb());
             }
         }
         
@@ -228,20 +240,6 @@ public class SeataConfigValidator implements ApplicationListener<ApplicationRead
             isValid = false;
         } else {
             log.info("✅ seata.store.database.url = {}", database.getUrl());
-        }
-        
-        if (!StringUtils.hasText(database.getUsername())) {
-            log.error("❌ seata.store.database.username 未配置");
-            isValid = false;
-        } else {
-            log.info("✅ seata.store.database.username = {}", database.getUsername());
-        }
-        
-        if (!StringUtils.hasText(database.getPassword())) {
-            log.error("❌ seata.store.database.password 未配置");
-            isValid = false;
-        } else {
-            log.info("✅ seata.store.database.password = ***");
         }
         
         return isValid;

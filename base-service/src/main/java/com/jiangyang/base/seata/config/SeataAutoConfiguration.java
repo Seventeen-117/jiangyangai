@@ -1,5 +1,6 @@
 package com.jiangyang.base.seata.config;
 
+import org.springframework.core.env.Environment;
 import io.seata.spring.boot.autoconfigure.properties.SeataProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +40,7 @@ public class SeataAutoConfiguration {
      * 初始化Seata系统属性
      */
     @Bean
-    public SeataSystemPropertiesInitializer seataSystemPropertiesInitializer() {
-        return new SeataSystemPropertiesInitializer();
+    public SeataSystemPropertiesInitializer seataSystemPropertiesInitializer(Environment environment) {
+        return new SeataSystemPropertiesInitializer(environment);
     }
 }

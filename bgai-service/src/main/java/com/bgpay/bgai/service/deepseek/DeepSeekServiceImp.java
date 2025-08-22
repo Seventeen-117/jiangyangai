@@ -52,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.bgpay.bgai.transaction.TransactionCoordinator;
 import com.bgpay.bgai.service.impl.BGAIServiceImpl;
+import com.bgpay.bgai.service.BgaiTransactionService;
 
 /**
  * This class implements the DeepSeekService interface, providing methods to process requests
@@ -121,6 +122,9 @@ public class DeepSeekServiceImp implements DeepSeekService {
     @Autowired
     private BGAIServiceImpl bgaiService;
 
+    @Autowired
+    private BgaiTransactionService bgaiTransactionService;
+
     /**
      * Constructor for DeepSeekServiceImp.
      * Initializes the CloseableHttpClient with the given configurations,
@@ -169,81 +173,88 @@ public class DeepSeekServiceImp implements DeepSeekService {
      * @param modelName The name of the model to use
      * @return A ChatResponse object containing the response content and usage information
      */
-        @GlobalTransactional(name = "deepseek-process-tx", rollbackFor = Exception.class)    @DataSource("master")
-        public ChatResponse processRequest(String content,
+    @DataSource("master")
+    public ChatResponse processRequest(String content,
                                        String apiUrl,
                                        String apiKey,
                                        String modelName,
                                        String userId,
                                        boolean multiTurn) {
-        ChatResponse chatResponse = new ChatResponse();
-        String requestBody = "";
-        try {
-            List<Map<String, Object>> history = multiTurn ?
-                    historyService.getValidHistory(userId) :
-                    new ArrayList<>();
+        return bgaiTransactionService.executeWithTransaction(
+            "deepseek-process-tx",
+            60000,
+            () -> {
+                ChatResponse chatResponse = new ChatResponse();
+                String requestBody = "";
+                try {
+                    List<Map<String, Object>> history = multiTurn ?
+                            historyService.getValidHistory(userId) :
+                            new ArrayList<>();
 
-            // 创建当前用户消息（始终包含最新内容）
-            Map<String, Object> currentMessage = createMessage("user", content);
+                    // 创建当前用户消息（始终包含最新内容）
+                    Map<String, Object> currentMessage = createMessage("user", content);
 
-            // 构建完整消息序列 = 历史记录 + 当前消息
-            List<Map<String, Object>> messagesForRequest = new ArrayList<>(history);
-            messagesForRequest.add(currentMessage);
+                    // 构建完整消息序列 = 历史记录 + 当前消息
+                    List<Map<String, Object>> messagesForRequest = new ArrayList<>(history);
+                    messagesForRequest.add(currentMessage);
 
-            // 构建请求
-            requestBody = buildRequest(messagesForRequest, modelName);
-            CompletableFuture<String> future = executeWithRetry(apiUrl, apiKey, requestBody);
-            String response = future.get();
-            if (multiTurn) {
-                String assistantContent = extractContent(response);
-                historyService.addMessage(userId, "user", content);  // 包含文件内容的问题
-                historyService.addMessage(userId, "assistant", assistantContent);
-            }
-            saveCompletionDataAsync(response);
-            JsonNode root = mapper.readTree(response);
-            JsonNode choices = root.path("choices");
-            if (!choices.isEmpty()) {
-                JsonNode message = choices.get(0).path("message");
-                if (!message.isEmpty()) {
-                    String responseContent = message.path("content").asText();
-                    chatResponse.setContent(responseContent);
-                    fileWriterService.writeContentToFile(responseContent, "response_" + System.currentTimeMillis() + ".txt");
-                }
-            }
-
-            JsonNode usageNode = root.path("usage");
-            if (!usageNode.isEmpty()) {
-                UsageInfo usage = extractUsageInfo(usageNode, root, userId);
-                chatResponse.setUsage(usage);
-                UsageCalculationDTO calculationDTO = convertToDTO(usage);
-                rocketMQProducer.sendBillingMessage(calculationDTO, userId);
-                String messageId = UUID.randomUUID().toString();
-                rocketMQProducer.sendChatLogAsync(
-                        messageId,
-                        requestBody,
-                        chatResponse,
-                        userId,
-                        new MQCallback() {
-                            @Override
-                            public void onSuccess(String msgId) {
-                                meterRegistry.counter("mq.message.success", "msgId", msgId).increment();
-                                log.info("Message {} 发送成功，执行清理操作", msgId);
-                            }
-
-                            @Override
-                            public void onFailure(String msgId, Throwable e) {
-                                meterRegistry.counter("mq.message.failure", "msgId", msgId).increment();
-                                log.error("Message {} 发送失败", msgId, e);
-                            }
+                    // 构建请求
+                    requestBody = buildRequest(messagesForRequest, modelName);
+                    CompletableFuture<String> future = executeWithRetry(apiUrl, apiKey, requestBody);
+                    String response = future.get();
+                    if (multiTurn) {
+                        String assistantContent = extractContent(response);
+                        historyService.addMessage(userId, "user", content);  // 包含文件内容的问题
+                        historyService.addMessage(userId, "assistant", assistantContent);
+                    }
+                    saveCompletionDataAsync(response);
+                    JsonNode root = mapper.readTree(response);
+                    JsonNode choices = root.path("choices");
+                    if (!choices.isEmpty()) {
+                        JsonNode message = choices.get(0).path("message");
+                        if (!message.isEmpty()) {
+                            String responseContent = message.path("content").asText();
+                            chatResponse.setContent(responseContent);
+                            fileWriterService.writeContentToFile(responseContent, "response_" + System.currentTimeMillis() + ".txt");
                         }
-                );
+                    }
+
+                    JsonNode usageNode = root.path("usage");
+                    if (!usageNode.isEmpty()) {
+                        UsageInfo usage = extractUsageInfo(usageNode, root, userId);
+                        chatResponse.setUsage(usage);
+                        UsageCalculationDTO calculationDTO = convertToDTO(usage);
+                        rocketMQProducer.sendBillingMessage(calculationDTO, userId);
+                        String messageId = UUID.randomUUID().toString();
+                        rocketMQProducer.sendChatLogAsync(
+                                messageId,
+                                requestBody,
+                                chatResponse,
+                                userId,
+                                new MQCallback() {
+                                    @Override
+                                    public void onSuccess(String msgId) {
+                                        meterRegistry.counter("mq.message.success", "msgId", msgId).increment();
+                                        log.info("Message {} 发送成功，执行清理操作", msgId);
+                                    }
+
+                                    @Override
+                                    public void onFailure(String msgId, Throwable e) {
+                                        meterRegistry.counter("mq.message.failure", "msgId", msgId).increment();
+                                        log.error("Message {} 发送失败", msgId, e);
+                                    }
+                                }
+                        );
+                    }
+                } catch (Exception e) {
+                    String errorMessage = "Processing failed: " + e.getMessage();
+                    chatResponse.setContent(buildErrorResponse(500, errorMessage));
+                    chatResponse.setUsage(new UsageInfo());
+                    throw new RuntimeException("业务处理失败", e);
+                }
+                return chatResponse;
             }
-        } catch (Exception e) {
-            String errorMessage = "Processing failed: " + e.getMessage();
-            chatResponse.setContent(buildErrorResponse(500, errorMessage));
-            chatResponse.setUsage(new UsageInfo());
-        }
-        return chatResponse;
+        );
     }
     /**
      * Process the request to the DeepSeek API in a reactive way, including building the request JSON,
@@ -257,7 +268,6 @@ public class DeepSeekServiceImp implements DeepSeekService {
      * @param multiTurn Whether it is a multi-turn conversation.
      * @return A Mono that emits a ChatResponse object containing the response content and usage information.
      */
-    @GlobalTransactional(name = "deepseek-process-tx", rollbackFor = Exception.class)
     @DataSource("master")
     @Override
     public Mono<ChatResponse> processRequestReactive(String content,
@@ -272,92 +282,105 @@ public class DeepSeekServiceImp implements DeepSeekService {
         // 生成业务键，用于Saga状态机
         String businessKey = userId + ":" + UUID.randomUUID().toString();
         
-        return Mono.just(content)
-                .<ChatResponse>flatMap(c -> {
+        return Mono.fromCallable(() -> 
+            bgaiTransactionService.executeWithTransaction(
+                "deepseek-process-reactive-tx",
+                60000,
+                () -> {
                     // 第一阶段：准备事务
                     String chatCompletionId = transactionCoordinator.prepare(userId);
                     log.info("Transaction prepared with chatCompletionId: {}", chatCompletionId);
                     
                     // 构建请求
-                    Map<String, Object> requestMap = buildRequestJson(c, modelName, multiTurn, userId);
+                    Map<String, Object> requestMap = buildRequestJson(content, modelName, multiTurn, userId);
                     requestMap.put("chatCompletionId", chatCompletionId);
                     
-                    return executeRequest(apiUrl, apiKey, requestMap)
-                            .flatMap(response -> {
-                                log.debug("Response received from DeepSeek API: {}", 
-                                        response.length() > 100 ? response.substring(0, 100) + "..." : response);
-                                
-                                // 解析响应
-                                return parseResponse(response)
-                                    .map(chatResponse -> {
-                                        chatResponse.getUsage().setChatCompletionId(chatCompletionId);
-                                        
-                                        // 第二阶段：提交事务
-                                        boolean committed = transactionCoordinator.commit(userId, chatCompletionId, modelName);
-                                        if (!committed) {
-                                            log.warn("Failed to commit transaction, using compensation mechanism");
-                                            // 使用Saga补偿模式处理失败情况
-                                            bgaiService.executeFirstStep(businessKey);
-                                        }
-                                        
-                                        return chatResponse;
-                                    });
-                            })
-                            .onErrorResume(e -> {
-                                log.error("Error processing request: {}", e.getMessage(), e);
-                                // 发生错误时回滚事务
-                                String rollbackId = transactionCoordinator.rollback(userId);
-                                
-                                ChatResponse errorResponse = new ChatResponse();
-                                errorResponse.setContent(buildErrorResponse(500, e.getMessage()));
-                                UsageInfo usage = new UsageInfo();
-                                usage.setChatCompletionId(rollbackId);
-                                errorResponse.setUsage(usage);
-                                
-                                return Mono.just(errorResponse);
-                            });
-                })
-                .doOnSuccess(response -> {
-                    // 构建请求信息Map，用于聊天记录
-                    Map<String, Object> requestInfoMap = new HashMap<>();
-                    requestInfoMap.put("content", content);
-                    requestInfoMap.put("apiUrl", apiUrl);
-                    requestInfoMap.put("modelName", modelName);
-                    requestInfoMap.put("multiTurn", multiTurn);
-                    requestInfoMap.put("timestamp", System.currentTimeMillis());
-                    
-                    // 发送账单消息和聊天日志
-                    if (response.getUsage() != null) {
-                        // 1. 发送账单消息
-                        sendBillingMessage(response, userId)
-                                .subscribe(
-                                        unused -> log.info("Billing message sent successfully"),
-                                        error -> log.error("Failed to send billing message: {}", error.getMessage(), error)
-                                );
+                    // 执行请求并解析响应
+                    try {
+                        String response = executeRequest(apiUrl, apiKey, requestMap).block();
+                        if (response == null) {
+                            throw new RuntimeException("API响应为空");
+                        }
                         
-                        // 2. 发送聊天日志消息，即使账单消息失败也要发送
-                        sendChatLogAsync(response, userId, requestInfoMap)
-                                .subscribe(
-                                        unused -> log.info("Chat log message sent successfully"),
-                                        error -> log.error("Failed to send chat log message: {}", error.getMessage(), error)
-                                );
-                    } else {
-                        // 即使没有usage信息，也要尝试发送聊天日志，防止丢失记录
-                        log.warn("Response没有usage信息，但仍将发送聊天日志");
-                        UsageInfo defaultUsage = new UsageInfo();
-                        defaultUsage.setUserId(userId);
-                        defaultUsage.setChatCompletionId("error-" + UUID.randomUUID().toString());
-                        defaultUsage.setCreatedAt(LocalDateTime.now());
-                        response.setUsage(defaultUsage);
+                        log.debug("Response received from DeepSeek API: {}", 
+                                response.length() > 100 ? response.substring(0, 100) + "..." : response);
                         
-                        sendChatLogAsync(response, userId, requestInfoMap)
-                                .subscribe(
-                                        unused -> log.info("Default chat log message sent successfully"),
-                                        error -> log.error("Failed to send default chat log message: {}", error.getMessage(), error)
-                                );
+                        ChatResponse chatResponse = parseResponse(response).block();
+                        if (chatResponse == null) {
+                            throw new RuntimeException("响应解析失败");
+                        }
+                        
+                        chatResponse.getUsage().setChatCompletionId(chatCompletionId);
+                        
+                        // 第二阶段：提交事务
+                        boolean committed = transactionCoordinator.commit(userId, chatCompletionId, modelName);
+                        if (!committed) {
+                            log.warn("Failed to commit transaction, using compensation mechanism");
+                            // 使用Saga补偿模式处理失败情况
+                            bgaiService.executeFirstStep(businessKey);
+                        }
+                        
+                        return chatResponse;
+                        
+                    } catch (Exception e) {
+                        log.error("Error processing request: {}", e.getMessage(), e);
+                        // 发生错误时回滚事务
+                        String rollbackId = transactionCoordinator.rollback(userId);
+                        
+                        ChatResponse errorResponse = new ChatResponse();
+                        errorResponse.setContent(buildErrorResponse(500, e.getMessage()));
+                        UsageInfo usage = new UsageInfo();
+                        usage.setChatCompletionId(rollbackId);
+                        errorResponse.setUsage(usage);
+                        
+                        return errorResponse;
                     }
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+                }
+            )
+        )
+        .flatMap(chatResponse -> {
+            // 构建请求信息Map，用于聊天记录
+            Map<String, Object> requestInfoMap = new HashMap<>();
+            requestInfoMap.put("content", content);
+            requestInfoMap.put("apiUrl", apiUrl);
+            requestInfoMap.put("modelName", modelName);
+            requestInfoMap.put("multiTurn", multiTurn);
+            requestInfoMap.put("timestamp", System.currentTimeMillis());
+            
+            // 发送账单消息和聊天日志
+            if (chatResponse.getUsage() != null) {
+                // 1. 发送账单消息
+                sendBillingMessage(chatResponse, userId)
+                        .subscribe(
+                                unused -> log.info("Billing message sent successfully"),
+                                error -> log.error("Failed to send billing message: {}", error.getMessage(), error)
+                        );
+                
+                // 2. 发送聊天日志消息，即使账单消息失败也要发送
+                sendChatLogAsync(chatResponse, userId, requestInfoMap)
+                        .subscribe(
+                                unused -> log.info("Chat log message sent successfully"),
+                                error -> log.error("Failed to send chat log message: {}", error.getMessage(), error)
+                        );
+            } else {
+                // 即使没有usage信息，也要尝试发送聊天日志，防止丢失记录
+                log.warn("Response没有usage信息，但仍将发送聊天日志");
+                UsageInfo defaultUsage = new UsageInfo();
+                defaultUsage.setUserId(userId);
+                defaultUsage.setChatCompletionId("error-" + UUID.randomUUID().toString());
+                defaultUsage.setCreatedAt(LocalDateTime.now());
+                chatResponse.setUsage(defaultUsage);
+                
+                sendChatLogAsync(chatResponse, userId, requestInfoMap)
+                        .subscribe(
+                                unused -> log.info("Default chat log message sent successfully"),
+                                error -> log.error("Failed to send default chat log message: {}", error.getMessage(), error)
+                        );
+            }
+            
+            return Mono.just(chatResponse);
+        })
+        .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -980,7 +1003,6 @@ public class DeepSeekServiceImp implements DeepSeekService {
     /**
      * 处理Map格式的请求体，兼容OpenAI格式的API请求
      */
-    @GlobalTransactional(name = "deepseek-process-tx", rollbackFor = Exception.class)
     @DataSource("master")
     @Override
     public Mono<ChatResponse> processRequestReactive(Map<String, Object> requestBody,

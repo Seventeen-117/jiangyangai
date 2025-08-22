@@ -2,6 +2,7 @@ package com.jiangyang.base.seata.properties;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBinding;
 
 /**
  * Seata配置属性
@@ -9,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @Data
 @ConfigurationProperties(prefix = "seata")
+@ConfigurationPropertiesBinding
 public class SeataProperties {
 
     /**
@@ -77,7 +79,34 @@ public class SeataProperties {
         private String type;
 
         /**
-         * 注册中心地址
+         * Nacos注册中心配置
+         */
+        private Nacos nacos = new Nacos();
+    }
+
+    /**
+     * 配置中心配置
+     */
+    @Data
+    public static class Config {
+        /**
+         * 配置中心类型
+         */
+        private String type;
+
+        /**
+         * Nacos配置中心配置
+         */
+        private Nacos nacos = new Nacos();
+    }
+
+    /**
+     * Nacos配置
+     */
+    @Data
+    public static class Nacos {
+        /**
+         * 服务器地址
          */
         private String serverAddr;
 
@@ -105,42 +134,11 @@ public class SeataProperties {
          * 密码
          */
         private String password;
-    }
-
-    /**
-     * 配置中心配置
-     */
-    @Data
-    public static class Config {
-        /**
-         * 配置中心类型
-         */
-        private String type;
 
         /**
-         * 配置中心地址
+         * 数据ID（仅配置中心使用）
          */
-        private String serverAddr;
-
-        /**
-         * 命名空间
-         */
-        private String namespace;
-
-        /**
-         * 分组
-         */
-        private String group;
-
-        /**
-         * 用户名
-         */
-        private String username;
-
-        /**
-         * 密码
-         */
-        private String password;
+        private String dataId;
     }
 
     /**
@@ -161,7 +159,7 @@ public class SeataProperties {
         /**
          * 数据库存储配置
          */
-        private Database database = new Database();
+        private Database db = new Database();
 
         /**
          * 数据库存储配置
@@ -191,7 +189,7 @@ public class SeataProperties {
             /**
              * 用户名
              */
-            private String username;
+            private String user;
 
             /**
              * 密码

@@ -35,7 +35,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		"org.apache.rocketmq.spring.autoconfigure",
 		"org.apache.rocketmq.spring.core",
 		"org.apache.rocketmq.spring.support",
-		"com.bgpay.bgai"
+		"com.bgpay.bgai",
+		"com.jiangyang.base"
 })
 public class BgaiApplication {
 

@@ -21,10 +21,11 @@ public class SeataSagaConfig {
 
     /**
      * 配置Saga状态机引擎
+     * 注意：此Bean仅用于base-service的基础配置，具体业务实现由各服务自己定义
      */
-    @Bean
-    public StateMachineEngine stateMachineEngine(DataSource dataSource) {
-        log.info("初始化Seata Saga状态机引擎");
+    @Bean("baseSeataStateMachineEngine")
+    public StateMachineEngine baseSeataStateMachineEngine(DataSource dataSource) {
+        log.info("初始化base-service Seata Saga状态机引擎");
         
         // 设置系统属性，确保Saga状态机不会自动注册
         System.setProperty("seata.saga.state-machine.auto-register", "false");
@@ -39,7 +40,7 @@ public class SeataSagaConfig {
         ProcessCtrlStateMachineEngine engine = new ProcessCtrlStateMachineEngine();
         engine.setStateMachineConfig(config);
         
-        log.info("Seata Saga状态机引擎初始化完成");
+        log.info("base-service Seata Saga状态机引擎初始化完成");
         return engine;
     }
 }

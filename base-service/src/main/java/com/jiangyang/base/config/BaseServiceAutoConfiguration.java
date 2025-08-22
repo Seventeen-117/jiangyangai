@@ -3,6 +3,7 @@ package com.jiangyang.base.config;
 import com.jiangyang.base.datasource.DynamicDataSourceManager;
 import com.jiangyang.base.datasource.DynamicDataSourceRegistry;
 import com.jiangyang.base.datasource.properties.DataSourceProperties;
+import com.jiangyang.base.seata.properties.SeataProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,7 +27,7 @@ import javax.sql.DataSource;
 @Configuration
 @ConditionalOnClass(DataSource.class)
 @ConditionalOnProperty(prefix = "spring.datasource.dynamic", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(DataSourceProperties.class)
+@EnableConfigurationProperties({DataSourceProperties.class, SeataProperties.class})
 @Import({
     DataSourceConfig.class,
     MyBatisPlusConfig.class,
