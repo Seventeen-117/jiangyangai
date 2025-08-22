@@ -32,10 +32,14 @@ REGISTRY="registry.cn-shanghai.aliyuncs.com/bg-boot"
 # 定义命名空间
 NAMESPACE="jiangyang-ai"
 
+# 定义服务器地址
+SERVER_HOST="8.133.246.113"
+
 # 创建统一的Kubernetes部署文件
 cat << EOF > "jiangyang-ai-unified-deployment.yaml"
 # JiangyangAI 统一 Kubernetes 部署配置
 # 包含所有子服务的 Deployment 和 Service 配置
+# 使用已部署的服务器: ${SERVER_HOST}
 
 ---
 # 命名空间配置
@@ -59,23 +63,23 @@ metadata:
 data:
   # 通用配置
   SPRING_PROFILES_ACTIVE: "prod"
-  NACOS_HOST: "nacos-service"
+  NACOS_HOST: "${SERVER_HOST}"
   NACOS_PORT: "8848"
   TZ: "Asia/Shanghai"
   
   # 数据库配置
-  MYSQL_HOST: "mysql-service"
+  MYSQL_HOST: "${SERVER_HOST}"
   MYSQL_PORT: "3306"
   MYSQL_DATABASE: "jiangyang_ai"
   MYSQL_USER: "jiangyang"
   MYSQL_PASSWORD: "jiangyang123"
   
   # Redis配置
-  REDIS_HOST: "redis-service"
+  REDIS_HOST: "${SERVER_HOST}"
   REDIS_PORT: "6379"
   
   # Seata配置
-  SEATA_HOST: "seata-server-service"
+  SEATA_HOST: "${SERVER_HOST}"
   SEATA_PORT: "8091"
 
 ---
@@ -134,7 +138,7 @@ spec:
         - name: SPRING_PROFILES_ACTIVE
           value: "prod"
         - name: NACOS_HOST
-          value: "nacos-service"
+          value: "${SERVER_HOST}"
         - name: NACOS_PORT
           value: "8848"
         - name: TZ
@@ -145,7 +149,7 @@ EOF
   if [[ "$APP_NAME" == "bgai-service" || "$APP_NAME" == "messages-service" || "$APP_NAME" == "signature-service" ]]; then
     cat << EOF >> "jiangyang-ai-unified-deployment.yaml"
         - name: SEATA_HOST
-          value: "seata-server-service"
+          value: "${SERVER_HOST}"
         - name: SEATA_PORT
           value: "8091"
 EOF
@@ -199,72 +203,8 @@ spec:
 EOF
 done
 
-# 添加基础设施服务配置
+# 添加Ingress配置
 cat << EOF >> "jiangyang-ai-unified-deployment.yaml"
-
----
-# MySQL Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql-service
-  namespace: ${NAMESPACE}
-  labels:
-    app: mysql
-    project: jiangyang-ai
-spec:
-  selector:
-    app: mysql
-  ports:
-    - protocol: TCP
-      port: 3306
-      targetPort: 3306
-      name: mysql
-  type: ClusterIP
-
----
-# Nacos Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: nacos-service
-  namespace: ${NAMESPACE}
-  labels:
-    app: nacos
-    project: jiangyang-ai
-spec:
-  selector:
-    app: nacos
-  ports:
-    - protocol: TCP
-      port: 8848
-      targetPort: 8848
-      name: nacos
-    - protocol: TCP
-      port: 9848
-      targetPort: 9848
-      name: nacos-cluster
-  type: ClusterIP
-
----
-# Redis Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis-service
-  namespace: ${NAMESPACE}
-  labels:
-    app: redis
-    project: jiangyang-ai
-spec:
-  selector:
-    app: redis
-  ports:
-    - protocol: TCP
-      port: 6379
-      targetPort: 6379
-      name: redis
-  type: ClusterIP
 
 ---
 # Ingress 配置
@@ -329,6 +269,7 @@ EOF
 
 echo "统一Kubernetes配置文件生成完成！"
 echo "生成的文件: jiangyang-ai-unified-deployment.yaml"
+echo "使用服务器地址: ${SERVER_HOST}"
 echo ""
 echo "使用方法："
 echo "1. 部署所有服务："
@@ -352,3 +293,9 @@ echo "  - 聊天服务: http://jiangyang-ai.local/chat"
 echo "  - 消息服务: http://jiangyang-ai.local/messages"
 echo "  - 签名服务: http://jiangyang-ai.local/signature"
 echo "  - 深度搜索: http://jiangyang-ai.local/deepsearch"
+echo ""
+echo "基础设施服务地址："
+echo "  - Nacos: http://${SERVER_HOST}:8848/nacos"
+echo "  - MySQL: ${SERVER_HOST}:3306"
+echo "  - Redis: ${SERVER_HOST}:6379"
+echo "  - Seata: ${SERVER_HOST}:8091"
