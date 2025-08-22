@@ -160,7 +160,15 @@ public class SeataSystemPropertiesInitializer implements InitializingBean {
             System.setProperty(systemPropertyKey, value);
             log.debug("Set system property: {}={}", systemPropertyKey, value);
         } else {
-            log.debug("配置项 {} 未设置，跳过", configKey);
+            log.warn("配置项 {} 未设置，使用默认值", configKey);
+            // 设置默认值
+            if (systemPropertyKey.contains("vgroupMapping")) {
+                System.setProperty(systemPropertyKey, "default");
+                log.info("Set default system property: {}={}", systemPropertyKey, "default");
+            } else if (systemPropertyKey.contains("grouplist")) {
+                System.setProperty(systemPropertyKey, "8.133.246.113:8091");
+                log.info("Set default system property: {}={}", systemPropertyKey, "8.133.246.113:8091");
+            }
         }
     }
 

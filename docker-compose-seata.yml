@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  seata-server:
+    image: seataio/seata-server:1.7.0
+    container_name: seata-server
+    hostname: seata-server
+    ports:
+      - "8091:8091"  # Seata RPC 端口
+      # - "7091:7091"  # Seata 控制台端口（已注释，避免认证问题）
+    environment:
+      - SEATA_PORT=8091
+      - SEATA_CONFIG_NAME=file:/seata-server/conf/registry.conf
+      - SEATA_ENV=dev
+      - SEATA_IP=8.133.246.113
+      - SEATA_APPLICATION_ID=seata-server
+      - SEATA_TX_SERVICE_GROUP=default
+      - SEATA_SERVICE_VGROUP_MAPPING=default:default
+      - SEATA_SERVICE_DEFAULT_GROUPLIST=8.133.246.113:8091
+      - SEATA_STORE_MODE=db
+      - SEATA_STORE_DB_DATASOURCE=druid
+      - SEATA_STORE_DB_DB_TYPE=mysql
+      - SEATA_STORE_DB_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - SEATA_STORE_DB_URL=jdbc:mysql://8.133.246.113:3306/seata?useUnicode=true&characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&serverTimezone=GMT%2B8
+      - SEATA_STORE_DB_USER=bgtech
+      - SEATA_STORE_DB_PASSWORD=Zly689258..
+      - SEATA_STORE_DB_MIN_CONN=5
+      - SEATA_STORE_DB_MAX_CONN=100
+      - SEATA_REGISTRY_TYPE=nacos
+      - SEATA_REGISTRY_NACOS_SERVER_ADDR=8.133.246.113:8848
+      - SEATA_REGISTRY_NACOS_NAMESPACE=d750d92e-152f-4055-a641-3bc9dda85a29
+      - SEATA_REGISTRY_NACOS_GROUP=DEFAULT_GROUP
+      - SEATA_REGISTRY_NACOS_CLUSTER=default
+      - SEATA_CONFIG_TYPE=nacos
+      - SEATA_CONFIG_NACOS_SERVER_ADDR=8.133.246.113:8848
+      - SEATA_CONFIG_NACOS_NAMESPACE=d750d92e-152f-4055-a641-3bc9dda85a29
+      - SEATA_CONFIG_NACOS_GROUP=DEFAULT_GROUP
+      - SEATA_CONFIG_NACOS_DATA_ID=seataServer.properties
+    volumes:
+      # 挂载配置文件
+      - ./seata-server/conf:/seata-server/conf
+      # 挂载日志目录
+      - ./seata-server/logs:/root/logs/seata
+      # 挂载数据存储目录
+      - ./seata-server/data:/seata-server/data
+    networks:
+      - seata-network
+    restart: unless-stopped
+    # 移除健康检查，因为控制台端口不可用
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:7091/actuator/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+
+networks:
+  seata-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
