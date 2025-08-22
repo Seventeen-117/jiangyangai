@@ -9,8 +9,6 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 
 import javax.sql.DataSource;
-import com.bgpay.bgai.datasource.DynamicDataSource;
-import com.bgpay.bgai.datasource.DataSourceType;
 import io.seata.rm.datasource.DataSourceProxy;
 
 import java.util.HashMap;
@@ -79,19 +77,5 @@ public class DataSourceMockConfig {
         return new DataSourceProxy(dataSource);
     }
 
-    /**
-     * 动态数据源 - 代替原始DataSourceConfig中的动态数据源
-     */
-    @Primary
-    @Bean(name = "dynamicDataSource")
-    public DataSource dynamicDataSource(DataSource masterDataSource, DataSource slaveDataSource) {
-        DynamicDataSource dynamicDataSource = new DynamicDataSource();
-        Map<Object, Object> targetDataSources = new HashMap<>();
-        targetDataSources.put(DataSourceType.MASTER.getValue(), masterDataSource);
-        targetDataSources.put(DataSourceType.SLAVE.getValue(), slaveDataSource);
-        dynamicDataSource.setTargetDataSources(targetDataSources);
-        dynamicDataSource.setDefaultTargetDataSource(masterDataSource);
-        dynamicDataSource.afterPropertiesSet();
-        return dynamicDataSource;
-    }
+
 } 
