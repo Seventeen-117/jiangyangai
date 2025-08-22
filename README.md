@@ -814,7 +814,11 @@ public class MessageSagaStateMachineConfig extends StateMachineConfigurerAdapter
             .withExternal()
                 .source("SENDING").target("FAILED")
                 .event("FAILURE");
+<<<<<<< HEAD
   }
+=======
+    }
+>>>>>>> origin/dev
 }
 ```
 
@@ -846,7 +850,11 @@ public void executeMessageSendSaga(MessageRequest request) {
         // 6. 事务回滚处理
         rollbackTransaction(request.getBusinessKey());
         throw e;
+<<<<<<< HEAD
   }
+=======
+    }
+>>>>>>> origin/dev
 }
 ```
 
