@@ -10,6 +10,125 @@ spring:
     allow-circular-references: true
     allow-bean-definition-overriding: true
     lazy-initialization: false
+    # 禁用条件评估报告
+    banner-mode: off
+    # 禁用启动信息
+    log-startup-info: false
+
+# Dubbo配置 - 避免缓存冲突
+dubbo:
+  application:
+    name: deepSearch-service
+    version: 1.0.0
+    owner: jiangyang
+    organization: jiangyang-tech
+    # 设置唯一的缓存路径，避免与其他服务冲突
+    qos-enable: false
+    qos-port: 22222
+    qos-accept-foreign-ip: false
+  registry:
+    address: nacos://8.133.246.113:8848
+    group: DEFAULT_GROUP
+    timeout: 10000
+    check: false
+  consumer:
+    timeout: 5000
+    retries: 2
+    loadbalance: roundrobin
+    cluster: failover
+    check: false
+    connections: 1
+    reconnect: true
+  # 设置缓存路径，避免与其他服务冲突
+  cache:
+    file:
+      path: ${user.home}/.dubbo/deepSearch-service
+    store:
+      type: memory
+  # 设置元数据缓存配置
+  metadata:
+    cache:
+      file:
+        path: ${user.home}/.dubbo/deepSearch-service/metadata
+      store:
+        type: memory
+  # 设置服务发现缓存配置
+  service:
+    discovery:
+      cache:
+        file:
+          path: ${user.home}/.dubbo/deepSearch-service/discovery
+        store:
+          type: memory
+  # 设置映射缓存配置
+  mapping:
+    cache:
+      file:
+        path: ${user.home}/.dubbo/deepSearch-service/mapping
+      store:
+        type: memory
+
+# Seata配置 - 完全禁用
+seata:
+  enabled: false
+  auto-data-source-proxy: false
+  enable-auto-data-source-proxy: false
+  disable-global-transaction: true
+
+# 管理端点配置 - 禁用不必要的功能
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+    info:
+      enabled: true
+  # 禁用指标收集
+  metrics:
+    enable:
+      all: false
+  # 使用新的配置属性
+  simple:
+    metrics:
+      export:
+        enabled: false
+  # 禁用健康检查详情
+  health:
+    defaults:
+      enabled: false
+    redis:
+      enabled: false
+    db:
+      enabled: false
+    diskspace:
+      enabled: false
+
+# 日志配置 - 减少不必要的输出
+logging:
+  level:
+    # 禁用Spring Boot自动配置的详细日志
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.autoconfigure.condition: OFF
+    org.springframework.boot.autoconfigure.logging: WARN
+    # 禁用条件评估报告
+    org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener: OFF
+    # 设置根日志级别
+    root: WARN
+    # 设置应用相关日志级别
+    com.jiangyang.datacalculation: INFO
+    com.jiangyang.base: WARN
+    # 设置Dubbo日志级别
+    org.apache.dubbo: WARN
+    # 设置Spring Cloud相关日志级别
+    org.springframework.cloud: WARN
+    org.springframework.cloud.openfeign: WARN
+    # 设置Nacos相关日志级别
+    com.alibaba.nacos: WARN
+    org.springframework.cloud.nacos: WARN
 
 # 服务配置
 service:

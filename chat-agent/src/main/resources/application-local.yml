@@ -1,4 +1,4 @@
-# Chat-Agent 开发环境配置
+# Chat-Agent 本地环境配置
 
 spring:
   datasource:
@@ -12,12 +12,12 @@ spring:
           url: jdbc:mysql://localhost:3306/chat_agent?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8
           username: root
           password: root
-          type: com.alibaba.druid.pool.DruidDataSource  # 明确指定数据源类型
+          type: com.alibaba.druid.pool.DruidDataSource
           pool:
-            initial-size: 5
-            min-idle: 5
-            max-active: 20
-            max-wait: 60000
+            initial-size: 2
+            min-idle: 2
+            max-active: 10
+            max-wait: 30000
             time-between-eviction-runs-millis: 60000
             min-evictable-idle-time-millis: 300000
             validation-query: SELECT 1
@@ -28,32 +28,6 @@ spring:
             max-pool-prepared-statement-per-connection-size: 20
             filters: stat,wall
             connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
-  
-  # AI配置
-  ai:
-    openai:
-      api-key: ${OPENAI_API_KEY:sk-demo-key-for-development-only}
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
-      chat:
-        options:
-          model: gpt-3.5-turbo
-          temperature: 0.7
-          max-tokens: 1000
-    azure:
-      openai:
-        api-key: ${AZURE_OPENAI_API_KEY:demo-key-for-development-only}
-        endpoint: ${AZURE_OPENAI_ENDPOINT:https://demo.openai.azure.com}
-        chat:
-          options:
-            deployment-name: ${AZURE_OPENAI_DEPLOYMENT_NAME:gpt-35-turbo}
-            temperature: 0.7
-            max-tokens: 1000
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      chat:
-        options:
-          model: ${OLLAMA_MODEL:llama2}
-          temperature: 0.7
 
 # Seata配置 - 禁用分布式事务但提供必要的配置避免验证错误
 seata:
@@ -92,3 +66,4 @@ logging:
     com.jiangyang.base.config: DEBUG
     com.jiangyang.base.seata.util.SeataConfigValidator: WARN  # 降低Seata配置验证器的日志级别
     org.springframework.ai: DEBUG
+    root: INFO

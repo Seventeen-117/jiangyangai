@@ -53,7 +53,6 @@ seata:
     user:
       username: admin
       password: admin
-    # 禁用认证（开发环境）
     auth:
       enabled: false
 

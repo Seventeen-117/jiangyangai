@@ -2,11 +2,11 @@ version: '3.8'
 
 services:
   # Application service
-  bgai-service-app:
+  basic-service-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bgai-service-app
+    container_name: basic-service-app
     restart: unless-stopped
     ports:
       - "8688:8688"

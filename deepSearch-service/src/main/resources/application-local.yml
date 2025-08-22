@@ -1,6 +1,6 @@
-# 开发环境配置
+# 本地环境配置
 
-# 服务配置 - 开发环境
+# 服务配置 - 本地环境
 service:
   ai-agent:
     base-url: http://localhost:8080
@@ -9,7 +9,7 @@ service:
     base-url: http://localhost:8081
     timeout: 30000
 
-# 数据源配置 - 开发环境
+# 数据源配置 - 本地环境
 spring:
   datasource:
     dynamic:
@@ -22,15 +22,15 @@ spring:
         # 主数据源
         master:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://8.133.246.113:3306/deepsearch_service?useUnicode=true&characterEncoding=UTF-8&useSSL=false
-          username: bgtech
-          password: Zly689258..
+          url: jdbc:mysql://localhost:3306/deepsearch_service?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+          username: root
+          password: root
           type: com.alibaba.druid.pool.DruidDataSource
           pool:
-            initial-size: 5
-            min-idle: 10
-            max-active: 20
-            max-wait: 60000
+            initial-size: 2
+            min-idle: 2
+            max-active: 10
+            max-wait: 30000
             validation-query: SELECT 1
             test-while-idle: true
             filters: stat,wall
@@ -38,15 +38,15 @@ spring:
         # 从数据源
         slave:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://8.133.246.113:3306/deepsearch_service?useUnicode=true&characterEncoding=UTF-8&useSSL=false
-          username: bgtech
-          password: Zly689258..
+          url: jdbc:mysql://localhost:3306/deepsearch_service?useUnicode=true&characterEncoding=UTF-8&useSSL=false
+          username: root
+          password: root
           type: com.alibaba.druid.pool.DruidDataSource
           pool:
-            initial-size: 5
-            min-idle: 10
-            max-active: 20
-            max-wait: 60000
+            initial-size: 2
+            min-idle: 2
+            max-active: 10
+            max-wait: 30000
             validation-query: SELECT 1
             test-while-idle: true
             filters: stat,wall
@@ -58,7 +58,7 @@ seata:
   enable-auto-data-source-proxy: false
   disable-global-transaction: true
 
-# 日志配置 - 开发环境
+# 日志配置 - 本地环境
 logging:
   level:
     # 应用相关日志
@@ -71,3 +71,5 @@ logging:
     # 禁用条件评估报告
     org.springframework.boot.autoconfigure.condition: OFF
     org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener: OFF
+    # 设置根日志级别
+    root: WARN

@@ -12,7 +12,9 @@ spring:
     lazy-initialization: false
   datasource:
     dynamic:
+      enabled: true  # 启用动态数据源
       seata: false  # 禁用Seata分布式事务
+      primary: master  # 设置主数据源
   ai:
     tool:
       calling:
@@ -23,13 +25,37 @@ service:
   name: chat-agent-service
   version: 1.0.0
 
-# Seata配置 - 完全禁用
+# Seata配置 - 禁用分布式事务但提供必要的配置避免验证错误
 seata:
   enabled: false
   auto-data-source-proxy: false
   enable-auto-data-source-proxy: false
+  disable-global-transaction: true
   application-id: ${spring.application.name}
   tx-service-group: chat-agent-service-group
+  # 注册中心配置 - 提供基本配置避免验证错误
+  registry:
+    type: nacos
+    nacos:
+      server-addr: 127.0.0.1:8848
+      group: SEATA_GROUP
+      namespace: ""
+      username: ""
+      password: ""
+  # 配置中心配置 - 提供基本配置避免验证错误
+  config:
+    type: nacos
+    nacos:
+      server-addr: 127.0.0.1:8848
+      group: SEATA_GROUP
+      namespace: ""
+      username: ""
+      password: ""
+  # 存储配置 - 提供基本配置避免验证错误
+  store:
+    mode: file
+    file:
+      dir: file_store/data
   service:
     vgroup-mapping:
       chat-agent-service-group: default
@@ -56,6 +82,7 @@ logging:
   level:
     io.seata: OFF
     com.jiangyang.base.config: DEBUG
+    com.jiangyang.base.seata.util.SeataConfigValidator: WARN  # 降低Seata配置验证器的日志级别
     org.springframework.ai: DEBUG
     org.springframework.ai.model.tool: OFF  # 禁用工具调用相关日志
 

@@ -9,8 +9,32 @@ service:
     base-url: http://test-bgai-service
     timeout: 30000
 
+# 数据源配置 - 测试环境
+spring:
+  datasource:
+    dynamic:
+      enabled: true
+      primary: master
+      strict: false
+      seata: false  # 禁用Seata分布式事务
+
+# Seata配置 - 禁用分布式事务但提供必要的配置避免验证错误
+seata:
+  enabled: false
+  auto-data-source-proxy: false
+  enable-auto-data-source-proxy: false
+  disable-global-transaction: true
+
 # 日志配置 - 测试环境
 logging:
   level:
+    # 应用相关日志
     com.jiangyang.datacalculation: INFO
-    org.springframework.cloud.openfeign: INFO
+    com.jiangyang.base: WARN
+    # Spring Cloud相关日志
+    org.springframework.cloud.openfeign: WARN
+    # 禁用条件评估报告
+    org.springframework.boot.autoconfigure.condition: OFF
+    org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener: OFF
+    # 设置根日志级别
+    root: WARN
