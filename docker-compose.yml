@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # 网关服务
   gateway-service:
-    image: jiangyang/gateway-service:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/gateway-service:1.0.0-Final
     container_name: gateway-service
     ports:
       - "8080:8080"
@@ -19,7 +19,7 @@ services:
 
   # 基础服务
   base-service:
-    image: jiangyang/base-service:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/base-service:1.0.0-Final
     container_name: base-service
     ports:
       - "8087:8080"
@@ -36,7 +36,7 @@ services:
 
   # BGAI服务
   bgai-service:
-    image: jiangyang/bgai-service:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/bgai-service:1.0.0-Final
     container_name: bgai-service
     ports:
       - "8081:8081"
@@ -56,7 +56,7 @@ services:
 
   # 聊天代理服务
   chat-agent:
-    image: jiangyang/chat-agent:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/chat-agent:1.0.0-Final
     container_name: chat-agent
     ports:
       - "8082:8082"
@@ -73,7 +73,7 @@ services:
 
   # 深度搜索服务
   deepSearch-service:
-    image: jiangyang/deepSearch-service:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/deepSearch-service:1.0.0-Final
     container_name: deepSearch-service
     ports:
       - "8085:8085"
@@ -90,7 +90,7 @@ services:
 
   # 消息服务
   messages-service:
-    image: jiangyang/messages-service:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/messages-service:1.0.0-Final
     container_name: messages-service
     ports:
       - "8083:8083"
@@ -110,7 +110,7 @@ services:
 
   # 签名服务
   signature-service:
-    image: jiangyang/signature-service:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/signature-service:1.0.0-Final
     container_name: signature-service
     ports:
       - "8084:8084"
@@ -130,7 +130,7 @@ services:
 
   # Dubbo API服务
   dubbo-api:
-    image: jiangyang/dubbo-api:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/dubbo-api:1.0.0-Final
     container_name: dubbo-api
     ports:
       - "8086:8086"
@@ -146,7 +146,7 @@ services:
 
   # Seata服务器
   seata-server:
-    image: jiangyang/seata-server:1.0.0-Final
+    image: registry.cn-shanghai.aliyuncs.com/bg-boot/seata-server:1.0.0-Final
     container_name: seata-server
     ports:
       - "8091:8091"
@@ -156,61 +156,6 @@ services:
     depends_on:
       - nacos
       - mysql
-    networks:
-      - jiangyang-network
-    restart: unless-stopped
-
-  # MySQL数据库
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
-    ports:
-      - "3306:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=jiangyang_ai
-      - MYSQL_USER=jiangyang
-      - MYSQL_PASSWORD=jiangyang123
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./sql:/docker-entrypoint-initdb.d
-    networks:
-      - jiangyang-network
-    restart: unless-stopped
-
-  # Nacos注册中心
-  nacos:
-    image: nacos/nacos-server:v2.2.3
-    container_name: nacos
-    ports:
-      - "8848:8848"
-      - "9848:9848"
-    environment:
-      - MODE=standalone
-      - SPRING_DATASOURCE_PLATFORM=mysql
-      - MYSQL_SERVICE_HOST=mysql
-      - MYSQL_SERVICE_PORT=3306
-      - MYSQL_SERVICE_USER=jiangyang
-      - MYSQL_SERVICE_PASSWORD=jiangyang123
-      - MYSQL_SERVICE_DB_NAME=nacos
-    volumes:
-      - nacos_data:/home/nacos/data
-      - nacos_logs:/home/nacos/logs
-    depends_on:
-      - mysql
-    networks:
-      - jiangyang-network
-    restart: unless-stopped
-
-  # Redis缓存
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
     networks:
       - jiangyang-network
     restart: unless-stopped

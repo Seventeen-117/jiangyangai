@@ -46,13 +46,6 @@ services:
     networks:
       - seata-network
     restart: unless-stopped
-    # 移除健康检查，因为控制台端口不可用
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:7091/actuator/health"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 40s
 
 networks:
   seata-network:
