@@ -1,5 +1,5 @@
-# Signature Service Dockerfile
-# 签名服务
+# DeepSearch Service Dockerfile
+# 深度搜索服务
 
 FROM openjdk:17-jdk-slim
 
@@ -12,8 +12,7 @@ ENV SPRING_PROFILES_ACTIVE=prod
 ENV TZ=Asia/Shanghai
 ENV NACOS_HOST=8.133.246.113
 ENV NACOS_PORT=8848
-ENV SEATA_HOST=8.133.246.113
-ENV SEATA_PORT=8091
+ENV SERVER_PORT=8085
 
 # 安装必要的工具
 RUN apt-get update && apt-get install -y \
@@ -21,7 +20,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制JAR文件
-COPY target/signature-service-*.jar app.jar
+COPY target/deepSearch-service-*.jar app.jar
 
 # 创建非root用户
 RUN groupadd -r appuser && useradd -r -g appuser appuser
@@ -29,11 +28,11 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 # 暴露端口
-EXPOSE 8084
+EXPOSE 8085
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8084/actuator/health || exit 1
+    CMD curl -f http://localhost:8085/deepSearch/actuator/health || exit 1
 
 # 启动命令
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"] 
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

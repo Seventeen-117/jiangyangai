@@ -1,0 +1,226 @@
+version: '3.8'
+
+services:
+  # 网关服务
+  gateway-service:
+    image: jiangyang/gateway-service:1.0.0-Final
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+    depends_on:
+      - nacos
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # 基础服务
+  base-service:
+    image: jiangyang/base-service:1.0.0-Final
+    container_name: base-service
+    ports:
+      - "8087:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+    depends_on:
+      - nacos
+      - mysql
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # BGAI服务
+  bgai-service:
+    image: jiangyang/bgai-service:1.0.0-Final
+    container_name: bgai-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+      - SEATA_HOST=8.133.246.113
+      - SEATA_PORT=8091
+    depends_on:
+      - nacos
+      - mysql
+      - seata-server
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # 聊天代理服务
+  chat-agent:
+    image: jiangyang/chat-agent:1.0.0-Final
+    container_name: chat-agent
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+    depends_on:
+      - nacos
+      - mysql
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # 深度搜索服务
+  deepSearch-service:
+    image: jiangyang/deepSearch-service:1.0.0-Final
+    container_name: deepSearch-service
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+    depends_on:
+      - nacos
+      - mysql
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # 消息服务
+  messages-service:
+    image: jiangyang/messages-service:1.0.0-Final
+    container_name: messages-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+      - SEATA_HOST=8.133.246.113
+      - SEATA_PORT=8091
+    depends_on:
+      - nacos
+      - mysql
+      - seata-server
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # 签名服务
+  signature-service:
+    image: jiangyang/signature-service:1.0.0-Final
+    container_name: signature-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+      - SEATA_HOST=8.133.246.113
+      - SEATA_PORT=8091
+    depends_on:
+      - nacos
+      - mysql
+      - seata-server
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # Dubbo API服务
+  dubbo-api:
+    image: jiangyang/dubbo-api:1.0.0-Final
+    container_name: dubbo-api
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - NACOS_HOST=8.133.246.113
+      - NACOS_PORT=8848
+    depends_on:
+      - nacos
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # Seata服务器
+  seata-server:
+    image: jiangyang/seata-server:1.0.0-Final
+    container_name: seata-server
+    ports:
+      - "8091:8091"
+    environment:
+      - SEATA_PORT=8091
+      - SEATA_IP=0.0.0.0
+    depends_on:
+      - nacos
+      - mysql
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=jiangyang_ai
+      - MYSQL_USER=jiangyang
+      - MYSQL_PASSWORD=jiangyang123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # Nacos注册中心
+  nacos:
+    image: nacos/nacos-server:v2.2.3
+    container_name: nacos
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=mysql
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_USER=jiangyang
+      - MYSQL_SERVICE_PASSWORD=jiangyang123
+      - MYSQL_SERVICE_DB_NAME=nacos
+    volumes:
+      - nacos_data:/home/nacos/data
+      - nacos_logs:/home/nacos/logs
+    depends_on:
+      - mysql
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - jiangyang-network
+    restart: unless-stopped
+
+networks:
+  jiangyang-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  nacos_data:
+  nacos_logs:
+  redis_data:

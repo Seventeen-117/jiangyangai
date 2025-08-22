@@ -1,41 +1,37 @@
-# 使用OpenJDK 17作为基础镜像
+# Chat Agent Dockerfile
+# AI智能代理服务
+
 FROM openjdk:17-jdk-slim
 
 # 设置工作目录
 WORKDIR /app
 
 # 设置环境变量
-ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
-ENV SERVER_PORT=8690
-ENV NACOS_SERVER_ADDR=8.133.246.113:8848
-ENV NACOS_GROUP=DEFAULT_GROUP
-ENV NACOS_NAMESPACE=d750d92e-152f-4055-a641-3bc9dda85a29
+ENV JAVA_OPTS="-Xms512m -Xmx1g -XX:+UseG1GC -XX:+UseStringDeduplication"
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV TZ=Asia/Shanghai
+ENV NACOS_HOST=8.133.246.113
+ENV NACOS_PORT=8848
 
-# 复制Maven配置文件
-COPY pom.xml .
-COPY src ./src
+# 安装必要的工具
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# 安装Maven并构建项目
-RUN apt-get update && \
-    apt-get install -y maven && \
-    mvn clean package -DskipTests && \
-    apt-get remove -y maven && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# 复制JAR文件
+COPY target/chat-agent-*.jar app.jar
 
-# 复制构建好的jar文件
-COPY target/aiAgent-1.0.0-Final.jar app.jar
-
-# 创建日志目录
-RUN mkdir -p /app/logs
+# 创建非root用户
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # 暴露端口
-EXPOSE 8690
+EXPOSE 8082
 
 # 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8690/api/aiAgent/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8082/actuator/health || exit 1
 
 # 启动命令
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
