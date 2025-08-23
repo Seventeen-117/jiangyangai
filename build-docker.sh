@@ -22,7 +22,7 @@ SERVICES=(
     "base-service"
     "bgai-service"  
     "chat-agent"
-    "deepsearch-service"
+    "deepSearch-service"
     "gateway-service"
     "messages-service"
     "signature-service"
