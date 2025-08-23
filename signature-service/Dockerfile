@@ -1,7 +1,7 @@
 # Signature Service Dockerfile
 # 签名服务
 
-FROM openjdk:17-jre-slim
+FROM openjdk:17-jdk-slim
 
 # 设置工作目录
 WORKDIR /app

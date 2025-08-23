@@ -570,9 +570,13 @@ public class MessageSagaStateMachine {
                 case "USER_NOTIFICATION":
                     processUserNotification(businessMessage);
                     break;
+                case "UNKNOWN":
+                    log.info("处理未知业务类型消息: {}", businessMessage.getContent());
+                    // 对于未知类型，只记录日志，不抛出异常
+                    break;
                 default:
                     log.warn("未知的业务类型: {}", businessMessage.getBusinessType());
-                    // 可以抛出异常或者记录警告日志
+                    // 对于其他未知类型，只记录警告日志，不抛出异常
             }
             
             // 4. 更新Saga日志状态
@@ -625,11 +629,13 @@ public class MessageSagaStateMachine {
             }
             
             // 3.3 验证消息状态是否允许确认
-            if (!"CONSUME".equals(existingLog.getLifecycleStage()) || 
+            // 检查业务处理阶段是否成功完成，这是确认消费的前提
+            if (!"BUSINESS_PROCESS".equals(existingLog.getLifecycleStage()) || 
                 !"SUCCESS".equals(existingLog.getStageStatus())) {
                 throw new IllegalStateException("消息状态不允许确认消费: " + messageId + 
                     ", 当前阶段: " + existingLog.getLifecycleStage() + 
-                    ", 状态: " + existingLog.getStageStatus());
+                    ", 状态: " + existingLog.getStageStatus() + 
+                    ", 需要业务处理阶段成功完成才能确认消费");
             }
             
             // 3.4 更新消费状态为已确认
@@ -968,14 +974,261 @@ public class MessageSagaStateMachine {
 
     /**
      * 解析业务消息
+     * 支持复杂嵌套JSON结构，按照层级关系解析为key-value形式
      */
     private BusinessMessage parseBusinessMessage(String content) {
         try {
-            return JSON.parseObject(content, BusinessMessage.class);
+            // 首先尝试直接解析为BusinessMessage
+            BusinessMessage businessMessage = JSON.parseObject(content, BusinessMessage.class);
+            
+            // 检查businessType是否为空
+            if (businessMessage != null && StrUtil.isNotBlank(businessMessage.getBusinessType())) {
+                return businessMessage;
+            }
+            
+            // 解析为Map结构，支持深层嵌套
+            Map<String, Object> jsonMap = JSON.parseObject(content, Map.class);
+            if (jsonMap != null) {
+                // 使用增强的业务类型推断逻辑
+                String businessType = inferBusinessTypeEnhanced(jsonMap);
+                
+                // 创建BusinessMessage，保持完整的JSON结构
+                return new BusinessMessage(businessType, content, jsonMap);
+            }
+            
+            // 如果都失败了，返回默认值
+            log.warn("无法解析业务消息，使用默认业务类型: content={}", content);
+            return new BusinessMessage("UNKNOWN", content, new HashMap<>());
+            
         } catch (Exception e) {
             log.warn("解析业务消息失败，使用默认业务类型: content={}, error={}", content, e.getMessage());
             return new BusinessMessage("UNKNOWN", content, new HashMap<>());
         }
+    }
+
+    /**
+     * 从JSON数据中推断业务类型（增强版）
+     * 支持深层嵌套JSON结构，按照层级关系解析
+     */
+    private String inferBusinessTypeEnhanced(Map<String, Object> jsonMap) {
+        if (jsonMap == null) {
+            return "UNKNOWN";
+        }
+        
+        // 1. 优先检查顶层字段
+        String businessType = inferBusinessTypeFromTopLevel(jsonMap);
+        if (!"UNKNOWN".equals(businessType)) {
+            return businessType;
+        }
+        
+        // 2. 检查msgBody层级（常见消息结构）
+        if (jsonMap.containsKey("msgBody")) {
+            Object msgBody = jsonMap.get("msgBody");
+            if (msgBody instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> msgBodyMap = (Map<String, Object>) msgBody;
+                businessType = inferBusinessTypeFromMsgBody(msgBodyMap);
+                if (!"UNKNOWN".equals(businessType)) {
+                    return businessType;
+                }
+            }
+        }
+        
+        // 3. 递归搜索所有层级
+        businessType = inferBusinessTypeRecursive(jsonMap, 0);
+        if (!"UNKNOWN".equals(businessType)) {
+            return businessType;
+        }
+        
+        // 4. 根据内容特征推断
+        return inferBusinessTypeByContent(jsonMap);
+    }
+    
+    /**
+     * 从顶层字段推断业务类型
+     */
+    private String inferBusinessTypeFromTopLevel(Map<String, Object> jsonMap) {
+        // 检查常见的顶层业务类型字段
+        String[] businessTypeFields = {"businessType", "bizType", "type", "action", "operation", "eventType"};
+        for (String field : businessTypeFields) {
+            if (jsonMap.containsKey(field)) {
+                Object value = jsonMap.get(field);
+                if (value instanceof String && StrUtil.isNotBlank((String) value)) {
+                    return (String) value;
+                }
+            }
+        }
+        
+        // 根据字段名推断业务类型
+        if (jsonMap.containsKey("action")) {
+            String action = (String) jsonMap.get("action");
+            if ("process_order".equals(action)) {
+                return "ORDER_CREATE";
+            } else if ("confirm_payment".equals(action)) {
+                return "PAYMENT_CONFIRM";
+            } else if ("update_inventory".equals(action)) {
+                return "INVENTORY_UPDATE";
+            }
+        }
+        
+        if (jsonMap.containsKey("type")) {
+            String type = (String) jsonMap.get("type");
+            if ("notification".equals(type) || "notification_consumed".equals(type)) {
+                return "USER_NOTIFICATION";
+            }
+        }
+        
+        if (jsonMap.containsKey("operation")) {
+            String operation = (String) jsonMap.get("operation");
+            if ("transfer".equals(operation) || "transfer_completed".equals(operation)) {
+                return "PAYMENT_CONFIRM";
+            }
+        }
+        
+        if (jsonMap.containsKey("orderId")) {
+            return "ORDER_CREATE";
+        }
+        
+        if (jsonMap.containsKey("paymentId")) {
+            return "PAYMENT_CONFIRM";
+        }
+        
+        if (jsonMap.containsKey("inventoryId")) {
+            return "INVENTORY_UPDATE";
+        }
+        
+        return "UNKNOWN";
+    }
+    
+    /**
+     * 从msgBody层级推断业务类型
+     */
+    private String inferBusinessTypeFromMsgBody(Map<String, Object> msgBodyMap) {
+        // 检查msgBody中的业务类型字段
+        String[] businessTypeFields = {"bizType", "businessType", "type", "action", "operation", "eventType"};
+        for (String field : businessTypeFields) {
+            if (msgBodyMap.containsKey(field)) {
+                Object value = msgBodyMap.get(field);
+                if (value instanceof String && StrUtil.isNotBlank((String) value)) {
+                    return (String) value;
+                }
+            }
+        }
+        
+        // 检查订单相关字段
+        if (msgBodyMap.containsKey("orderPaymentData") || msgBodyMap.containsKey("orderId")) {
+            return "ORDER_PAY_SUCCESS";
+        }
+        
+        // 检查支付相关字段
+        if (msgBodyMap.containsKey("paymentChannel") || msgBodyMap.containsKey("payAmount")) {
+            return "PAYMENT_CONFIRM";
+        }
+        
+        // 检查产品相关字段
+        if (msgBodyMap.containsKey("productDetails") || msgBodyMap.containsKey("productId")) {
+            return "PRODUCT_UPDATE";
+        }
+        
+        return "UNKNOWN";
+    }
+    
+    /**
+     * 递归搜索所有层级推断业务类型
+     */
+    private String inferBusinessTypeRecursive(Map<String, Object> jsonMap, int depth) {
+        if (depth > 5) { // 限制递归深度，避免无限递归
+            return "UNKNOWN";
+        }
+        
+        for (Map.Entry<String, Object> entry : jsonMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            
+            // 检查业务类型相关字段
+            if (isBusinessTypeField(key) && value instanceof String && StrUtil.isNotBlank((String) value)) {
+                return (String) value;
+            }
+            
+            // 递归检查嵌套的Map
+            if (value instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nestedMap = (Map<String, Object>) value;
+                String nestedType = inferBusinessTypeRecursive(nestedMap, depth + 1);
+                if (!"UNKNOWN".equals(nestedType)) {
+                    return nestedType;
+                }
+            }
+            
+            // 递归检查List中的Map
+            if (value instanceof List) {
+                List<?> list = (List<?>) value;
+                for (Object item : list) {
+                    if (item instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> listItemMap = (Map<String, Object>) item;
+                        String listItemType = inferBusinessTypeRecursive(listItemMap, depth + 1);
+                        if (!"UNKNOWN".equals(listItemType)) {
+                            return listItemType;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return "UNKNOWN";
+    }
+    
+    /**
+     * 判断字段是否为业务类型字段
+     */
+    private boolean isBusinessTypeField(String fieldName) {
+        String[] businessTypeFields = {
+            "businessType", "bizType", "type", "action", "operation", "eventType",
+            "messageType", "msgType", "event", "command", "instruction"
+        };
+        
+        for (String field : businessTypeFields) {
+            if (field.equalsIgnoreCase(fieldName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * 根据内容特征推断业务类型
+     */
+    private String inferBusinessTypeByContent(Map<String, Object> jsonMap) {
+        // 根据字段组合推断业务类型
+        if (jsonMap.containsKey("orderId") || jsonMap.containsKey("orderPaymentData")) {
+            return "ORDER_PAY_SUCCESS";
+        }
+        
+        if (jsonMap.containsKey("paymentId") || jsonMap.containsKey("paymentChannel")) {
+            return "PAYMENT_CONFIRM";
+        }
+        
+        if (jsonMap.containsKey("productId") || jsonMap.containsKey("productDetails")) {
+            return "PRODUCT_UPDATE";
+        }
+        
+        if (jsonMap.containsKey("userId") || jsonMap.containsKey("userInfo")) {
+            return "USER_UPDATE";
+        }
+        
+        if (jsonMap.containsKey("inventoryId") || jsonMap.containsKey("stockInfo")) {
+            return "INVENTORY_UPDATE";
+        }
+        
+        return "UNKNOWN";
+    }
+    
+    /**
+     * 从JSON数据中推断业务类型（原方法，保持兼容性）
+     */
+    private String inferBusinessType(Map<String, Object> jsonMap) {
+        return inferBusinessTypeEnhanced(jsonMap);
     }
 
     /**

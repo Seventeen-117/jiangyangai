@@ -1,0 +1,581 @@
+{
+	"info": {
+		"_postman_id": "messages-service-collection",
+		"name": "Messages Service - 消费消息测试",
+		"description": "Messages Service 消费消息功能的完整测试集合",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "健康检查",
+			"item": [
+				{
+					"name": "服务健康检查",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"health"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查响应状态码",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// 检查健康状态",
+									"pm.test(\"Service is healthy\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.status).to.equal('UP');",
+									"    pm.expect(responseJson.service).to.equal('Message Saga Service');",
+									"    pm.expect(responseJson).to.have.property('timestamp');",
+									"});",
+									"",
+									"// 保存服务状态",
+									"pm.environment.set(\"service_status\", pm.response.json().status);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "消费消息",
+			"item": [
+				{
+					"name": "消费消息（Saga事务）",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"messageId\": \"{{message_id}}\",\n    \"content\": \"{\\\"action\\\":\\\"process_order\\\",\\\"orderId\\\":\\\"ORD-2024-002\\\",\\\"status\\\":\\\"processing\\\",\\\"timestamp\\\":\\\"2024-01-15T10:35:00Z\\\"}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/consume",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"consume"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查响应状态码",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// 检查响应格式",
+									"pm.test(\"Response has correct format\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('success');",
+									"    pm.expect(responseJson).to.have.property('message');",
+									"    pm.expect(responseJson).to.have.property('timestamp');",
+									"});",
+									"",
+									"// 检查成功响应",
+									"pm.test(\"Message consumption successful\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.message).to.include('成功');",
+									"});",
+									"",
+									"// 保存响应数据到环境变量",
+									"if (pm.response.json().success) {",
+									"    pm.environment.set(\"last_consumed_message_id\", pm.request.body.raw.messageId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "同步消费消息",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"messageId\": \"{{message_id}}\",\n    \"content\": \"{\\\"type\\\":\\\"notification_consumed\\\",\\\"title\\\":\\\"消息已处理\\\",\\\"body\\\":\\\"订单处理完成\\\",\\\"priority\\\":\\\"normal\\\",\\\"recipient\\\":\\\"system@example.com\\\"}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/consume/sync",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"consume",
+								"sync"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查响应状态码",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// 检查同步消费结果",
+									"pm.test(\"Sync consumption successful\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.message).to.include('同步消息消费成功');",
+									"});",
+									"",
+									"// 验证响应时间（同步操作应该较快）",
+									"pm.test(\"Response time is acceptable\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "事务处理",
+			"item": [
+				{
+					"name": "事务消息处理",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transactionId\": \"{{transaction_id}}\",\n    \"messageId\": \"{{message_id}}\",\n    \"content\": \"{\\\"operation\\\":\\\"transfer_completed\\\",\\\"fromAccount\\\":\\\"ACC001\\\",\\\"toAccount\\\":\\\"ACC002\\\",\\\"amount\\\":1000,\\\"currency\\\":\\\"CNY\\\",\\\"status\\\":\\\"completed\\\",\\\"timestamp\\\":\\\"2024-01-15T10:40:00Z\\\"}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/transaction",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"transaction"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查响应状态码",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// 检查事务处理结果",
+									"pm.test(\"Transaction processing successful\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.message).to.include('事务消息处理成功');",
+									"    pm.expect(responseJson.data).to.have.property('transactionId');",
+									"    pm.expect(responseJson.data).to.have.property('messageId');",
+									"});",
+									"",
+									"// 保存事务ID",
+									"if (pm.response.json().success) {",
+									"    pm.environment.set(\"last_transaction_id\", pm.response.json().data.transactionId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "批量处理",
+			"item": [
+				{
+					"name": "批量处理消息",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"batchId\": \"batch-consume-001\",\n    \"messageIds\": [\"msg-001\", \"msg-002\", \"msg-003\", \"msg-004\", \"msg-005\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/batch",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"batch"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查响应状态码",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// 检查批量处理结果",
+									"pm.test(\"Batch processing successful\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.message).to.include('批量消息处理成功');",
+									"    pm.expect(responseJson.data).to.equal('batch-consume-001');",
+									"});",
+									"",
+									"// 记录批量处理时间",
+									"pm.environment.set(\"batch_processing_time\", pm.response.responseTime);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "错误测试",
+			"item": [
+				{
+					"name": "空消息内容测试",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"messageId\": \"{{message_id}}\",\n    \"content\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/consume",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"consume"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查错误响应状态码",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"// 检查错误消息",
+									"pm.test(\"Error message is correct\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.false;",
+									"    pm.expect(responseJson.message).to.include('消息内容不能为空');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "缺少必需字段测试",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"messageId\": \"{{message_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/consume",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"consume"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查错误响应状态码",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"// 检查错误消息",
+									"pm.test(\"Error message for missing content\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.false;",
+									"    pm.expect(responseJson.message).to.include('消息内容不能为空');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "性能测试",
+			"item": [
+				{
+					"name": "响应时间测试",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"messageId\": \"perf-test-{{$timestamp}}\",\n    \"content\": \"{\\\"test\\\":\\\"performance\\\",\\\"timestamp\\\":\\\"{{$timestamp}}\\\"}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/consume/sync",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"consume",
+								"sync"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 性能测试",
+									"pm.test(\"Response time is under 1 second\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);",
+									"});",
+									"",
+									"// 记录性能数据",
+									"const responseTime = pm.response.responseTime;",
+									"pm.environment.set(\"last_response_time\", responseTime);",
+									"",
+									"// 累积响应时间",
+									"let totalTime = parseInt(pm.environment.get(\"total_response_time\") || \"0\");",
+									"totalTime += responseTime;",
+									"pm.environment.set(\"total_response_time\", totalTime.toString());",
+									"",
+									"// 记录请求次数",
+									"let requestCount = parseInt(pm.environment.get(\"request_count\") || \"0\");",
+									"requestCount += 1;",
+									"pm.environment.set(\"request_count\", requestCount.toString());",
+									"",
+									"// 计算平均响应时间",
+									"const avgTime = totalTime / requestCount;",
+									"pm.environment.set(\"avg_response_time\", avgTime.toString());",
+									"",
+									"console.log(`Response Time: ${responseTime}ms, Average: ${avgTime.toFixed(2)}ms`);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "高级测试",
+			"item": [
+				{
+					"name": "复杂JSON消息消费测试",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"messageId\": \"{{message_id}}\",\n    \"content\": \"{\\\"event\\\":\\\"order_processed\\\",\\\"order\\\":{\\\"id\\\":\\\"ORD-2024-003\\\",\\\"customer\\\":{\\\"id\\\":\\\"CUST-001\\\",\\\"name\\\":\\\"李四\\\",\\\"email\\\":\\\"lisi@example.com\\\"},\\\"items\\\":[{\\\"productId\\\":\\\"P002\\\",\\\"name\\\":\\\"MacBook Pro\\\",\\\"price\\\":12999,\\\"quantity\\\":1},{\\\"productId\\\":\\\"P003\\\",\\\"name\\\":\\\"AirPods Pro\\\",\\\"price\\\":1999,\\\"quantity\\\":2}],\\\"totalAmount\\\":16997,\\\"shippingAddress\\\":{\\\"street\\\":\\\"北京市朝阳区\\\",\\\"city\\\":\\\"北京\\\",\\\"postalCode\\\":\\\"100000\\\"}},\\\"processingResult\\\":{\\\"status\\\":\\\"completed\\\",\\\"processingTime\\\":\\\"2.5s\\\",\\\"assignedAgent\\\":\\\"agent-001\\\"},\\\"timestamp\\\":\\\"2024-01-15T11:00:00Z\\\"}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_path}}/consume",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{api_path}}",
+								"consume"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 检查响应状态码",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// 检查复杂消息处理",
+									"pm.test(\"Complex message consumption successful\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.message).to.include('成功');",
+									"});",
+									"",
+									"// 验证消息内容解析",
+									"pm.test(\"Message content is valid JSON\", function () {",
+									"    const requestBody = JSON.parse(pm.request.body.raw);",
+									"    const content = JSON.parse(requestBody.content);",
+									"    pm.expect(content).to.have.property('event');",
+									"    pm.expect(content).to.have.property('order');",
+									"    pm.expect(content).to.have.property('processingResult');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// 生成唯一消息ID",
+					"const timestamp = new Date().getTime();",
+					"const randomId = Math.random().toString(36).substring(7);",
+					"pm.environment.set(\"unique_message_id\", `msg-${timestamp}-${randomId}`);",
+					"",
+					"// 生成唯一事务ID",
+					"pm.environment.set(\"unique_transaction_id\", `tx-${timestamp}-${randomId}`);",
+					"",
+					"// 设置当前时间戳",
+					"pm.environment.set(\"current_timestamp\", new Date().toISOString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// 集合级别的测试总结",
+					"pm.test(\"Collection Summary\", function () {",
+					"    const totalRequests = pm.environment.get(\"request_count\") || 0;",
+					"    const avgResponseTime = pm.environment.get(\"avg_response_time\") || 0;",
+					"    const successRate = pm.environment.get(\"success_count\") || 0;",
+					"    ",
+					"    console.log(`=== 测试总结 ===`);",
+					"    console.log(`总请求数: ${totalRequests}`);",
+					"    console.log(`平均响应时间: ${avgResponseTime}ms`);",
+					"    console.log(`成功率: ${successRate}/${totalRequests}`);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "api_path",
+			"value": "/api/messages/saga",
+			"type": "string"
+		},
+		{
+			"key": "test_message_id",
+			"value": "test-msg-001",
+			"type": "string"
+		}
+	]
+}
