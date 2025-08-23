@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # 网关服务
   gateway-service:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/gateway-service:1.0.0-Final
+    image: gateway-service:latest
     container_name: gateway-service
     ports:
       - "8080:8080"
@@ -19,7 +19,7 @@ services:
 
   # 基础服务
   base-service:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/base-service:1.0.0-Final
+    image: base-service:latest
     container_name: base-service
     ports:
       - "8087:8080"
@@ -36,7 +36,7 @@ services:
 
   # BGAI服务
   bgai-service:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/bgai-service:1.0.0-Final
+    image: bgai-service:latest
     container_name: bgai-service
     ports:
       - "8081:8081"
@@ -56,7 +56,7 @@ services:
 
   # 聊天代理服务
   chat-agent:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/chat-agent:1.0.0-Final
+    image: chat-agent:latest
     container_name: chat-agent
     ports:
       - "8082:8082"
@@ -73,7 +73,7 @@ services:
 
   # 深度搜索服务
   deepSearch-service:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/deepSearch-service:1.0.0-Final
+    image: deepsearch-service:latest
     container_name: deepSearch-service
     ports:
       - "8085:8085"
@@ -90,7 +90,7 @@ services:
 
   # 消息服务
   messages-service:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/messages-service:1.0.0-Final
+    image: messages-service:latest
     container_name: messages-service
     ports:
       - "8083:8083"
@@ -110,7 +110,7 @@ services:
 
   # 签名服务
   signature-service:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/signature-service:1.0.0-Final
+    image: signature-service:latest
     container_name: signature-service
     ports:
       - "8084:8084"
@@ -130,7 +130,7 @@ services:
 
   # Dubbo API服务
   dubbo-api:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/dubbo-api:1.0.0-Final
+    image: dubbo-api:latest
     container_name: dubbo-api
     ports:
       - "8086:8086"
@@ -146,7 +146,7 @@ services:
 
   # Seata服务器
   seata-server:
-    image: registry.cn-shanghai.aliyuncs.com/bg-boot/seata-server:1.0.0-Final
+    image: seata-server:latest
     container_name: seata-server
     ports:
       - "8091:8091"

@@ -22,7 +22,7 @@ SERVICES=(
     "base-service"
     "bgai-service"  
     "chat-agent"
-    "deepSearch-service"
+    "deepsearch-service"
     "gateway-service"
     "messages-service"
     "signature-service"
@@ -106,17 +106,20 @@ build_service() {
         cat .dockerignore
     fi
     
-    docker build -t ${service}:${VERSION} .
+    # 将服务名称转换为小写用于Docker镜像标签
+    local service_lower=$(echo "$service" | tr '[:upper:]' '[:lower:]')
+    
+    docker build -t ${service_lower}:${VERSION} .
     
     if [ "$should_tag" = true ]; then
         # 标签到远程仓库
         echo -e "${BLUE}  标签 ${service} 到远程仓库...${NC}"
-        docker tag ${service}:${VERSION} ${REMOTE_REGISTRY}/${service}:${VERSION}
+        docker tag ${service_lower}:${VERSION} ${REMOTE_REGISTRY}/${service_lower}:${VERSION}
         
         if [ "$should_push" = true ]; then
             # 推送到远程仓库
             echo -e "${BLUE}  推送 ${service} 到远程仓库...${NC}"
-            docker push ${REMOTE_REGISTRY}/${service}:${VERSION}
+            docker push ${REMOTE_REGISTRY}/${service_lower}:${VERSION}
         fi
     fi
     
@@ -129,9 +132,12 @@ clean_images() {
     echo -e "${YELLOW}清理本地镜像...${NC}"
     
     for service in "${SERVICES[@]}"; do
+        # 将服务名称转换为小写用于Docker镜像标签
+        local service_lower=$(echo "$service" | tr '[:upper:]' '[:lower:]')
+        
         # 清理本地镜像
-        docker rmi ${service}:${VERSION} 2>/dev/null || true
-        docker rmi ${REMOTE_REGISTRY}/${service}:${VERSION} 2>/dev/null || true
+        docker rmi ${service_lower}:${VERSION} 2>/dev/null || true
+        docker rmi ${REMOTE_REGISTRY}/${service_lower}:${VERSION} 2>/dev/null || true
     done
     
     # 清理Seata Server镜像
@@ -182,7 +188,13 @@ build_all_services() {
     
     # 显示构建的镜像
     echo -e "${YELLOW}本地镜像列表：${NC}"
-    docker images | grep -E "($(IFS=\|; echo "${SERVICES[*]}")|seata-server)" | head -20
+    # 创建小写的服务名称列表用于grep
+    local services_lower=""
+    for service in "${SERVICES[@]}"; do
+        services_lower="${services_lower}|$(echo "$service" | tr '[:upper:]' '[:lower:]')"
+    done
+    services_lower="${services_lower:1}" # 移除开头的|
+    docker images | grep -E "(${services_lower}|seata-server)" | head -20
     
     if [ "$should_tag" = true ]; then
         echo ""
