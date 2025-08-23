@@ -94,6 +94,18 @@ build_service() {
     
     # 构建Docker镜像（本地标签）
     echo -e "${BLUE}  构建Docker镜像 ${service}...${NC}"
+    
+    # 调试：显示当前目录和文件
+    echo -e "${BLUE}  当前目录: $(pwd)${NC}"
+    echo -e "${BLUE}  target目录内容:${NC}"
+    ls -la target/ 2>/dev/null || echo "target目录不存在"
+    
+    # 检查.dockerignore文件
+    if [ -f ".dockerignore" ]; then
+        echo -e "${BLUE}  .dockerignore文件内容:${NC}"
+        cat .dockerignore
+    fi
+    
     docker build -t ${service}:${VERSION} .
     
     if [ "$should_tag" = true ]; then

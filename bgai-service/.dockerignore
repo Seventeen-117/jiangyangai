@@ -1,5 +1,4 @@
-# Maven
-target/
+# Maven - 保留target目录中的JAR文件
 !.mvn/wrapper/maven-wrapper.jar
 
 # IDEs and editors
