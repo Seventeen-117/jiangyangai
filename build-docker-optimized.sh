@@ -21,8 +21,12 @@ REMOTE_REGISTRY="registry.cn-shanghai.aliyuncs.com/bg-boot"
 BASE_IMAGE="openjdk:17-jre-slim"
 FALLBACK_IMAGES=(
     "registry.cn-hangzhou.aliyuncs.com/library/openjdk:17-jre-slim"
+    "registry.cn-beijing.aliyuncs.com/library/openjdk:17-jre-slim"
+    "registry.cn-shanghai.aliyuncs.com/library/openjdk:17-jre-slim"
+    "registry.cn-guangzhou.aliyuncs.com/library/openjdk:17-jre-slim"
     "ccr.ccs.tencentyun.com/library/openjdk:17-jre-slim"
     "docker.mirrors.ustc.edu.cn/library/openjdk:17-jre-slim"
+    "hub-mirror.c.163.com/library/openjdk:17-jre-slim"
 )
 
 # 服务列表（对应jiangyangAI项目的服务名）
@@ -48,6 +52,9 @@ show_help() {
     echo "  build      - 只构建本地镜像（优化版本）"
     echo "  tag        - 构建并标签到远程仓库"
     echo "  push       - 构建、标签并推送到远程仓库"
+    echo "  offline    - 离线构建模式（跳过镜像拉取）"
+    echo "  offline-tag - 离线构建并标签到远程仓库"
+    echo "  offline-push - 离线构建、标签并推送到远程仓库"
     echo "  clean      - 清理本地镜像"
     echo "  network    - 检查网络连接状态"
     echo "  help       - 显示此帮助信息"
@@ -63,6 +70,87 @@ show_help() {
     echo "  $0 tag     # 构建并标签"
     echo "  $0 push    # 构建、标签并推送"
     echo "  $0 network # 检查网络连接"
+}
+
+# 构建单个服务的函数（离线模式）
+build_service_offline() {
+    local service=$1
+    local should_tag=${2:-false}
+    local should_push=${3:-false}
+    
+    echo -e "${YELLOW}构建 ${service}（离线模式）...${NC}"
+    cd $service
+    
+    # 检查是否有Dockerfile
+    if [ ! -f "Dockerfile" ]; then
+        echo -e "${RED}${service} 没有找到Dockerfile，跳过${NC}"
+        cd ..
+        return
+    fi
+    
+    # 构建项目（如果有pom.xml）
+    if [ -f "pom.xml" ]; then
+        echo -e "${BLUE}  编译 ${service}...${NC}"
+        if ! mvn clean package -DskipTests -q; then
+            echo -e "${RED}  ${service} 编译失败${NC}"
+            cd ..
+            return 1
+        fi
+        
+        # 检查JAR文件是否生成
+        if [ ! -d "target" ]; then
+            echo -e "${RED}  ${service} target目录不存在${NC}"
+            cd ..
+            return 1
+        fi
+        
+        # 查找生成的JAR文件
+        jar_file=$(find target -name "*.jar" -not -name "*sources.jar" -not -name "*javadoc.jar" | head -1)
+        if [ -z "$jar_file" ]; then
+            echo -e "${RED}  ${service} 没有找到生成的JAR文件${NC}"
+            cd ..
+            return 1
+        fi
+        
+        echo -e "${GREEN}  ${service} 编译成功，生成JAR文件: $jar_file${NC}"
+        
+        # 显示JAR文件大小
+        jar_size=$(du -h "$jar_file" | cut -f1)
+        echo -e "${BLUE}  JAR文件大小: $jar_size${NC}"
+    fi
+    
+    # 检查本地是否有基础镜像
+    if ! docker images | grep -q "openjdk.*17-jre-slim"; then
+        echo -e "${RED}  本地没有基础镜像 openjdk:17-jre-slim${NC}"
+        echo -e "${YELLOW}  请先手动拉取基础镜像:${NC}"
+        echo -e "${BLUE}    docker pull openjdk:17-jre-slim${NC}"
+        cd ..
+        return 1
+    fi
+    
+    # 构建Docker镜像（本地标签）
+    echo -e "${BLUE}  构建Docker镜像 ${service}...${NC}"
+    
+    # 将服务名称转换为小写用于Docker镜像标签
+    local service_lower=$(echo "$service" | tr '[:upper:]' '[:lower:]')
+    
+    # 使用Docker BuildKit来优化构建
+    DOCKER_BUILDKIT=1 docker build --network=host --timeout=600 -t ${service_lower}:${VERSION} .
+    
+    if [ "$should_tag" = true ]; then
+        # 标签到远程仓库
+        echo -e "${BLUE}  标签 ${service} 到远程仓库...${NC}"
+        docker tag ${service_lower}:${VERSION} ${REMOTE_REGISTRY}/${service_lower}:${VERSION}
+        
+        if [ "$should_push" = true ]; then
+            # 推送到远程仓库
+            echo -e "${BLUE}  推送 ${service} 到远程仓库...${NC}"
+            docker push ${REMOTE_REGISTRY}/${service_lower}:${VERSION}
+        fi
+    fi
+    
+    echo -e "${GREEN}${service} 处理完成${NC}"
+    cd ..
 }
 
 # 构建单个服务的函数（优化版本）
@@ -122,24 +210,33 @@ build_service_optimized() {
     echo -e "${BLUE}  拉取基础镜像...${NC}"
     local image_pulled=false
     
-    # 首先尝试官方镜像
-    if docker pull ${BASE_IMAGE} 2>/dev/null; then
-        echo -e "${GREEN}  成功拉取官方镜像: ${BASE_IMAGE}${NC}"
+    # 首先检查本地是否已有镜像
+    if docker images | grep -q "openjdk.*17-jre-slim"; then
+        echo -e "${GREEN}  本地已有基础镜像，跳过拉取${NC}"
         image_pulled=true
     else
-        echo -e "${YELLOW}  官方镜像拉取失败，尝试国内镜像源...${NC}"
-        
-        # 尝试备用镜像源
-        for fallback_image in "${FALLBACK_IMAGES[@]}"; do
-            echo -e "${BLUE}  尝试镜像源: $fallback_image${NC}"
-            if docker pull "$fallback_image" 2>/dev/null; then
-                echo -e "${GREEN}  成功拉取镜像: $fallback_image${NC}"
-                # 给镜像打标签，使其与Dockerfile中的名称一致
-                docker tag "$fallback_image" "${BASE_IMAGE}"
-                image_pulled=true
-                break
-            fi
-        done
+        # 尝试官方镜像（增加超时时间）
+        echo -e "${BLUE}  尝试拉取官方镜像...${NC}"
+        if timeout 60 docker pull ${BASE_IMAGE} 2>/dev/null; then
+            echo -e "${GREEN}  成功拉取官方镜像: ${BASE_IMAGE}${NC}"
+            image_pulled=true
+        else
+            echo -e "${YELLOW}  官方镜像拉取失败，尝试国内镜像源...${NC}"
+            
+            # 尝试备用镜像源（增加超时时间）
+            for fallback_image in "${FALLBACK_IMAGES[@]}"; do
+                echo -e "${BLUE}  尝试镜像源: $fallback_image${NC}"
+                if timeout 60 docker pull "$fallback_image" 2>/dev/null; then
+                    echo -e "${GREEN}  成功拉取镜像: $fallback_image${NC}"
+                    # 给镜像打标签，使其与Dockerfile中的名称一致
+                    docker tag "$fallback_image" "${BASE_IMAGE}"
+                    image_pulled=true
+                    break
+                else
+                    echo -e "${YELLOW}  镜像源拉取失败: $fallback_image${NC}"
+                fi
+            done
+        fi
     fi
     
     if [ "$image_pulled" = false ]; then
@@ -151,6 +248,7 @@ build_service_optimized() {
             echo -e "${BLUE}    docker pull $fallback_image${NC}"
         done
         echo -e "${YELLOW}  拉取成功后重新运行构建脚本${NC}"
+        echo -e "${YELLOW}  或者尝试使用离线构建模式（需要先手动拉取镜像）${NC}"
         cd ..
         return 1
     fi
@@ -231,6 +329,40 @@ clean_images() {
     echo -e "${GREEN}镜像清理完成${NC}"
 }
 
+# 构建所有服务（离线模式）
+build_all_services_offline() {
+    local should_tag=${1:-false}
+    local should_push=${2:-false}
+    
+    echo -e "${GREEN}开始构建Docker镜像（离线模式）...${NC}"
+    
+    # 构建所有服务
+    for service in "${SERVICES[@]}"; do
+        if ! build_service_offline $service $should_tag $should_push; then
+            echo -e "${RED}构建失败，停止构建流程${NC}"
+            return 1
+        fi
+    done
+    
+    echo -e "${GREEN}所有Docker镜像处理完成！${NC}"
+    
+    # 显示构建的镜像
+    echo -e "${YELLOW}本地镜像列表：${NC}"
+    # 创建小写的服务名称列表用于grep
+    local services_lower=""
+    for service in "${SERVICES[@]}"; do
+        services_lower="${services_lower}|$(echo "$service" | tr '[:upper:]' '[:lower:]')"
+    done
+    services_lower="${services_lower:1}" # 移除开头的|
+    docker images | grep -E "(${services_lower}|seata-server)" | head -20
+    
+    if [ "$should_tag" = true ]; then
+        echo ""
+        echo -e "${YELLOW}远程标签镜像列表：${NC}"
+        docker images | grep ${REMOTE_REGISTRY} | head -20
+    fi
+}
+
 # 构建所有服务（优化版本）
 build_all_services_optimized() {
     local should_tag=${1:-false}
@@ -276,6 +408,15 @@ main() {
             ;;
         "push")
             build_all_services_optimized true true
+            ;;
+        "offline")
+            build_all_services_offline false false
+            ;;
+        "offline-tag")
+            build_all_services_offline true false
+            ;;
+        "offline-push")
+            build_all_services_offline true true
             ;;
         "clean")
             clean_images
