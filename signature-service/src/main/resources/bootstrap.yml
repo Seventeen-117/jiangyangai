@@ -1,3 +1,5 @@
+server:
+  port: 8689
 spring:
   application:
     name: signature-service

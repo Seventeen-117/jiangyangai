@@ -41,11 +41,11 @@ public class DataCalculationApplication {
         System.setProperty("logging.level.org.springframework.boot.autoconfigure.condition", "OFF");
         System.setProperty("logging.level.org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener", "OFF");
         
-        // 禁用启动信息
-        System.setProperty("spring.main.log-startup-info", "false");
+        // 启用启动信息
+        System.setProperty("spring.main.log-startup-info", "true");
         
-        // 禁用banner
-        System.setProperty("spring.main.banner-mode", "off");
+        // 启用banner
+        System.setProperty("spring.main.banner-mode", "console");
         
         System.out.println("系统属性已设置，条件评估报告已禁用");
     }

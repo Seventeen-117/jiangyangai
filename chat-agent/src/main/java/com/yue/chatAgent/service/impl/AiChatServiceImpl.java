@@ -28,13 +28,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AiChatServiceImpl implements AiChatService {
 
-    @Autowired(required = false)
+    // 使用懒加载方式注入AI模型，避免启动时创建Bean失败
     private OpenAiChatModel openAiChatModel;
-    
-    @Autowired(required = false)
     private AzureOpenAiChatModel azureOpenAiChatModel;
-    
-    @Autowired(required = false)
     private OllamaChatModel ollamaChatModel;
 
     @Override
@@ -124,9 +120,30 @@ public class AiChatServiceImpl implements AiChatService {
      */
     private ChatClient getChatClient(String type) {
         return switch (type.toLowerCase()) {
-            case "openai" -> openAiChatModel != null ? ChatClient.create(openAiChatModel) : null;
-            case "azure" -> azureOpenAiChatModel != null ? ChatClient.create(azureOpenAiChatModel) : null;
-            case "ollama" -> ollamaChatModel != null ? ChatClient.create(ollamaChatModel) : null;
+            case "openai" -> {
+                try {
+                    yield openAiChatModel != null ? ChatClient.create(openAiChatModel) : null;
+                } catch (Exception e) {
+                    log.warn("OpenAI聊天模型未配置或初始化失败: {}", e.getMessage());
+                    yield null;
+                }
+            }
+            case "azure" -> {
+                try {
+                    yield azureOpenAiChatModel != null ? ChatClient.create(azureOpenAiChatModel) : null;
+                } catch (Exception e) {
+                    log.warn("Azure OpenAI聊天模型未配置或初始化失败: {}", e.getMessage());
+                    yield null;
+                }
+            }
+            case "ollama" -> {
+                try {
+                    yield ollamaChatModel != null ? ChatClient.create(ollamaChatModel) : null;
+                } catch (Exception e) {
+                    log.warn("Ollama聊天模型未配置或初始化失败: {}", e.getMessage());
+                    yield null;
+                }
+            }
             default -> null;
         };
     }

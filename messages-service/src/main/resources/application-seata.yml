@@ -1,5 +1,6 @@
 # Seata 分布式事务配置
 seata:
+  enabled: true
   # 应用ID，用于标识当前应用
   application-id: ${spring.application.name}
   
@@ -37,6 +38,14 @@ seata:
         retry-interval: 10
         retry-times: 30
         retry-policy-branch-rollback-on-conflict: true
+  registry:
+    type: nacos
+    nacos:
+      server-addr: 8.133.246.113:8848
+      namespace: d750d92e-152f-4055-a641-3bc9dda85a29
+      group: DEFAULT_GROUP
+      cluster: default
+
     # 事务协调器配置
     tm:
       commit-retry-count: 5

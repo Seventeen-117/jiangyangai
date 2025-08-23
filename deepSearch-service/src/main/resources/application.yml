@@ -1,5 +1,6 @@
 # DeepSearch Service 主配置文件
-
+server:
+  port: 8085
 spring:
   application:
     name: deepSearch-service
@@ -10,10 +11,10 @@ spring:
     allow-circular-references: true
     allow-bean-definition-overriding: true
     lazy-initialization: false
-    # 禁用条件评估报告
-    banner-mode: off
-    # 禁用启动信息
-    log-startup-info: false
+    # 启用启动信息显示
+    banner-mode: console
+    # 启用启动信息
+    log-startup-info: true
 
 # Dubbo配置 - 避免缓存冲突
 dubbo:
@@ -117,7 +118,7 @@ logging:
     # 禁用条件评估报告
     org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener: OFF
     # 设置根日志级别
-    root: WARN
+    root: INFO
     # 设置应用相关日志级别
     com.jiangyang.datacalculation: INFO
     com.jiangyang.base: WARN

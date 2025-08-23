@@ -177,7 +177,6 @@ elasticsearch:
   host: 8.133.246.113
   port: 9200
   scheme: http
-  username: 
-  password:
+
 
 

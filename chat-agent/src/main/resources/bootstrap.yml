@@ -4,6 +4,10 @@ spring:
     allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
     allow-bean-definition-overriding: true # 允许 Bean 覆盖，例如说 Feign 等会存在重复定义的服务
     lazy-initialization: false # 禁用懒加载，确保实体类等在启动时加载
+    # 启用启动信息显示
+    banner-mode: console
+    # 启用启动信息
+    log-startup-info: true
   cloud:
     nacos:
       discovery:
