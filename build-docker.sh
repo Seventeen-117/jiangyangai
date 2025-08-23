@@ -68,7 +68,28 @@ build_service() {
     # 构建项目（如果有pom.xml）
     if [ -f "pom.xml" ]; then
         echo -e "${BLUE}  编译 ${service}...${NC}"
-        mvn clean package -DskipTests -q
+        if ! mvn clean package -DskipTests -q; then
+            echo -e "${RED}  ${service} 编译失败${NC}"
+            cd ..
+            return 1
+        fi
+        
+        # 检查JAR文件是否生成
+        if [ ! -d "target" ]; then
+            echo -e "${RED}  ${service} target目录不存在${NC}"
+            cd ..
+            return 1
+        fi
+        
+        # 查找生成的JAR文件
+        jar_file=$(find target -name "*.jar" -not -name "*sources.jar" -not -name "*javadoc.jar" | head -1)
+        if [ -z "$jar_file" ]; then
+            echo -e "${RED}  ${service} 没有找到生成的JAR文件${NC}"
+            cd ..
+            return 1
+        fi
+        
+        echo -e "${GREEN}  ${service} 编译成功，生成JAR文件: $jar_file${NC}"
     fi
     
     # 构建Docker镜像（本地标签）
@@ -117,7 +138,10 @@ build_all_services() {
     
     # 构建所有服务
     for service in "${SERVICES[@]}"; do
-        build_service $service $should_tag $should_push
+        if ! build_service $service $should_tag $should_push; then
+            echo -e "${RED}构建失败，停止构建流程${NC}"
+            return 1
+        fi
     done
     
     # 构建Seata Server
