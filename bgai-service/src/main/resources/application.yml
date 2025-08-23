@@ -99,9 +99,10 @@ dubbo:
     group: DEFAULT_GROUP
     timeout: 10000
 
-  # 监控配置
+  # 监控配置 - 禁用监控功能
   monitor:
     protocol: registry
+    enabled: false
 
 # 日志配置
 logging:

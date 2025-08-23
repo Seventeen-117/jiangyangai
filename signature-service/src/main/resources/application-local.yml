@@ -224,7 +224,8 @@ dubbo:
   metadata-report:
     address: ""  # 禁用元数据中心
     
-  # 监控配置（可选）
+  # 监控配置 - 禁用监控功能
   monitor:
     protocol: registry
+    enabled: false
 

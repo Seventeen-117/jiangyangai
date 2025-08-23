@@ -92,12 +92,20 @@ dubbo:
     cache-file: false
     # 配置提供者元数据类型
     metadata-type: local
+    # 禁用提供者监控
+    filter: -monitor
   # 全局配置
   config-center:
     timeout: 3000
     # 禁用配置中心文件缓存
     file: false
-  # 不配置 monitor，以避免 MonitorService 触发
+  # 完全禁用监控功能
+  monitor:
+    protocol: registry
+    # 禁用监控服务
+    enabled: false
+    # 禁用监控过滤器
+    filter: false
   # 禁用所有文件缓存
   cache:
     file:

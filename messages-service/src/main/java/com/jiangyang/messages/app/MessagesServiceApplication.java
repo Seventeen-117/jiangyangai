@@ -26,7 +26,26 @@ import org.mybatis.spring.annotation.MapperScan;
 public class MessagesServiceApplication {
 
     public static void main(String[] args) {
+        // 在Spring Boot启动之前设置系统属性，禁用Dubbo监控
+        setupSystemProperties();
+        
         SpringApplication.run(MessagesServiceApplication.class, args);
+    }
+    
+    /**
+     * 设置系统属性，禁用Dubbo监控
+     */
+    private static void setupSystemProperties() {
+        // 禁用Dubbo监控
+        System.setProperty("dubbo.monitor.enabled", "false");
+        System.setProperty("dubbo.monitor.protocol", "registry");
+        System.setProperty("dubbo.monitor.address", "");
+        
+        // 禁用Dubbo监控过滤器
+        System.setProperty("dubbo.consumer.filter", "-monitor");
+        System.setProperty("dubbo.provider.filter", "-monitor");
+        
+        System.out.println("Dubbo监控已禁用");
     }
 }
 
