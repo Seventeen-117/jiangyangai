@@ -135,7 +135,30 @@ build_service_offline() {
     local service_lower=$(echo "$service" | tr '[:upper:]' '[:lower:]')
     
     # 使用Docker BuildKit来优化构建
-    DOCKER_BUILDKIT=1 docker build --network=host --timeout=600 -t ${service_lower}:${VERSION} .
+    echo -e "${BLUE}  开始构建镜像...${NC}"
+    echo -e "${BLUE}  构建上下文: $(pwd)${NC}"
+    echo -e "${BLUE}  目标镜像: ${service_lower}:${VERSION}${NC}"
+    
+    # 显示构建上下文内容
+    echo -e "${BLUE}  构建上下文内容:${NC}"
+    ls -la | head -10
+    
+    if DOCKER_BUILDKIT=1 docker build --network=host -t ${service_lower}:${VERSION} .; then
+        echo -e "${GREEN}  镜像构建成功: ${service_lower}:${VERSION}${NC}"
+        
+        # 验证镜像是否创建成功
+        if docker images | grep -q "${service_lower}.*${VERSION}"; then
+            echo -e "${GREEN}  镜像验证成功${NC}"
+        else
+            echo -e "${RED}  镜像验证失败${NC}"
+            cd ..
+            return 1
+        fi
+    else
+        echo -e "${RED}  镜像构建失败${NC}"
+        cd ..
+        return 1
+    fi
     
     if [ "$should_tag" = true ]; then
         # 标签到远程仓库
@@ -254,7 +277,13 @@ build_service_optimized() {
     fi
     
     echo -e "${BLUE}  构建Docker镜像...${NC}"
-    DOCKER_BUILDKIT=1 docker build --network=host --timeout=600 -t ${service_lower}:${VERSION} .
+    if DOCKER_BUILDKIT=1 docker build --network=host -t ${service_lower}:${VERSION} .; then
+        echo -e "${GREEN}  镜像构建成功: ${service_lower}:${VERSION}${NC}"
+    else
+        echo -e "${RED}  镜像构建失败${NC}"
+        cd ..
+        return 1
+    fi
     
     if [ "$should_tag" = true ]; then
         # 标签到远程仓库
