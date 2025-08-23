@@ -612,38 +612,32 @@ public class MessageSagaStateMachine {
             MessageSagaLog sagaLog = createSagaLog(messageId, "CONSUME_CONFIRM", "PROCESSING");
             messageSagaLogService.save(sagaLog);
             
-            // 2. 记录消息生命周期
-            MessageLifecycleLog lifecycleLog = createLifecycleLog(messageId, "CONSUME_CONFIRM", "PROCESSING", null);
-            messageLifecycleService.save(lifecycleLog);
-            
-            // 3. 执行消费确认逻辑
-            // 3.1 验证消息ID
+            // 2. 执行消费确认逻辑
+            // 2.1 验证消息ID
             if (StrUtil.isBlank(messageId)) {
                 throw new IllegalArgumentException("消息ID不能为空");
             }
             
-            // 3.2 检查消息是否已存在
-            MessageLifecycleLog existingLog = messageLifecycleService.getByMessageId(messageId);
-            if (existingLog == null) {
-                throw new IllegalStateException("消息不存在: " + messageId);
+            // 2.2 查找业务处理阶段的生命周期日志
+            MessageLifecycleLog businessProcessLog = messageLifecycleService.getByMessageIdAndStage(messageId, "BUSINESS_PROCESS");
+            if (businessProcessLog == null) {
+                throw new IllegalStateException("消息不存在或未完成业务处理: " + messageId);
             }
             
-            // 3.3 验证消息状态是否允许确认
-            // 检查业务处理阶段是否成功完成，这是确认消费的前提
-            if (!"BUSINESS_PROCESS".equals(existingLog.getLifecycleStage()) || 
-                !"SUCCESS".equals(existingLog.getStageStatus())) {
+            // 2.3 验证业务处理阶段是否成功完成
+            if (!"SUCCESS".equals(businessProcessLog.getStageStatus())) {
                 throw new IllegalStateException("消息状态不允许确认消费: " + messageId + 
-                    ", 当前阶段: " + existingLog.getLifecycleStage() + 
-                    ", 状态: " + existingLog.getStageStatus() + 
+                    ", 当前阶段: " + businessProcessLog.getLifecycleStage() + 
+                    ", 状态: " + businessProcessLog.getStageStatus() + 
                     ", 需要业务处理阶段成功完成才能确认消费");
             }
             
-            // 3.4 更新消费状态为已确认
-            existingLog.setStageStatus("CONFIRMED");
-            existingLog.setStageEndTime(LocalDateTime.now());
-            existingLog.setProcessingTime(System.currentTimeMillis() - 
-                existingLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            messageLifecycleService.updateById(existingLog);
+            // 2.4 更新业务处理状态为已确认
+            businessProcessLog.setStageStatus("CONFIRMED");
+            businessProcessLog.setStageEndTime(LocalDateTime.now());
+            businessProcessLog.setProcessingTime(System.currentTimeMillis() - 
+                businessProcessLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            messageLifecycleService.updateById(businessProcessLog);
             
             // 3.5 记录消费确认日志
             log.info("消息消费已确认: ID={}, 确认时间={}", messageId, LocalDateTime.now());
@@ -690,12 +684,7 @@ public class MessageSagaStateMachine {
             sagaLog.setResponseResult("{\"status\":\"SUCCESS\",\"message\":\"消费确认成功\"}");
             messageSagaLogService.updateById(sagaLog);
             
-            // 5. 更新生命周期日志状态
-            lifecycleLog.setStageStatus("SUCCESS");
-            lifecycleLog.setStageEndTime(LocalDateTime.now());
-            lifecycleLog.setProcessingTime(System.currentTimeMillis() - 
-                lifecycleLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            messageLifecycleService.updateById(lifecycleLog);
+            // 5. 生命周期日志状态已在步骤2.4中更新为CONFIRMED
             
             log.info("消费确认成功: ID={}", messageId);
             
