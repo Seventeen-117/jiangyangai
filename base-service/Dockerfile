@@ -8,7 +8,7 @@ WORKDIR /app
 
 # 设置环境变量
 ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
-ENV SPRING_PROFILES_ACTIVE=prod
+ENV SPRING_PROFILES_ACTIVE=dev
 ENV TZ=Asia/Shanghai
 
 # 安装必要的工具
