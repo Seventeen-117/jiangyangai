@@ -7,7 +7,7 @@ services:
     hostname: seata-server
     ports:
       - "8091:8091"  # Seata RPC 端口
-      # - "7091:7091"  # Seata 控制台端口（已注释，避免认证问题）
+      - "7091:7091"  # Seata 控制台端口（已注释，避免认证问题）
     environment:
       - SEATA_PORT=8091
       - SEATA_CONFIG_NAME=file:/seata-server/conf/registry.conf
