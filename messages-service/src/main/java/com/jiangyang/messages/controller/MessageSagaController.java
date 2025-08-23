@@ -1,6 +1,7 @@
 package com.jiangyang.messages.controller;
 
 import com.jiangyang.messages.service.MessageSagaService;
+import com.jiangyang.messages.service.EnhancedMessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,28 +23,38 @@ public class MessageSagaController {
     @Autowired
     private MessageSagaService messageSagaService;
 
+    @Autowired
+    private EnhancedMessageService enhancedMessageService;
+
     /**
      * 发送消息（使用Saga事务）
+     * 支持动态路由到不同的消息中间件
      * 
      * @param request 请求参数
      * @return 响应结果
      */
     @PostMapping("/send")
-    public ResponseEntity<Map<String, Object>> sendMessageWithSaga(@RequestBody Map<String, String> request) {
-        String messageId = request.getOrDefault("messageId", UUID.randomUUID().toString());
-        String content = request.get("content");
-        String messageType = request.getOrDefault("messageType", "ROCKETMQ"); // 默认使用RocketMQ
+    public ResponseEntity<Map<String, Object>> sendMessageWithSaga(@RequestBody Map<String, Object> request) {
+        String messageId = (String) request.getOrDefault("messageId", UUID.randomUUID().toString());
+        String messageType = (String) request.getOrDefault("messageType", "ROCKETMQ"); // 默认使用RocketMQ
         
-        if (content == null || content.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(createErrorResponse("消息内容不能为空"));
+        if (messageId == null || messageId.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(createErrorResponse("消息ID不能为空"));
         }
         
         try {
-            messageSagaService.sendMessageWithSaga(messageId, content, messageType);
-            return ResponseEntity.ok(createSuccessResponse("消息发送成功", Map.of(
-                "messageId", messageId,
-                "messageType", messageType
-            )));
+            // 根据消息类型动态路由
+            boolean success = enhancedMessageService.sendMessage(messageId, messageType, request);
+            
+            if (success) {
+                return ResponseEntity.ok(createSuccessResponse("消息发送成功", Map.of(
+                    "messageId", messageId,
+                    "messageType", messageType,
+                    "status", "SENT"
+                )));
+            } else {
+                return ResponseEntity.internalServerError().body(createErrorResponse("消息发送失败"));
+            }
         } catch (Exception e) {
             log.error("发送消息失败: messageId={}, messageType={}, error={}", messageId, messageType, e.getMessage(), e);
             return ResponseEntity.internalServerError().body(createErrorResponse("消息发送失败: " + e.getMessage()));
@@ -181,7 +192,50 @@ public class MessageSagaController {
     }
 
     /**
-     * 发送消息到指定消息中间件
+     * 发送消息到指定消息中间件（增强版本）
+     * 支持详细的参数配置和消息类型
+     * 
+     * @param request 请求参数
+     * @return 响应结果
+     */
+    @PostMapping("/send/enhanced")
+    public ResponseEntity<Map<String, Object>> sendEnhancedMessage(@RequestBody Map<String, Object> request) {
+        String messageId = (String) request.getOrDefault("messageId", UUID.randomUUID().toString());
+        String messageQueueType = (String) request.get("messageType"); // 消息中间件类型
+        String messageType = (String) request.getOrDefault("messageType", "NORMAL"); // 消息类型（普通、定时、顺序、事务）
+        
+        if (messageId == null || messageId.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(createErrorResponse("消息ID不能为空"));
+        }
+        
+        if (messageQueueType == null || messageQueueType.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(createErrorResponse("消息中间件类型不能为空"));
+        }
+        
+        try {
+            // 根据消息中间件类型动态路由
+            boolean success = enhancedMessageService.sendMessage(messageId, messageQueueType, request);
+            
+            if (success) {
+                return ResponseEntity.ok(createSuccessResponse("增强消息发送成功", Map.of(
+                    "messageId", messageId,
+                    "messageQueueType", messageQueueType,
+                    "messageType", messageType,
+                    "status", "SENT",
+                    "details", "消息已成功路由到" + messageQueueType + "消息中间件，消息类型：" + messageType
+                )));
+            } else {
+                return ResponseEntity.internalServerError().body(createErrorResponse("增强消息发送失败"));
+            }
+        } catch (Exception e) {
+            log.error("增强消息发送失败: messageId={}, messageQueueType={}, messageType={}, error={}", 
+                    messageId, messageQueueType, messageType, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(createErrorResponse("增强消息发送失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 发送消息到指定消息中间件（兼容版本）
      * 
      * @param request 请求参数
      * @return 响应结果

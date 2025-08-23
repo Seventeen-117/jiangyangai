@@ -1,0 +1,379 @@
+{
+  "info": {
+    "name": "Auto Consume Service API Collection",
+    "description": "测试自动消费服务的Postman集合，支持RocketMQ、Kafka、RabbitMQ的自动消费管理",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auto Consume Service",
+      "item": [
+        {
+          "name": "服务控制",
+          "item": [
+            {
+              "name": "启动自动消费服务",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/start",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "start"]
+                },
+                "description": "启动自动消费服务，系统会自动读取所有启用的消费配置并启动消费"
+              },
+              "response": []
+            },
+            {
+              "name": "停止自动消费服务",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/stop",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "stop"]
+                },
+                "description": "停止自动消费服务，停止所有正在消费的服务"
+              },
+              "response": []
+            },
+            {
+              "name": "重新加载消费配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/reload",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "reload"]
+                },
+                "description": "重新加载消费配置，适用于配置变更后的动态更新"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "服务级控制",
+          "item": [
+            {
+              "name": "启动指定服务的消费",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/start/order-service",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "start", "order-service"]
+                },
+                "description": "启动指定服务的消费，根据服务名称启动对应的消费配置"
+              },
+              "response": []
+            },
+            {
+              "name": "停止指定服务的消费",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/stop/order-service",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "stop", "order-service"]
+                },
+                "description": "停止指定服务的消费，停止该服务的所有消费配置"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "配置管理",
+          "item": [
+            {
+              "name": "获取所有消费配置",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs"]
+                },
+                "description": "获取所有消费配置信息"
+              },
+              "response": []
+            },
+            {
+              "name": "获取指定服务的消费配置",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs/order-service",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs", "order-service"]
+                },
+                "description": "获取指定服务的消费配置信息"
+              },
+              "response": []
+            },
+            {
+              "name": "保存消费配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"serviceName\": \"test-service\",\n  \"messageQueueType\": \"ROCKETMQ\",\n  \"consumeMode\": \"PUSH\",\n  \"consumeType\": \"CLUSTERING\",\n  \"consumeOrder\": \"CONCURRENT\",\n  \"topic\": \"TEST_TOPIC\",\n  \"tag\": \"TEST_TAG\",\n  \"consumerGroup\": \"test-consumer-group\",\n  \"enabled\": true,\n  \"description\": \"测试服务的消费配置\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs"]
+                },
+                "description": "保存新的消费配置"
+              },
+              "response": []
+            },
+            {
+              "name": "更新消费配置",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"serviceName\": \"test-service\",\n  \"messageQueueType\": \"ROCKETMQ\",\n  \"consumeMode\": \"PUSH\",\n  \"consumeType\": \"CLUSTERING\",\n  \"consumeOrder\": \"ORDERLY\",\n  \"topic\": \"TEST_TOPIC\",\n  \"tag\": \"TEST_TAG\",\n  \"consumerGroup\": \"test-consumer-group\",\n  \"enabled\": true,\n  \"description\": \"测试服务的消费配置（已更新为顺序消费）\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs/1",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs", "1"]
+                },
+                "description": "更新指定ID的消费配置"
+              },
+              "response": []
+            },
+            {
+              "name": "删除消费配置",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs/1",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs", "1"]
+                },
+                "description": "删除指定ID的消费配置"
+              },
+              "response": []
+            },
+            {
+              "name": "启用消费配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs/1/enable",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs", "1", "enable"]
+                },
+                "description": "启用指定ID的消费配置"
+              },
+              "response": []
+            },
+            {
+              "name": "禁用消费配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs/1/disable",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs", "1", "disable"]
+                },
+                "description": "禁用指定ID的消费配置"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "状态监控",
+          "item": [
+            {
+              "name": "检查消费状态",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/status/order-service",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "status", "order-service"]
+                },
+                "description": "检查指定服务的消费状态"
+              },
+              "response": []
+            },
+            {
+              "name": "获取消费统计信息",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/statistics/order-service",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "statistics", "order-service"]
+                },
+                "description": "获取指定服务的消费统计信息"
+              },
+              "response": []
+            },
+            {
+              "name": "健康检查",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/health",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "health"]
+                },
+                "description": "检查自动消费服务的健康状态"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "示例配置",
+          "item": [
+            {
+              "name": "RocketMQ顺序消费配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"serviceName\": \"payment-service\",\n  \"messageQueueType\": \"ROCKETMQ\",\n  \"consumeMode\": \"PUSH\",\n  \"consumeType\": \"CLUSTERING\",\n  \"consumeOrder\": \"ORDERLY\",\n  \"topic\": \"PAYMENT_TOPIC\",\n  \"tag\": \"PAYMENT_SUCCESS\",\n  \"consumerGroup\": \"payment-consumer-group\",\n  \"enabled\": true,\n  \"description\": \"支付服务消费支付成功消息，保证顺序\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs"]
+                },
+                "description": "创建RocketMQ顺序消费配置示例"
+              },
+              "response": []
+            },
+            {
+              "name": "Kafka拉模式配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"serviceName\": \"log-service\",\n  \"messageQueueType\": \"KAFKA\",\n  \"consumeMode\": \"PULL\",\n  \"consumeType\": \"CLUSTERING\",\n  \"consumeOrder\": \"CONCURRENT\",\n  \"topic\": \"LOG_TOPIC\",\n  \"consumerGroup\": \"log-consumer-group\",\n  \"consumeInterval\": 5000,\n  \"batchSize\": 100,\n  \"enabled\": true,\n  \"description\": \"日志服务消费日志消息，拉模式，5秒间隔，批量100条\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs"]
+                },
+                "description": "创建Kafka拉模式配置示例"
+              },
+              "response": []
+            },
+            {
+              "name": "RabbitMQ配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"serviceName\": \"inventory-service\",\n  \"messageQueueType\": \"RABBITMQ\",\n  \"consumeMode\": \"PUSH\",\n  \"consumeType\": \"CLUSTERING\",\n  \"consumeOrder\": \"CONCURRENT\",\n  \"topic\": \"inventory_queue\",\n  \"exchange\": \"inventory_exchange\",\n  \"routingKey\": \"inventory.update\",\n  \"consumerGroup\": \"inventory-consumer-group\",\n  \"enabled\": true,\n  \"description\": \"库存服务消费库存更新消息\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/messages/auto-consume/configs",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "messages", "auto-consume", "configs"]
+                },
+                "description": "创建RabbitMQ配置示例"
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "description": "自动消费服务API测试集合"
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8081",
+      "description": "消息服务基础URL"
+    }
+  ]
+}

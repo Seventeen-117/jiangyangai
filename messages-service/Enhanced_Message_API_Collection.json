@@ -1,0 +1,312 @@
+{
+  "info": {
+    "name": "Enhanced Message API Collection",
+    "description": "测试增强消息API的Postman集合，支持RocketMQ、Kafka、RabbitMQ动态路由",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Enhanced Message API",
+      "item": [
+        {
+          "name": "发送RocketMQ普通消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-rocket-normal-001\",\n  \"messageType\": \"ROCKETMQ\",\n  \"messageType\": \"NORMAL\",\n  \"topic\": \"TEST_TOPIC\",\n  \"tag\": \"TEST_TAG\",\n  \"messageBody\": \"{\\\"test\\\":\\\"data\\\",\\\"timestamp\\\":\\\"2024-08-23T15:40:30.123+08:00\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送普通消息到RocketMQ"
+          },
+          "response": []
+        },
+        {
+          "name": "发送RocketMQ定时消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-rocket-delay-001\",\n  \"messageType\": \"ROCKETMQ\",\n  \"messageType\": \"DELAY\",\n  \"topic\": \"TEST_TOPIC\",\n  \"tag\": \"TEST_TAG\",\n  \"delayLevel\": 3,\n  \"messageBody\": \"{\\\"test\\\":\\\"data\\\",\\\"timestamp\\\":\\\"2024-08-23T15:40:30.123+08:00\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送定时消息到RocketMQ，延迟级别3"
+          },
+          "response": []
+        },
+        {
+          "name": "发送RocketMQ顺序消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-rocket-ordered-001\",\n  \"messageType\": \"ROCKETMQ\",\n  \"messageType\": \"ORDERED\",\n  \"topic\": \"TEST_TOPIC\",\n  \"tag\": \"TEST_TAG\",\n  \"hashKey\": \"user123\",\n  \"messageBody\": \"{\\\"test\\\":\\\"data\\\",\\\"timestamp\\\":\\\"2024-08-23T15:40:30.123+08:00\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送顺序消息到RocketMQ，使用哈希键user123"
+          },
+          "response": []
+        },
+        {
+          "name": "发送Kafka同步阻塞消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-kafka-sync-001\",\n  \"messageType\": \"KAFKA\",\n  \"messageType\": \"SYNC_BLOCKING\",\n  \"topic\": \"ORDER_TOPIC\",\n  \"key\": \"user123\",\n  \"messageBody\": \"{\\\"orderId\\\":\\\"123\\\",\\\"amount\\\":100.00,\\\"type\\\":\\\"PAYMENT\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送同步阻塞消息到Kafka，适用于交易订单、核心业务数据"
+          },
+          "response": []
+        },
+        {
+          "name": "发送Kafka异步回调消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-kafka-async-callback-001\",\n  \"messageType\": \"KAFKA\",\n  \"messageType\": \"ASYNC_CALLBACK\",\n  \"topic\": \"LOG_TOPIC\",\n  \"key\": \"service123\",\n  \"messageBody\": \"{\\\"serviceId\\\":\\\"123\\\",\\\"logLevel\\\":\\\"INFO\\\",\\\"message\\\":\\\"User login success\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送异步回调消息到Kafka，适用于日志采集、业务通知"
+          },
+          "response": []
+        },
+        {
+          "name": "发送Kafka异步无回调消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-kafka-async-no-callback-001\",\n  \"messageType\": \"KAFKA\",\n  \"messageType\": \"ASYNC_NO_CALLBACK\",\n  \"topic\": \"METRICS_TOPIC\",\n  \"key\": \"metric123\",\n  \"messageBody\": \"{\\\"metricName\\\":\\\"cpu_usage\\\",\\\"value\\\":75.5,\\\"timestamp\\\":\\\"2024-08-23T15:40:30.123+08:00\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送异步无回调消息到Kafka，适用于监控指标、非关键日志"
+          },
+          "response": []
+        },
+        {
+          "name": "发送RabbitMQ直接交换机消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-rabbit-direct-001\",\n  \"messageType\": \"RABBITMQ\",\n  \"messageType\": \"DIRECT\",\n  \"queueName\": \"order_queue\",\n  \"durable\": true,\n  \"exclusive\": false,\n  \"autoDelete\": false,\n  \"exchange\": \"order_exchange\",\n  \"routingKey\": \"order.pay\",\n  \"messageBody\": \"{\\\"orderId\\\":\\\"123\\\",\\\"amount\\\":100.00,\\\"status\\\":\\\"PAID\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送直接交换机消息到RabbitMQ，精确路由匹配"
+          },
+          "response": []
+        },
+        {
+          "name": "发送RabbitMQ主题交换机消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-rabbit-topic-001\",\n  \"messageType\": \"RABBITMQ\",\n  \"messageType\": \"TOPIC\",\n  \"queueName\": \"notification_queue\",\n  \"durable\": true,\n  \"exclusive\": false,\n  \"autoDelete\": false,\n  \"exchange\": \"notification_exchange\",\n  \"routingKey\": \"user.notification\",\n  \"messageBody\": \"{\\\"userId\\\":\\\"123\\\",\\\"type\\\":\\\"EMAIL\\\",\\\"content\\\":\\\"Welcome to our service\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送主题交换机消息到RabbitMQ，通配符路由匹配"
+          },
+          "response": []
+        },
+        {
+          "name": "发送RabbitMQ扇形交换机消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-rabbit-fanout-001\",\n  \"messageType\": \"RABBITMQ\",\n  \"messageType\": \"FANOUT\",\n  \"queueName\": \"broadcast_queue\",\n  \"durable\": true,\n  \"exclusive\": false,\n  \"autoDelete\": false,\n  \"exchange\": \"broadcast_exchange\",\n  \"routingKey\": \"\",\n  \"messageBody\": \"{\\\"announcement\\\":\\\"System maintenance at 2:00 AM\\\",\\\"priority\\\":\\\"HIGH\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送扇形交换机消息到RabbitMQ，广播到所有绑定队列"
+          },
+          "response": []
+        },
+        {
+          "name": "发送RabbitMQ持久化消息",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"test-rabbit-persistent-001\",\n  \"messageType\": \"RABBITMQ\",\n  \"messageType\": \"PERSISTENT\",\n  \"queueName\": \"payment_queue\",\n  \"durable\": true,\n  \"exclusive\": false,\n  \"autoDelete\": false,\n  \"exchange\": \"payment_exchange\",\n  \"routingKey\": \"payment.success\",\n  \"otherProperties\": {\n    \"deliveryMode\": 2,\n    \"persistent\": true\n  },\n  \"messageBody\": \"{\\\"paymentId\\\":\\\"pay123\\\",\\\"amount\\\":1000.00,\\\"status\\\":\\\"SUCCESS\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送持久化消息到RabbitMQ，确保消息不丢失"
+          },
+          "response": []
+        },
+        {
+          "name": "发送复杂JSON消息到RocketMQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"complex-rocket-001\",\n  \"messageType\": \"ROCKETMQ\",\n  \"topic\": \"ORDER_TOPIC\",\n  \"tag\": \"PAY_SUCCESS\",\n  \"messageBody\": \"{\\\"msgBody\\\":{\\\"msgId\\\":\\\"MQ20240823154000010001\\\",\\\"bizType\\\":\\\"ORDER_PAY_SUCCESS\\\",\\\"timestamp\\\":\\\"2024-08-23T15:40:30.123+08:00\\\",\\\"version\\\":\\\"1.0\\\",\\\"sign\\\":\\\"a3f2d4e5b6c7a8d9f0e1b2c3d4e5f6a7\\\",\\\"orderPaymentData\\\":{\\\"orderId\\\":\\\"ORD2024082300001\\\",\\\"payAmount\\\":999.00,\\\"payStatus\\\":\\\"PAID_SUCCESS\\\",\\\"payTime\\\":\\\"2024-08-23T15:40:28.456+08:00\\\",\\\"productDetails\\\":[{\\\"productId\\\":\\\"PROD0012345\\\",\\\"productName\\\":\\\"2024新款无线蓝牙耳机\\\",\\\"productSpec\\\":{\\\"color\\\":\\\"星空黑\\\",\\\"capacity\\\":\\\"512GB\\\",\\\"version\\\":\\\"标准版\\\"},\\\"buyQuantity\\\":1,\\\"unitPrice\\\":999.00}],\\\"paymentChannel\\\":{\\\"channelType\\\":\\\"ALIPAY\\\",\\\"channelOrderId\\\":\\\"ALIPAY2024082300000123\\\",\\\"channelPayTime\\\":\\\"2024-08-23T15:40:29.789+08:00\\\"}},\\\"metaInfo\\\":{\\\"topic\\\":\\\"ORDER_PAY_TOPIC\\\",\\\"tag\\\":\\\"PAY_SUCCESS_TAG\\\",\\\"keys\\\":[\\\"ORD2024082300001\\\",\\\"PROD0012345\\\"],\\\"senderInfo\\\":{\\\"senderService\\\":\\\"order-pay-service\\\",\\\"senderIp\\\":\\\"192.168.1.100\\\",\\\"senderInstanceId\\\":\\\"order-pay-01\\\"}}}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send/enhanced",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send", "enhanced"]
+            },
+            "description": "发送复杂的嵌套JSON消息到RocketMQ，测试消息体解析能力"
+          },
+          "response": []
+        },
+        {
+          "name": "兼容接口测试",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageId\": \"compat-test-001\",\n  \"messageType\": \"ROCKETMQ\",\n  \"content\": \"Hello World from compatible API\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/send",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "send"]
+            },
+            "description": "测试兼容接口，保持向后兼容性"
+          },
+          "response": []
+        },
+        {
+          "name": "健康检查",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/messages/saga/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messages", "saga", "health"]
+            },
+            "description": "检查消息服务健康状态"
+          },
+          "response": []
+        }
+      ],
+      "description": "增强消息API测试集合"
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8081",
+      "description": "消息服务基础URL"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+# RabbitMQ配置
+rabbitmq:
+  # 基础连接配置
+  host: localhost
+  port: 5672
+  username: guest
+  password: guest
+  virtual-host: /
+  
+  # 连接池配置
+  connection:
+    # 连接超时时间
+    timeout: 30000
+    # 心跳间隔
+    heartbeat: 60
+    # 自动重连
+    automatic-recovery: true
+    # 网络恢复间隔
+    network-recovery-interval: 5000
+  
+  # 消费者配置
+  consumer:
+    # 默认消费模式
+    default-mode: PUSH
+    # 默认确认模式
+    default-ack-mode: MANUAL
+    # 预取数量
+    prefetch-count: 1
+    # 批量大小
+    batch-size: 100
+    # 消费间隔（毫秒）
+    consume-interval: 1000
+    # 最大重试次数
+    max-retry-times: 3
+    # 超时时间
+    timeout: 30000
+  
+  # 生产者配置（如果需要）
+  producer:
+    # 确认模式
+    confirm-mode: CORRELATED
+    # 返回模式
+    return-mode: BASIC
+    # 批量发送大小
+    batch-size: 100
+    # 发送超时时间
+    timeout: 5000
+  
+  # 队列配置
+  queue:
+    # 默认队列类型
+    default-type: CLASSIC
+    # 是否持久化
+    durable: true
+    # 是否排他
+    exclusive: false
+    # 是否自动删除
+    auto-delete: false
+    # 最大优先级
+    max-priority: 10
+    # 最大长度
+    max-length: 10000
+    # 消息TTL（毫秒）
+    message-ttl: 86400000
+  
+  # 交换机配置
+  exchange:
+    # 默认交换机类型
+    default-type: DIRECT
+    # 是否持久化
+    durable: true
+    # 是否自动删除
+    auto-delete: false
+    # 是否内部交换机
+    internal: false
+  
+  # 死信队列配置
+  dead-letter:
+    # 死信交换机前缀
+    exchange-prefix: dlx.
+    # 死信路由键前缀
+    routing-key-prefix: dlq.
+    # 死信队列前缀
+    queue-prefix: dlq.
+    # 是否启用死信队列
+    enabled: true
+  
+  # 延迟队列配置
+  delay:
+    # 是否启用延迟队列
+    enabled: true
+    # 延迟交换机前缀
+    exchange-prefix: delay.
+    # 延迟队列前缀
+    queue-prefix: delay.
+    # 默认延迟时间（毫秒）
+    default-ttl: 30000
+  
+  # 优先级队列配置
+  priority:
+    # 是否启用优先级队列
+    enabled: true
+    # 最大优先级
+    max-priority: 10
+    # 默认优先级
+    default-priority: 5
+  
+  # 集群配置
+  cluster:
+    # 是否启用集群
+    enabled: false
+    # 集群节点列表
+    nodes: []
+    # 负载均衡策略
+    load-balance: ROUND_ROBIN
+  
+  # 监控配置
+  monitoring:
+    # 是否启用监控
+    enabled: true
+    # 监控间隔（秒）
+    interval: 30
+    # 是否记录详细日志
+    verbose-logging: false
