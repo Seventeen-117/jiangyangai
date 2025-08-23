@@ -1,7 +1,7 @@
 # Chat Agent Dockerfile
 # AI智能代理服务
 
-FROM openjdk:17-jdk-slim
+FROM openjdk:17-jre-slim
 
 # 设置工作目录
 WORKDIR /app

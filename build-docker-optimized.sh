@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Docker构建脚本
-# 用于构建所有服务的Docker镜像并标签到阿里云镜像仓库
+# 优化的Docker构建脚本
+# 使用JRE基础镜像来减少镜像大小
 
 set -e
 
@@ -31,17 +31,22 @@ SERVICES=(
 
 # 显示帮助信息
 show_help() {
-    echo -e "${BLUE}JiangyangAI Docker构建脚本${NC}"
+    echo -e "${BLUE}JiangyangAI 优化Docker构建脚本${NC}"
     echo ""
     echo "使用方法:"
     echo "  $0 [选项]"
     echo ""
     echo "选项:"
-    echo "  build      - 只构建本地镜像"
+    echo "  build      - 只构建本地镜像（优化版本）"
     echo "  tag        - 构建并标签到远程仓库"
     echo "  push       - 构建、标签并推送到远程仓库"
     echo "  clean      - 清理本地镜像"
     echo "  help       - 显示此帮助信息"
+    echo ""
+    echo "优化特性:"
+    echo "  - 使用JRE基础镜像（更小）"
+    echo "  - 优化.dockerignore文件"
+    echo "  - 清理构建缓存"
     echo ""
     echo "示例:"
     echo "  $0 build   # 只构建本地镜像"
@@ -49,13 +54,13 @@ show_help() {
     echo "  $0 push    # 构建、标签并推送"
 }
 
-# 构建单个服务的函数
-build_service() {
+# 构建单个服务的函数（优化版本）
+build_service_optimized() {
     local service=$1
     local should_tag=${2:-false}
     local should_push=${3:-false}
     
-    echo -e "${YELLOW}构建 ${service}...${NC}"
+    echo -e "${YELLOW}构建 ${service}（优化版本）...${NC}"
     cd $service
     
     # 检查是否有Dockerfile
@@ -90,26 +95,20 @@ build_service() {
         fi
         
         echo -e "${GREEN}  ${service} 编译成功，生成JAR文件: $jar_file${NC}"
+        
+        # 显示JAR文件大小
+        jar_size=$(du -h "$jar_file" | cut -f1)
+        echo -e "${BLUE}  JAR文件大小: $jar_size${NC}"
     fi
     
     # 构建Docker镜像（本地标签）
     echo -e "${BLUE}  构建Docker镜像 ${service}...${NC}"
     
-    # 调试：显示当前目录和文件
-    echo -e "${BLUE}  当前目录: $(pwd)${NC}"
-    echo -e "${BLUE}  target目录内容:${NC}"
-    ls -la target/ 2>/dev/null || echo "target目录不存在"
-    
-    # 检查.dockerignore文件
-    if [ -f ".dockerignore" ]; then
-        echo -e "${BLUE}  .dockerignore文件内容:${NC}"
-        cat .dockerignore
-    fi
-    
     # 将服务名称转换为小写用于Docker镜像标签
     local service_lower=$(echo "$service" | tr '[:upper:]' '[:lower:]')
     
-    docker build -t ${service_lower}:${VERSION} .
+    # 使用Docker BuildKit来优化构建
+    DOCKER_BUILDKIT=1 docker build -t ${service_lower}:${VERSION} .
     
     if [ "$should_tag" = true ]; then
         # 标签到远程仓库
@@ -147,44 +146,22 @@ clean_images() {
     echo -e "${GREEN}镜像清理完成${NC}"
 }
 
-# 构建所有服务
-build_all_services() {
+# 构建所有服务（优化版本）
+build_all_services_optimized() {
     local should_tag=${1:-false}
     local should_push=${2:-false}
     
-    echo -e "${GREEN}开始构建Docker镜像...${NC}"
+    echo -e "${GREEN}开始构建优化的Docker镜像...${NC}"
     
     # 构建所有服务
     for service in "${SERVICES[@]}"; do
-        if ! build_service $service $should_tag $should_push; then
+        if ! build_service_optimized $service $should_tag $should_push; then
             echo -e "${RED}构建失败，停止构建流程${NC}"
             return 1
         fi
     done
     
-    # 构建Seata Server
-    echo -e "${YELLOW}构建 Seata Server...${NC}"
-    cd seata-server
-    if [ -f "Dockerfile" ]; then
-        echo -e "${BLUE}  构建Docker镜像 seata-server...${NC}"
-        docker build -t seata-server:${VERSION} .
-        
-        if [ "$should_tag" = true ]; then
-            echo -e "${BLUE}  标签 seata-server 到远程仓库...${NC}"
-            docker tag seata-server:${VERSION} ${REMOTE_REGISTRY}/seata-server:${VERSION}
-            
-            if [ "$should_push" = true ]; then
-                echo -e "${BLUE}  推送 seata-server 到远程仓库...${NC}"
-                docker push ${REMOTE_REGISTRY}/seata-server:${VERSION}
-            fi
-        fi
-        echo -e "${GREEN}Seata Server 处理完成${NC}"
-    else
-        echo -e "${RED}Seata Server 没有找到Dockerfile，跳过${NC}"
-    fi
-    cd ..
-    
-    echo -e "${GREEN}所有Docker镜像处理完成！${NC}"
+    echo -e "${GREEN}所有优化的Docker镜像处理完成！${NC}"
     
     # 显示构建的镜像
     echo -e "${YELLOW}本地镜像列表：${NC}"
@@ -207,13 +184,13 @@ build_all_services() {
 main() {
     case "${1:-help}" in
         "build")
-            build_all_services false false
+            build_all_services_optimized false false
             ;;
         "tag")
-            build_all_services true false
+            build_all_services_optimized true false
             ;;
         "push")
-            build_all_services true true
+            build_all_services_optimized true true
             ;;
         "clean")
             clean_images

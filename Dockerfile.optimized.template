@@ -1,0 +1,51 @@
+# 优化的Dockerfile模板
+# 使用多阶段构建和JRE基础镜像来减少镜像大小
+
+# 第一阶段：构建阶段
+FROM maven:3.9.6-openjdk-17-slim AS builder
+
+# 设置工作目录
+WORKDIR /build
+
+# 复制整个项目（为了处理依赖关系）
+COPY . .
+
+# 构建项目
+RUN mvn clean package -DskipTests -q -f {{SERVICE_NAME}}/pom.xml
+
+# 第二阶段：运行阶段
+FROM openjdk:17-jre-slim
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置环境变量
+ENV JAVA_OPTS="-Xms512m -Xmx1g -XX:+UseG1GC -XX:+UseStringDeduplication"
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV TZ=Asia/Shanghai
+ENV NACOS_HOST=8.133.246.113
+ENV NACOS_PORT=8848
+
+# 安装必要的工具
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# 从构建阶段复制JAR文件
+COPY --from=builder /build/{{SERVICE_NAME}}/target/*.jar app.jar
+
+# 创建非root用户
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# 暴露端口（根据服务调整）
+EXPOSE {{PORT}}
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:{{PORT}}/actuator/health || exit 1
+
+# 启动命令
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
