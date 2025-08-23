@@ -18,15 +18,15 @@ LOCAL_REGISTRY="jiangyang"
 REMOTE_REGISTRY="registry.cn-shanghai.aliyuncs.com/bg-boot"
 
 # 基础镜像配置（支持国内镜像源）
-BASE_IMAGE="openjdk:17-jre-slim"
+BASE_IMAGE="openjdk:17-jdk-slim"
 FALLBACK_IMAGES=(
-    "registry.cn-hangzhou.aliyuncs.com/library/openjdk:17-jre-slim"
-    "registry.cn-beijing.aliyuncs.com/library/openjdk:17-jre-slim"
-    "registry.cn-shanghai.aliyuncs.com/library/openjdk:17-jre-slim"
-    "registry.cn-guangzhou.aliyuncs.com/library/openjdk:17-jre-slim"
-    "ccr.ccs.tencentyun.com/library/openjdk:17-jre-slim"
-    "docker.mirrors.ustc.edu.cn/library/openjdk:17-jre-slim"
-    "hub-mirror.c.163.com/library/openjdk:17-jre-slim"
+    "registry.cn-hangzhou.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "registry.cn-beijing.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "registry.cn-shanghai.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "registry.cn-guangzhou.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "ccr.ccs.tencentyun.com/library/openjdk:17-jdk-slim"
+    "docker.mirrors.ustc.edu.cn/library/openjdk:17-jdk-slim"
+    "hub-mirror.c.163.com/library/openjdk:17-jdk-slim"
 )
 
 # 服务列表（对应jiangyangAI项目的服务名）
@@ -120,10 +120,10 @@ build_service_offline() {
     fi
     
     # 检查本地是否有基础镜像
-    if ! docker images | grep -q "openjdk.*17-jre-slim"; then
-        echo -e "${RED}  本地没有基础镜像 openjdk:17-jre-slim${NC}"
+    if ! docker images | grep -q "openjdk.*17-jdk-slim"; then
+        echo -e "${RED}  本地没有基础镜像 openjdk:17-jdk-slim${NC}"
         echo -e "${YELLOW}  请先手动拉取基础镜像:${NC}"
-        echo -e "${BLUE}    docker pull openjdk:17-jre-slim${NC}"
+        echo -e "${BLUE}    docker pull openjdk:17-jdk-slim${NC}"
         cd ..
         return 1
     fi
@@ -211,7 +211,7 @@ build_service_optimized() {
     local image_pulled=false
     
     # 首先检查本地是否已有镜像
-    if docker images | grep -q "openjdk.*17-jre-slim"; then
+    if docker images | grep -q "openjdk.*17-jdk-slim"; then
         echo -e "${GREEN}  本地已有基础镜像，跳过拉取${NC}"
         image_pulled=true
     else
@@ -242,7 +242,7 @@ build_service_optimized() {
     if [ "$image_pulled" = false ]; then
         echo -e "${RED}  无法拉取任何基础镜像，请检查网络连接或手动拉取${NC}"
         echo -e "${YELLOW}  可以尝试以下命令手动拉取:${NC}"
-        echo -e "${BLUE}    docker pull openjdk:17-jre-slim${NC}"
+        echo -e "${BLUE}    docker pull openjdk:17-jdk-slim${NC}"
         echo -e "${BLUE}    或者使用国内镜像源:${NC}"
         for fallback_image in "${FALLBACK_IMAGES[@]}"; do
             echo -e "${BLUE}    docker pull $fallback_image${NC}"

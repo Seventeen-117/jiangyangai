@@ -27,14 +27,14 @@ echo -e "${YELLOW}尝试拉取基础镜像...${NC}"
 
 # 镜像源列表
 MIRRORS=(
-    "openjdk:17-jre-slim"
-    "registry.cn-hangzhou.aliyuncs.com/library/openjdk:17-jre-slim"
-    "registry.cn-beijing.aliyuncs.com/library/openjdk:17-jre-slim"
-    "registry.cn-shanghai.aliyuncs.com/library/openjdk:17-jre-slim"
-    "registry.cn-guangzhou.aliyuncs.com/library/openjdk:17-jre-slim"
-    "ccr.ccs.tencentyun.com/library/openjdk:17-jre-slim"
-    "docker.mirrors.ustc.edu.cn/library/openjdk:17-jre-slim"
-    "hub-mirror.c.163.com/library/openjdk:17-jre-slim"
+    "openjdk:17-jdk-slim"
+    "registry.cn-hangzhou.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "registry.cn-beijing.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "registry.cn-shanghai.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "registry.cn-guangzhou.aliyuncs.com/library/openjdk:17-jdk-slim"
+    "ccr.ccs.tencentyun.com/library/openjdk:17-jdk-slim"
+    "docker.mirrors.ustc.edu.cn/library/openjdk:17-jdk-slim"
+    "hub-mirror.c.163.com/library/openjdk:17-jdk-slim"
 )
 
 success=false
@@ -46,9 +46,9 @@ for mirror in "${MIRRORS[@]}"; do
         echo -e "${GREEN}成功拉取镜像: $mirror${NC}"
         
         # 如果是备用镜像源，需要打标签
-        if [[ "$mirror" != "openjdk:17-jre-slim" ]]; then
+        if [[ "$mirror" != "openjdk:17-jdk-slim" ]]; then
             echo -e "${BLUE}给镜像打标签...${NC}"
-            docker tag "$mirror" "openjdk:17-jre-slim"
+            docker tag "$mirror" "openjdk:17-jdk-slim"
             echo -e "${GREEN}标签完成${NC}"
         fi
         
