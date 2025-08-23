@@ -39,7 +39,7 @@ services:
     image: bgai-service:latest
     container_name: bgai-service
     ports:
-      - "8081:8081"
+      - "8688:8688"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - NACOS_HOST=8.133.246.113
@@ -113,7 +113,7 @@ services:
     image: signature-service:latest
     container_name: signature-service
     ports:
-      - "8084:8084"
+      - "8689:8689"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - NACOS_HOST=8.133.246.113
