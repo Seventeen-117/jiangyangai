@@ -17,6 +17,14 @@ VERSION="latest"
 LOCAL_REGISTRY="jiangyang"
 REMOTE_REGISTRY="registry.cn-shanghai.aliyuncs.com/bg-boot"
 
+# 基础镜像配置（支持国内镜像源）
+BASE_IMAGE="openjdk:17-jre-slim"
+FALLBACK_IMAGES=(
+    "registry.cn-hangzhou.aliyuncs.com/library/openjdk:17-jre-slim"
+    "ccr.ccs.tencentyun.com/library/openjdk:17-jre-slim"
+    "docker.mirrors.ustc.edu.cn/library/openjdk:17-jre-slim"
+)
+
 # 服务列表（对应jiangyangAI项目的服务名）
 SERVICES=(
     "base-service"
@@ -41,17 +49,20 @@ show_help() {
     echo "  tag        - 构建并标签到远程仓库"
     echo "  push       - 构建、标签并推送到远程仓库"
     echo "  clean      - 清理本地镜像"
+    echo "  network    - 检查网络连接状态"
     echo "  help       - 显示此帮助信息"
     echo ""
     echo "优化特性:"
     echo "  - 使用JRE基础镜像（更小）"
     echo "  - 优化.dockerignore文件"
     echo "  - 清理构建缓存"
+    echo "  - 支持多个镜像源（解决网络问题）"
     echo ""
     echo "示例:"
     echo "  $0 build   # 只构建本地镜像"
     echo "  $0 tag     # 构建并标签"
     echo "  $0 push    # 构建、标签并推送"
+    echo "  $0 network # 检查网络连接"
 }
 
 # 构建单个服务的函数（优化版本）
@@ -107,8 +118,45 @@ build_service_optimized() {
     # 将服务名称转换为小写用于Docker镜像标签
     local service_lower=$(echo "$service" | tr '[:upper:]' '[:lower:]')
     
-    # 使用Docker BuildKit来优化构建
-    DOCKER_BUILDKIT=1 docker build -t ${service_lower}:${VERSION} .
+    # 拉取基础镜像（支持多个镜像源）
+    echo -e "${BLUE}  拉取基础镜像...${NC}"
+    local image_pulled=false
+    
+    # 首先尝试官方镜像
+    if docker pull ${BASE_IMAGE} 2>/dev/null; then
+        echo -e "${GREEN}  成功拉取官方镜像: ${BASE_IMAGE}${NC}"
+        image_pulled=true
+    else
+        echo -e "${YELLOW}  官方镜像拉取失败，尝试国内镜像源...${NC}"
+        
+        # 尝试备用镜像源
+        for fallback_image in "${FALLBACK_IMAGES[@]}"; do
+            echo -e "${BLUE}  尝试镜像源: $fallback_image${NC}"
+            if docker pull "$fallback_image" 2>/dev/null; then
+                echo -e "${GREEN}  成功拉取镜像: $fallback_image${NC}"
+                # 给镜像打标签，使其与Dockerfile中的名称一致
+                docker tag "$fallback_image" "${BASE_IMAGE}"
+                image_pulled=true
+                break
+            fi
+        done
+    fi
+    
+    if [ "$image_pulled" = false ]; then
+        echo -e "${RED}  无法拉取任何基础镜像，请检查网络连接或手动拉取${NC}"
+        echo -e "${YELLOW}  可以尝试以下命令手动拉取:${NC}"
+        echo -e "${BLUE}    docker pull openjdk:17-jre-slim${NC}"
+        echo -e "${BLUE}    或者使用国内镜像源:${NC}"
+        for fallback_image in "${FALLBACK_IMAGES[@]}"; do
+            echo -e "${BLUE}    docker pull $fallback_image${NC}"
+        done
+        echo -e "${YELLOW}  拉取成功后重新运行构建脚本${NC}"
+        cd ..
+        return 1
+    fi
+    
+    echo -e "${BLUE}  构建Docker镜像...${NC}"
+    DOCKER_BUILDKIT=1 docker build --network=host --timeout=600 -t ${service_lower}:${VERSION} .
     
     if [ "$should_tag" = true ]; then
         # 标签到远程仓库
@@ -124,6 +172,43 @@ build_service_optimized() {
     
     echo -e "${GREEN}${service} 处理完成${NC}"
     cd ..
+}
+
+# 网络检查函数
+check_network() {
+    echo -e "${YELLOW}检查网络连接状态...${NC}"
+    
+    # 检查Docker是否运行
+    if ! docker info >/dev/null 2>&1; then
+        echo -e "${RED}Docker未运行或无法连接${NC}"
+        return 1
+    fi
+    
+    echo -e "${GREEN}Docker运行正常${NC}"
+    
+    # 测试官方镜像源
+    echo -e "${BLUE}测试官方镜像源...${NC}"
+    if timeout 10 docker pull hello-world:latest >/dev/null 2>&1; then
+        echo -e "${GREEN}官方镜像源连接正常${NC}"
+    else
+        echo -e "${YELLOW}官方镜像源连接较慢或失败${NC}"
+    fi
+    
+    # 测试国内镜像源
+    echo -e "${BLUE}测试国内镜像源...${NC}"
+    for fallback_image in "${FALLBACK_IMAGES[@]}"; do
+        echo -e "${BLUE}测试: $fallback_image${NC}"
+        if timeout 10 docker pull hello-world:latest >/dev/null 2>&1; then
+            echo -e "${GREEN}镜像源连接正常: $fallback_image${NC}"
+        else
+            echo -e "${YELLOW}镜像源连接较慢: $fallback_image${NC}"
+        fi
+    done
+    
+    # 清理测试镜像
+    docker rmi hello-world:latest >/dev/null 2>&1 || true
+    
+    echo -e "${GREEN}网络检查完成${NC}"
 }
 
 # 清理镜像函数
@@ -194,6 +279,9 @@ main() {
             ;;
         "clean")
             clean_images
+            ;;
+        "network")
+            check_network
             ;;
         "help"|*)
             show_help
