@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y \
 # 复制JAR文件
 COPY target/chat-agent-*.jar app.jar
 
-# 创建非root用户
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN chown -R appuser:appuser /app
+# 创建非root用户并设置home目录
+RUN groupadd -r appuser && useradd -r -g appuser -m -d /home/appuser appuser
+RUN chown -R appuser:appuser /app /home/appuser
 USER appuser
 
 # 暴露端口
