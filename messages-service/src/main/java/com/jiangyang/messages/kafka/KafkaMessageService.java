@@ -1,7 +1,7 @@
 package com.jiangyang.messages.kafka;
 
 import com.jiangyang.messages.service.MessageService;
-import com.jiangyang.messages.utils.MessageServiceType;
+import com.jiangyang.messages.consume.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;

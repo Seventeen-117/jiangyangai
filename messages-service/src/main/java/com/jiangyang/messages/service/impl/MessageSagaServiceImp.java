@@ -3,7 +3,7 @@ package com.jiangyang.messages.service.impl;
 import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.saga.MessageSagaStateMachine;
 import com.jiangyang.messages.service.MessageSagaService;
-import com.jiangyang.messages.utils.MessageServiceType;
+import com.jiangyang.messages.consume.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

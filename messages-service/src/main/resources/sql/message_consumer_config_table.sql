@@ -55,3 +55,42 @@ INSERT INTO `message_consumer_config` (
 -- RabbitMQ 推模式 + 集群消费 + 并发消费
 ('inventory-service', 'inventory-001', 'RABBITMQ', 'PUSH', 'CLUSTERING', 'CONCURRENT',
  'inventory_queue', NULL, 'inventory-consumer-group', 'inventory_exchange', 'inventory.update', 1, '库存服务消费库存更新消息');
+INSERT INTO message_consumer_config (
+    service_name,
+    instance_id,
+    message_queue_type,
+    consume_mode,
+    consume_type,
+    consume_order,
+    topic,
+    tag,
+    consumer_group,
+    enabled,
+    batch_size,
+    max_retry_times,
+    timeout,
+    description,
+    create_time,
+    update_time,
+    create_by,
+    update_by
+) VALUES (
+             'bgai-service',                    -- 服务名称
+             'bgai-instance-001',              -- 服务实例ID
+             'ROCKETMQ',                       -- 消息中间件类型
+             'PUSH',                           -- 消费模式：推模式
+             'CLUSTERING',                     -- 消费类型：集群消费
+             'CONCURRENT',                     -- 顺序性：并发消费
+             'bgai-events',                    -- 主题名称
+             'user-action',                    -- 标签
+             'bgai-consumer-group',            -- 消费组名称
+             true,                             -- 是否启用
+             10,                               -- 批量消费大小
+             3,                                -- 最大重试次数
+             5000,                             -- 超时时间（毫秒）
+             'bgai-service用户行为事件消费配置', -- 配置描述
+             NOW(),                            -- 创建时间
+             NOW(),                            -- 更新时间
+             'system',                         -- 创建人
+             'system'                          -- 更新人
+         );

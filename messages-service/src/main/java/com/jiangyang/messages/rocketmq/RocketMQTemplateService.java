@@ -1,7 +1,7 @@
 package com.jiangyang.messages.rocketmq;
 
 import com.jiangyang.messages.service.MessageService;
-import com.jiangyang.messages.utils.MessageServiceType;
+import com.jiangyang.messages.consume.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -12,7 +12,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;

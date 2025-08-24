@@ -1,7 +1,7 @@
 package com.jiangyang.messages.rocketmq;
 
 import com.jiangyang.messages.service.MessageService;
-import com.jiangyang.messages.utils.MessageServiceType;
+import com.jiangyang.messages.consume.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
@@ -34,6 +34,9 @@ public class RocketMQMessageService implements MessageService {
     private DefaultMQProducer producer;
     private final ConcurrentHashMap<String, AtomicInteger> retryCountMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> messageDedupMap = new ConcurrentHashMap<>();
+    
+    // 事务消息发送器
+    private TransactionMessageProducer transactionMessageProducer;
 
     public void init() {
         try {
@@ -343,6 +346,13 @@ public class RocketMQMessageService implements MessageService {
             producer.setSendMsgTimeout(sendMsgTimeout);
         }
     }
+    
+    /**
+     * 设置事务消息发送器
+     */
+    public void setTransactionMessageProducer(TransactionMessageProducer transactionMessageProducer) {
+        this.transactionMessageProducer = transactionMessageProducer;
+    }
 
     /**
      * 获取Name Server地址
@@ -372,6 +382,8 @@ public class RocketMQMessageService implements MessageService {
         return maxRetryTimes;
     }
 
+
+
     @Override
     public boolean sendTransactionMessage(String topic, String tag, String messageBody, 
                                        String transactionId, String businessKey, int timeout) {
@@ -379,28 +391,10 @@ public class RocketMQMessageService implements MessageService {
             log.info("发送RocketMQ事务消息: topic={}, tag={}, transactionId={}, businessKey={}, timeout={}", 
                     topic, tag, transactionId, businessKey, timeout);
             
-            // 创建事务消息
-            Message message = new Message(topic, tag, businessKey, messageBody.getBytes(StandardCharsets.UTF_8));
-            
-            // 设置事务相关属性
-            message.putUserProperty("transactionId", transactionId);
-            message.putUserProperty("businessKey", businessKey);
-            message.putUserProperty("messageType", "TRANSACTION");
-            
-            // 使用事务发送器发送消息
-            // 注意：这里需要配置TransactionMQProducer来支持真正的事务消息
-            // 目前先使用普通发送器，后续可以扩展为TransactionMQProducer
-            SendResult sendResult = producer.send(message);
-            
-            if (sendResult.getSendStatus().name().equals("SEND_OK")) {
-                log.info("RocketMQ事务消息发送成功: topic={}, tag={}, transactionId={}, msgId={}", 
-                        topic, tag, transactionId, sendResult.getMsgId());
-                return true;
-            } else {
-                log.error("RocketMQ事务消息发送失败: topic={}, tag={}, transactionId={}, status={}", 
-                        topic, tag, transactionId, sendResult.getSendStatus());
-                return false;
-            }
+            // 使用真正的事务消息发送器
+            return transactionMessageProducer.sendTransactionMessage(topic, tag, messageBody, 
+                    transactionId, businessKey, timeout);
+                    
         } catch (Exception e) {
             log.error("RocketMQ事务消息发送异常: topic={}, tag={}, transactionId={}, error={}", 
                     topic, tag, transactionId, e.getMessage(), e);

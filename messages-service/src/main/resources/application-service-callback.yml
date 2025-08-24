@@ -1,0 +1,41 @@
+# 服务回调地址配置示例
+# 将此配置添加到 application.yml 或 application-{profile}.yml 中
+
+messages:
+  service:
+    callback:
+      # 方式1：直接配置完整的回调地址
+      urls:
+        bgai-service: "http://localhost:8688/api/messages/consume"
+        signature-service: "http://localhost:8689/api/messages/consume"
+        deepsearch-service: "http://localhost:8690/api/messages/consume"
+        gateway-service: "http://localhost:8080/api/messages/consume"
+        user-service: "http://localhost:8082/api/messages/consume"
+        order-service: "http://localhost:8083/api/messages/consume"
+        payment-service: "http://localhost:8084/api/messages/consume"
+      
+      # 方式2：配置主机和端口，使用模板动态构建
+      hosts:
+        bgai-service: "localhost"
+        signature-service: "localhost"
+        deepsearch-service: "localhost"
+        gateway-service: "localhost"
+        user-service: "localhost"
+        order-service: "localhost"
+        payment-service: "localhost"
+      
+      ports:
+        bgai-service: 8688
+        signature-service: 8689
+        deepsearch-service: 8690
+        gateway-service: 8080
+        user-service: 8082
+        order-service: 8083
+        payment-service: 8084
+      
+      # 自定义回调地址模板（可选）
+      default-template: "http://{host}:{port}/api/messages/consume"
+      
+      # 也可以配置其他模板
+      # default-template: "http://{host}:{port}/api/v1/messages/consume"
+      # default-template: "https://{host}:{port}/callback/messages"

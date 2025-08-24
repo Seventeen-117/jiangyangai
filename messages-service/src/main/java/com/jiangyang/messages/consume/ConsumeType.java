@@ -1,4 +1,4 @@
-package com.jiangyang.messages.utils;
+package com.jiangyang.messages.consume;
 
 /**
  * 消费类型枚举

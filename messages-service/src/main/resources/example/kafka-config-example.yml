@@ -1,0 +1,132 @@
+# Kafka配置示例
+# 将此配置添加到 application.yml 或 application-{profile}.yml 中
+
+kafka:
+  # 基础连接配置
+  bootstrap-servers:
+    servers: "localhost:9092"
+  
+  # 安全配置
+  security:
+    protocol: "PLAINTEXT"
+    sasl:
+      mechanism: "PLAIN"
+      username: ""
+      password: ""
+  
+  # 消费者配置
+  consumer:
+    # 基础配置
+    group-id: "default-consumer-group"
+    client-id: "default-consumer-client"
+    enable-auto-commit: false
+    auto-commit-interval: 1000
+    session-timeout: 30000
+    heartbeat-interval: 10000
+    request-timeout: 40000
+    retry-backoff: 1000
+    max-poll-interval: 300000
+    max-poll-records: 500
+    max-poll-bytes: 52428800  # 50MB
+    connections-max-idle-ms: 540000
+    metadata-max-age-ms: 300000
+    reconnect-backoff-ms: 50
+    reconnect-backoff-max-ms: 1000
+    retry-backoff-max-ms: 1000
+    partition-assignment-strategy: "org.apache.kafka.clients.consumer.RangeAssignor"
+    key-deserializer: "org.apache.kafka.common.serialization.StringDeserializer"
+    value-deserializer: "org.apache.kafka.common.serialization.StringDeserializer"
+    
+    # 消费组配置
+    protocol: "range"
+    rebalance-timeout-ms: 60000
+    coordinator-address: ""
+    group-enabled: true
+    
+    # 偏移量管理配置
+    auto-offset-reset: "latest"
+    commit-timeout-ms: 5000
+    commit-retry-count: 3
+    commit-retry-interval-ms: 1000
+    enable-offset-cache: true
+    offset-cache-size: 1000
+    offset-cache-expire-ms: 300000  # 5分钟
+    
+    # 批量消费配置
+    batch-enabled: true
+    batch-size: 100
+    batch-timeout-ms: 1000
+    batch-thread-pool-size: 4
+    batch-queue-size: 1000
+    batch-strategy: "FIXED_SIZE"  # FIXED_SIZE, TIME_BASED, HYBRID
+    batch-max-wait-time-ms: 5000
+    
+    # 顺序消费配置
+    order-enabled: false
+    order-partition-count: 1
+    order-thread-count: 1
+    order-timeout-ms: 30000
+    order-retry-count: 3
+    order-retry-interval-ms: 1000
+    order-strategy: "PARTITION_BASED"  # PARTITION_BASED, KEY_BASED, TIMESTAMP_BASED
+    
+    # 重试配置
+    retry-enabled: true
+    max-retries: 3
+    retry-interval-ms: 1000
+    retry-backoff-strategy: "EXPONENTIAL"  # FIXED, EXPONENTIAL, LINEAR
+    retry-backoff-multiplier: 2.0
+    max-retry-interval-ms: 60000
+    retryable-exceptions:
+      - "org.apache.kafka.common.errors.RetriableException"
+      - "java.net.SocketTimeoutException"
+      - "java.net.ConnectException"
+  
+  # 生产者配置
+  producer:
+    bootstrap-servers: "localhost:9092"
+    key-serializer: "org.apache.kafka.common.serialization.StringSerializer"
+    value-serializer: "org.apache.kafka.common.serialization.StringSerializer"
+    acks: "all"
+    retries: 3
+    batch-size: 16384
+    linger-ms: 1
+    buffer-memory: 33554432
+  
+  # 主题配置
+  topics:
+    default-topic: "default-topic"
+    dlq: "dlq-topic"
+    retry: "retry-topic"
+  
+  # 消费配置
+  consume:
+    default-mode: "PUSH"
+    default-type: "CLUSTERING"
+    default-order: "CONCURRENT"
+    default-batch-size: 100
+    default-max-retry: 3
+    default-timeout: 30000
+
+# 使用说明：
+# 1. 基础配置：配置Kafka服务器连接和基本参数
+# 2. 消费者配置：包含各种消费方式的详细配置
+# 3. 生产者配置：配置消息发送相关参数
+# 4. 主题配置：配置默认主题和特殊主题
+# 5. 消费配置：配置默认的消费行为
+
+# 支持的消费方式：
+# - CLUSTER: 集群消费，同组消费者分担消息
+# - BROADCAST: 广播消费，不同消费组独立消费
+# - ORDERLY: 顺序消费，确保分区内消息顺序
+# - BATCH: 批量消费，提高消费效率
+
+# 支持的偏移量管理：
+# - 自动提交：enable-auto-commit: true
+# - 手动提交：enable-auto-commit: false
+# - 偏移量重置：earliest, latest, none
+
+# 支持的重试策略：
+# - FIXED: 固定间隔重试
+# - EXPONENTIAL: 指数退避重试
+# - LINEAR: 线性退避重试

@@ -1,0 +1,103 @@
+# RocketMQ事务消息配置示例
+# 将此配置添加到 application.yml 或 application-{profile}.yml 中
+
+rocketmq:
+  # NameServer地址配置
+  name-server: "localhost:9876"
+  
+  # 生产者配置
+  producer:
+    # 生产者组
+    group: "transaction-producer-group"
+    
+    # 事务消息配置
+    transaction:
+      # 事务超时时间（毫秒）
+      timeout: 3000
+      # 事务检查线程池最小线程数
+      check-thread-pool-min: 1
+      # 事务检查线程池最大线程数
+      check-thread-pool-max: 1
+      # 事务检查请求最大等待数
+      check-request-hold-max: 2000
+    
+    # 普通消息配置
+    message:
+      # 发送消息超时时间（毫秒）
+      send-timeout: 3000
+      # 同步重试次数
+      retry-sync-times: 2
+      # 异步重试次数
+      retry-async-times: 2
+
+# 事务消息业务配置示例
+messages:
+  transaction:
+    # 订单事务消息配置
+    order-transaction:
+      topic: "order-transaction-events"
+      tag: "order-commit"
+      business-key-prefix: "order_"
+      timeout: 5000
+      description: "订单提交事务消息，确保订单创建和库存扣减的原子性"
+      
+    # 支付事务消息配置
+    payment-transaction:
+      topic: "payment-transaction-events"
+      tag: "payment-process"
+      business-key-prefix: "payment_"
+      timeout: 10000
+      description: "支付处理事务消息，确保支付和订单状态更新的原子性"
+      
+    # 库存事务消息配置
+    inventory-transaction:
+      topic: "inventory-transaction-events"
+      tag: "inventory-deduct"
+      business-key-prefix: "inventory_"
+      timeout: 3000
+      description: "库存扣减事务消息，确保库存扣减和订单创建的原子性"
+
+# 本地事务执行器配置
+local-transaction:
+  # 订单事务执行器
+  order-executor:
+    class: "com.jiangyang.messages.transaction.OrderTransactionExecutor"
+    timeout: 5000
+    retry-times: 3
+    
+  # 支付事务执行器
+  payment-executor:
+    class: "com.jiangyang.messages.transaction.PaymentTransactionExecutor"
+    timeout: 10000
+    retry-times: 5
+    
+  # 库存事务执行器
+  inventory-executor:
+    class: "com.jiangyang.messages.transaction.InventoryTransactionExecutor"
+    timeout: 3000
+    retry-times: 3
+
+# 事务消息使用说明
+# 
+# 1. 事务消息流程：
+#    - 发送半事务消息到RocketMQ
+#    - 执行本地事务
+#    - 根据本地事务结果提交或回滚消息
+#    - RocketMQ定期回查本地事务状态
+# 
+# 2. 本地事务执行器：
+#    - 实现LocalTransactionExecutor接口
+#    - 提供executeLocalTransaction方法执行本地事务
+#    - 提供checkLocalTransactionState方法检查事务状态
+# 
+# 3. 事务消息特点：
+#    - 支持分布式事务
+#    - 保证消息和本地事务的一致性
+#    - 支持事务状态回查
+#    - 适用于订单、支付、库存等关键业务场景
+# 
+# 4. 配置要点：
+#    - 设置合适的事务超时时间
+#    - 配置事务检查线程池
+#    - 实现可靠的本地事务执行器
+#    - 处理事务状态回查逻辑

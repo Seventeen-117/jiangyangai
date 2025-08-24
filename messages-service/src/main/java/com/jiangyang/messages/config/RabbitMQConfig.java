@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 /**
  * RabbitMQ配置类
  * 读取application-rabbitmq.yml中的配置
+ * 所有配置都从配置文件读取，支持环境变量覆盖
  */
 @Data
 @Component
@@ -16,11 +17,11 @@ public class RabbitMQConfig {
     /**
      * 基础连接配置
      */
-    private String host = "localhost";
-    private int port = 5672;
-    private String username = "guest";
-    private String password = "guest";
-    private String virtualHost = "/";
+    private String host;
+    private Integer port;
+    private String username;
+    private String password;
+    private String virtualHost;
     
     /**
      * 连接池配置
@@ -74,84 +75,94 @@ public class RabbitMQConfig {
     
     @Data
     public static class Connection {
-        private int timeout = 30000;
-        private int heartbeat = 60;
-        private boolean automaticRecovery = true;
-        private int networkRecoveryInterval = 5000;
+        private Integer timeout;
+        private Integer heartbeat;
+        private Boolean automaticRecovery;
+        private Integer networkRecoveryInterval;
     }
     
     @Data
     public static class Consumer {
-        private String defaultMode = "PUSH";
-        private String defaultAckMode = "MANUAL";
-        private int prefetchCount = 1;
-        private int batchSize = 100;
-        private int consumeInterval = 1000;
-        private int maxRetryTimes = 3;
-        private int timeout = 30000;
+        private String defaultMode;
+        private String defaultAckMode;
+        private Integer prefetchCount;
+        private Integer batchSize;
+        private Integer consumeInterval;
+        private Integer maxRetryTimes;
+        private Integer timeout;
     }
     
     @Data
     public static class Producer {
-        private String confirmMode = "CORRELATED";
-        private String returnMode = "BASIC";
-        private int batchSize = 100;
-        private int timeout = 5000;
+        private String confirmMode;
+        private String returnMode;
+        private Integer batchSize;
+        private Integer timeout;
     }
     
     @Data
     public static class Queue {
-        private String defaultType = "CLASSIC";
-        private boolean durable = true;
-        private boolean exclusive = false;
-        private boolean autoDelete = false;
-        private int maxPriority = 10;
-        private int maxLength = 10000;
-        private long messageTtl = 86400000;
+        private String defaultType;
+        private Boolean durable;
+        private Boolean exclusive;
+        private Boolean autoDelete;
+        private Integer maxPriority;
+        private Integer maxLength;
+        private Long messageTtl;
     }
     
     @Data
     public static class Exchange {
-        private String defaultType = "DIRECT";
-        private boolean durable = true;
-        private boolean autoDelete = false;
-        private boolean internal = false;
+        private String defaultType;
+        private Boolean durable;
+        private Boolean autoDelete;
+        private Boolean internal;
     }
     
     @Data
     public static class DeadLetter {
-        private String exchangePrefix = "dlx.";
-        private String routingKeyPrefix = "dlq.";
-        private String queuePrefix = "dlq.";
-        private boolean enabled = true;
+        private String exchangePrefix;
+        private String routingKeyPrefix;
+        private String queuePrefix;
+        private Boolean enabled;
     }
     
     @Data
     public static class Delay {
-        private boolean enabled = true;
-        private String exchangePrefix = "delay.";
-        private String queuePrefix = "delay.";
-        private long defaultTtl = 30000;
+        private Boolean enabled;
+        private String exchangePrefix;
+        private String queuePrefix;
+        private Long defaultTtl;
     }
     
     @Data
     public static class Priority {
-        private boolean enabled = true;
-        private int maxPriority = 10;
-        private int defaultPriority = 5;
+        private Boolean enabled;
+        private Integer maxPriority;
+        private Integer defaultPriority;
     }
     
     @Data
     public static class Cluster {
-        private boolean enabled = false;
-        private String[] nodes = {};
-        private String loadBalance = "ROUND_ROBIN";
+        private Boolean enabled;
+        private String nodes; // 从配置文件读取为逗号分隔的字符串
+        private String loadBalance;
+        
+        /**
+         * 获取集群节点数组
+         */
+        public String[] getNodesArray() {
+            if (nodes == null || nodes.trim().isEmpty()) {
+                return new String[0];
+            }
+            return nodes.split(",");
+        }
     }
     
     @Data
     public static class Monitoring {
-        private boolean enabled = true;
-        private int interval = 30;
-        private boolean verboseLogging = false;
+        private Boolean enabled;
+        private Integer interval;
+        private Boolean verboseLogging;
     }
 }

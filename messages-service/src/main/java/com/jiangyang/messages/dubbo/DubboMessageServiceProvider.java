@@ -1,20 +1,14 @@
 package com.jiangyang.messages.dubbo;
 
 import com.jiangyang.dubbo.api.messages.MessageService;
-import com.jiangyang.messages.utils.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 // Add explicit imports for nested DTOs inside MessageService
-import com.jiangyang.dubbo.api.messages.MessageService.MessageResult;
-import com.jiangyang.dubbo.api.messages.MessageService.BatchMessageResult;
-import com.jiangyang.dubbo.api.messages.MessageService.MessageStatus;
-import com.jiangyang.dubbo.api.messages.MessageService.HealthStatus;
+
 
 /**
  * Dubbo消息服务提供者

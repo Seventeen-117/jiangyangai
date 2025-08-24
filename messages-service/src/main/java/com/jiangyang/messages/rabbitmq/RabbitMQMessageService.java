@@ -1,7 +1,7 @@
 package com.jiangyang.messages.rabbitmq;
 
 import com.jiangyang.messages.service.MessageService;
-import com.jiangyang.messages.utils.MessageServiceType;
+import com.jiangyang.messages.consume.MessageServiceType;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;

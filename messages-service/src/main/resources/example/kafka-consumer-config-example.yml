@@ -1,0 +1,280 @@
+# Kafka消费者配置示例
+# 将此配置添加到 application.yml 或 application-{profile}.yml 中
+
+kafka:
+  consumer:
+    # 基础配置
+    basic:
+      # Kafka服务器地址
+      bootstrap-servers: "localhost:9092"
+      # 消费者组ID
+      group-id: "default-consumer-group"
+      # 消费者客户端ID
+      client-id: "default-consumer-client"
+      # 会话超时时间（毫秒）
+      session-timeout-ms: 30000
+      # 心跳间隔（毫秒）
+      heartbeat-interval-ms: 3000
+      # 拉取超时时间（毫秒）
+      poll-timeout-ms: 100
+      # 最大拉取记录数
+      max-poll-records: 500
+      # 最大拉取字节数
+      max-poll-bytes: 52428800
+      # 连接最大空闲时间（毫秒）
+      connections-max-idle-ms: 540000
+      # 请求超时时间（毫秒）
+      request-timeout-ms: 30000
+      # 元数据最大年龄（毫秒）
+      metadata-max-age-ms: 300000
+      # 重连退避时间（毫秒）
+      reconnect-backoff-ms: 50
+      # 重连退避最大时间（毫秒）
+      reconnect-backoff-max-ms: 1000
+      # 重试退避时间（毫秒）
+      retry-backoff-ms: 100
+      # 重试退避最大时间（毫秒）
+      retry-backoff-max-ms: 1000
+    
+    # 消费组配置
+    group:
+      # 消费组ID
+      id: "default-group"
+      # 消费组协议
+      protocol: "range"
+      # 消费组会话超时时间（毫秒）
+      session-timeout-ms: 30000
+      # 消费组心跳间隔（毫秒）
+      heartbeat-interval-ms: 3000
+      # 消费组再平衡超时时间（毫秒）
+      rebalance-timeout-ms: 60000
+      # 消费组最大轮询间隔（毫秒）
+      max-poll-interval-ms: 300000
+      # 消费组分区分配策略
+      partition-assignment-strategy: "org.apache.kafka.clients.consumer.RangeAssignor"
+      # 消费组协调器地址
+      coordinator-address: ""
+      # 是否启用消费组
+      enabled: true
+    
+    # 偏移量管理配置
+    offset:
+      # 是否启用自动提交
+      auto-commit: false
+      # 自动提交间隔（毫秒）
+      auto-commit-interval-ms: 5000
+      # 偏移量重置策略
+      auto-offset-reset: "latest"
+      # 偏移量提交超时时间（毫秒）
+      commit-timeout-ms: 5000
+      # 偏移量提交重试次数
+      commit-retry-count: 3
+      # 偏移量提交重试间隔（毫秒）
+      commit-retry-interval-ms: 1000
+      # 是否启用偏移量缓存
+      enable-offset-cache: true
+      # 偏移量缓存大小
+      offset-cache-size: 1000
+      # 偏移量缓存过期时间（毫秒）
+      offset-cache-expire-ms: 300000
+    
+    # 批量消费配置
+    batch:
+      # 是否启用批量消费
+      enabled: true
+      # 批量大小
+      size: 100
+      # 批量超时时间（毫秒）
+      timeout-ms: 1000
+      # 批量处理线程池大小
+      thread-pool-size: 4
+      # 批量处理队列大小
+      queue-size: 1000
+      # 批量处理策略
+      strategy: "FIXED_SIZE"
+      # 批量处理最大等待时间（毫秒）
+      max-wait-time-ms: 5000
+    
+    # 顺序消费配置
+    order:
+      # 是否启用顺序消费
+      enabled: false
+      # 顺序消费分区数
+      partition-count: 1
+      # 顺序消费线程数
+      thread-count: 1
+      # 顺序消费超时时间（毫秒）
+      timeout-ms: 30000
+      # 顺序消费重试次数
+      retry-count: 3
+      # 顺序消费重试间隔（毫秒）
+      retry-interval-ms: 1000
+      # 顺序消费策略
+      strategy: "PARTITION_BASED"
+    
+    # 重试配置
+    retry:
+      # 是否启用重试
+      enabled: true
+      # 最大重试次数
+      max-retries: 3
+      # 重试间隔（毫秒）
+      interval-ms: 1000
+      # 重试退避策略
+      backoff-strategy: "EXPONENTIAL"
+      # 重试退避乘数
+      backoff-multiplier: 2.0
+      # 最大重试间隔（毫秒）
+      max-retry-interval-ms: 60000
+      # 重试异常类型
+      retryable-exceptions:
+        - "org.apache.kafka.common.errors.RetriableException"
+        - "java.net.SocketTimeoutException"
+        - "java.net.ConnectException"
+
+# 消费者使用示例配置
+consumers:
+  # 订单消费者配置
+  order-consumer:
+    # 集群消费配置
+    cluster:
+      topic: "order-events"
+      group-id: "order-processing-group"
+      message-handler: "order"
+      description: "订单处理集群消费者，同组消费者分担消息，每条消息仅被消费一次"
+    
+    # 广播消费配置
+    broadcast:
+      topic: "order-events"
+      group-id: "order-notification-group"
+      message-handler: "notification"
+      description: "订单通知广播消费者，不同消费组独立消费，同一条消息被所有消费组消费"
+    
+    # 顺序消费配置
+    orderly:
+      topic: "order-status-events"
+      group-id: "order-status-group"
+      message-handler: "order"
+      description: "订单状态顺序消费者，基于分区的顺序消费，确保订单状态变更的顺序性"
+    
+    # 批量消费配置
+    batch:
+      topic: "order-batch-events"
+      group-id: "order-batch-group"
+      batch-handler: "order"
+      description: "订单批量消费者，批量拉取和处理订单消息，提高处理效率"
+  
+  # 支付消费者配置
+  payment-consumer:
+    # 集群消费配置
+    cluster:
+      topic: "payment-events"
+      group-id: "payment-processing-group"
+      message-handler: "payment"
+      description: "支付处理集群消费者，同组消费者分担消息，每条消息仅被消费一次"
+    
+    # 广播消费配置
+    broadcast:
+      topic: "payment-events"
+      group-id: "payment-notification-group"
+      message-handler: "notification"
+      description: "支付通知广播消费者，不同消费组独立消费，同一条消息被所有消费组消费"
+    
+    # 顺序消费配置
+    orderly:
+      topic: "payment-status-events"
+      group-id: "payment-status-group"
+      message-handler: "payment"
+      description: "支付状态顺序消费者，基于分区的顺序消费，确保支付状态变更的顺序性"
+    
+    # 批量消费配置
+    batch:
+      topic: "payment-batch-events"
+      group-id: "payment-batch-group"
+      batch-handler: "payment"
+      description: "支付批量消费者，批量拉取和处理支付消息，提高处理效率"
+  
+  # 库存消费者配置
+  inventory-consumer:
+    # 集群消费配置
+    cluster:
+      topic: "inventory-events"
+      group-id: "inventory-processing-group"
+      message-handler: "inventory"
+      description: "库存处理集群消费者，同组消费者分担消息，每条消息仅被消费一次"
+    
+    # 广播消费配置
+    broadcast:
+      topic: "inventory-events"
+      group-id: "inventory-notification-group"
+      message-handler: "notification"
+      description: "库存通知广播消费者，不同消费组独立消费，同一条消息被所有消费组消费"
+    
+    # 顺序消费配置
+    orderly:
+      topic: "inventory-status-events"
+      group-id: "inventory-status-group"
+      message-handler: "inventory"
+      description: "库存状态顺序消费者，基于分区的顺序消费，确保库存状态变更的顺序性"
+    
+    # 批量消费配置
+    batch:
+      topic: "inventory-batch-events"
+      group-id: "inventory-batch-group"
+      batch-handler: "inventory"
+      description: "库存批量消费者，批量拉取和处理库存消息，提高处理效率"
+  
+  # 日志消费者配置
+  log-consumer:
+    # 集群消费配置
+    cluster:
+      topic: "application-logs"
+      group-id: "log-processing-group"
+      message-handler: "log"
+      description: "日志处理集群消费者，同组消费者分担消息，每条消息仅被消费一次"
+    
+    # 广播消费配置
+    broadcast:
+      topic: "application-logs"
+      group-id: "log-notification-group"
+      message-handler: "notification"
+      description: "日志通知广播消费者，不同消费组独立消费，同一条消息被所有消费组消费"
+    
+    # 批量消费配置
+    batch:
+      topic: "application-logs-batch"
+      group-id: "log-batch-group"
+      batch-handler: "log"
+      description: "日志批量消费者，批量拉取和处理日志消息，提高处理效率"
+
+# 消费者类型说明
+# 
+# 1. 集群消费（CLUSTER）：
+#    - 同组消费者分担消息，每条消息仅被消费一次
+#    - 适用于订单、支付、库存等核心业务
+#    - 支持负载均衡和故障转移
+# 
+# 2. 广播消费（BROADCAST）：
+#    - 不同消费组独立消费，同一条消息被所有消费组消费
+#    - 适用于配置更新、全量通知
+#    - 每个消费者实例都有独立的消费组
+# 
+# 3. 顺序消费（ORDERLY）：
+#    - 基于分区或消息键的顺序消费
+#    - 适用于订单状态变更等有状态依赖场景
+#    - 保证分区内消息的顺序性
+# 
+# 4. 批量消费（BATCH）：
+#    - 批量拉取和处理消息
+#    - 适用于日志、监控数据等大批量场景
+#    - 提高处理效率和吞吐量
+# 
+# 5. 偏移量管理：
+#    - 自动提交：简单但可靠性低
+#    - 手动提交：可靠，确保消息处理成功后提交
+#    - 支持同步和异步提交
+# 
+# 6. 重试机制：
+#    - 支持固定间隔、线性退避、指数退避
+#    - 可配置重试次数和最大重试间隔
+#    - 支持自定义重试异常类型

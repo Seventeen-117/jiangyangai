@@ -1,0 +1,159 @@
+# RocketMQ消费者配置示例
+# 将此配置添加到 application.yml 或 application-{profile}.yml 中
+
+rocketmq:
+  # NameServer地址配置
+  name-server: "localhost:9876"
+  
+  # 消费者配置
+  consumer:
+    # 推模式消费者配置
+    push:
+      # 最小消费线程数
+      consume-thread-min: 20
+      # 最大消费线程数
+      consume-thread-max: 64
+      # 消费超时时间（分钟）
+      consume-timeout: 15
+      # 拉取批量大小
+      pull-batch-size: 32
+      # 消费批量大小
+      consume-message-batch-max-size: 32
+      # 最大重试次数
+      max-reconsume-times: 16
+      # 队列挂起时间（毫秒）
+      suspend-current-queue-time-millis: 1000
+    
+    # 拉模式消费者配置
+    pull:
+      # 拉取间隔（毫秒）
+      pull-interval: 1000
+      # 拉取批量大小
+      pull-batch-size: 32
+      # 拉取超时时间（毫秒）
+      pull-timeout: 3000
+
+# 消息消费配置示例
+messages:
+  consumer:
+    # 用户行为事件消费配置（推模式 + 集群消费 + 并发消费）
+    user-action-consumer:
+      service-name: "bgai-service"
+      instance-id: "bgai-instance-001"
+      message-queue-type: "ROCKETMQ"
+      consume-mode: "PUSH"           # 推模式：Broker主动推送，简化开发
+      consume-type: "CLUSTERING"     # 集群消费：同组消费者分担消息，仅消费一次
+      consume-order: "CONCURRENT"    # 并发消费：多线程处理，不保证顺序
+      topic: "user-action-events"
+      tag: "user-action"
+      consumer-group: "bgai-user-action-group"
+      enabled: true
+      batch-size: 10
+      max-retry-times: 3
+      timeout: 5000
+      description: "用户行为事件消费配置，适用于对顺序无要求的场景"
+    
+    # 订单状态变更消费配置（推模式 + 集群消费 + 顺序消费）
+    order-status-consumer:
+      service-name: "order-service"
+      instance-id: "order-instance-001"
+      message-queue-type: "ROCKETMQ"
+      consume-mode: "PUSH"           # 推模式：Broker主动推送，简化开发
+      consume-type: "CLUSTERING"     # 集群消费：同组消费者分担消息，仅消费一次
+      consume-order: "ORDERLY"       # 顺序消费：单线程处理队列，严格保证顺序
+      topic: "order-status-events"
+      tag: "order-status"
+      consumer-group: "order-status-group"
+      enabled: true
+      batch-size: 1                  # 顺序消费时批量大小设为1
+      max-retry-times: 5
+      timeout: 10000
+      description: "订单状态变更消费配置，适用于有状态依赖的场景"
+    
+    # 系统配置更新消费配置（推模式 + 广播消费 + 并发消费）
+    system-config-consumer:
+      service-name: "config-service"
+      instance-id: "config-instance-001"
+      message-queue-type: "ROCKETMQ"
+      consume-mode: "PUSH"           # 推模式：Broker主动推送，简化开发
+      consume-type: "BROADCASTING"   # 广播消费：同组所有消费者均消费，重复处理
+      consume-order: "CONCURRENT"    # 并发消费：多线程处理，不保证顺序
+      topic: "system-config-events"
+      tag: "config-update"
+      consumer-group: "system-config-group"
+      enabled: true
+      batch-size: 5
+      max-retry-times: 2
+      timeout: 3000
+      description: "系统配置更新消费配置，适用于配置更新、全量通知"
+    
+    # 批量数据处理消费配置（拉模式 + 集群消费 + 并发消费）
+    batch-data-consumer:
+      service-name: "data-processor"
+      instance-id: "data-processor-instance-001"
+      message-queue-type: "ROCKETMQ"
+      consume-mode: "PULL"           # 拉模式：消费者主动拉取，灵活控制节奏
+      consume-type: "CLUSTERING"     # 集群消费：同组消费者分担消息，仅消费一次
+      consume-order: "CONCURRENT"    # 并发消费：多线程处理，不保证顺序
+      topic: "batch-data-events"
+      tag: "data-processing"
+      consumer-group: "batch-data-group"
+      enabled: true
+      batch-size: 100                # 拉模式支持更大的批量
+      max-retry-times: 3
+      timeout: 30000
+      description: "批量数据处理消费配置，适用于批量处理、流量控制"
+    
+    # 高优先级消息消费配置（推模式 + 集群消费 + 顺序消费）
+    high-priority-consumer:
+      service-name: "priority-service"
+      instance-id: "priority-instance-001"
+      message-queue-type: "ROCKETMQ"
+      consume-mode: "PUSH"           # 推模式：Broker主动推送，简化开发
+      consume-type: "CLUSTERING"     # 集群消费：同组消费者分担消息，仅消费一次
+      consume-order: "ORDERLY"       # 顺序消费：单线程处理队列，严格保证顺序
+      topic: "high-priority-events"
+      tag: "urgent"
+      consumer-group: "high-priority-group"
+      enabled: true
+      batch-size: 1                  # 高优先级消息单条处理
+      max-retry-times: 10            # 高优先级消息增加重试次数
+      timeout: 5000
+      description: "高优先级消息消费配置，适用于紧急通知、重要业务"
+
+# 消费模式说明
+# PUSH（推模式）：
+#   - Broker主动推送消息给消费者
+#   - 简化开发，自动管理连接和心跳
+#   - 适用于常规业务消费
+#   - 支持集群消费和广播消费
+#   - 支持顺序消费和并发消费
+
+# PULL（拉模式）：
+#   - 消费者主动从Broker拉取消息
+#   - 灵活控制消费节奏和批量大小
+#   - 适用于批量处理、流量控制
+#   - 支持集群消费
+#   - 支持顺序消费和并发消费
+
+# 消费类型说明
+# CLUSTERING（集群消费）：
+#   - 同组消费者分担消息，每条消息仅被消费一次
+#   - 适用于订单、库存等核心业务
+#   - 支持负载均衡和故障转移
+
+# BROADCASTING（广播消费）：
+#   - 同组所有消费者均消费，每条消息被重复处理
+#   - 适用于配置更新、全量通知
+#   - 每个消费者实例都有独立的消费组
+
+# 顺序性说明
+# CONCURRENT（并发消费）：
+#   - 多线程处理，不保证消息顺序
+#   - 适用于对顺序无要求的场景
+#   - 性能较高，吞吐量大
+
+# ORDERLY（顺序消费）：
+#   - 单线程处理队列，严格保证消息顺序
+#   - 适用于订单状态变更等有状态依赖场景
+#   - 性能较低，但保证顺序性

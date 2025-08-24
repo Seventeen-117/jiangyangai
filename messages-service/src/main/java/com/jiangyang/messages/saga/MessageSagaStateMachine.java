@@ -5,7 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.service.WebSocketService;
-import com.jiangyang.messages.utils.MessageServiceType;
+import com.jiangyang.messages.consume.MessageServiceType;
 import com.jiangyang.messages.audit.entity.MessageLifecycleLog;
 import com.jiangyang.messages.audit.entity.BusinessTraceLog;
 import com.jiangyang.messages.audit.service.AuditLogService;
@@ -13,9 +13,6 @@ import com.jiangyang.messages.audit.entity.TransactionAuditLog;
 import com.jiangyang.messages.audit.service.MessageLifecycleService;
 import com.jiangyang.messages.audit.service.TransactionAuditService;
 import com.jiangyang.messages.config.MessageServiceConfig;
-import com.jiangyang.messages.rocketmq.RocketMQTemplateService;
-import com.jiangyang.messages.kafka.KafkaMessageService;
-import com.jiangyang.messages.rabbitmq.RabbitMQMessageService;
 import com.jiangyang.messages.saga.entity.MessageSagaLog;
 import com.jiangyang.messages.saga.service.MessageSagaLogService;
 import com.jiangyang.messages.service.TransactionEventSenderService;
@@ -328,7 +325,7 @@ public class MessageSagaStateMachine {
             lifecycleLog.setStageEndTime(LocalDateTime.now());
             lifecycleLog.setProcessingTime(System.currentTimeMillis() - lifecycleLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             messageLifecycleService.updateById(lifecycleLog);
-            
+
             // 5.1 完成业务轨迹（发送阶段）
             try {
                 if (auditLogService != null) {
@@ -359,8 +356,8 @@ public class MessageSagaStateMachine {
             
             // 更新失败状态
             try {
-                updateSagaLogStatus(messageId, "FAILED", e.getMessage());
-                updateLifecycleLogStatus(messageId, "FAILED", e.getMessage());
+            updateSagaLogStatus(messageId, "FAILED", e.getMessage());
+            updateLifecycleLogStatus(messageId, "FAILED", e.getMessage());
             } catch (Exception updateError) {
                 log.error("更新失败状态失败: messageId={}, error={}", messageId, updateError.getMessage());
             }

@@ -1,7 +1,7 @@
 package com.jiangyang.messages.service;
 
 import com.jiangyang.base.datasource.annotation.DataSource;
-import com.jiangyang.messages.utils.MessageServiceType;
+import com.jiangyang.messages.consume.MessageServiceType;
 
 /**
  * 消息服务接口
