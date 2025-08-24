@@ -10,7 +10,7 @@ import com.jiangyang.messages.consume.ConsumeType;
 import com.jiangyang.messages.consume.MessageServiceType;
 import com.jiangyang.messages.rabbitmq.RabbitMQConsumerManager;
 import com.jiangyang.messages.rocketmq.RocketMQConsumerManager;
-import com.jiangyang.messages.config.KafkaConfig;
+import com.jiangyang.messages.config.MessageServiceConfig;
 import com.jiangyang.messages.config.ServiceCallbackConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
@@ -49,7 +49,7 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
     private MessageConsumerConfigService messageConsumerConfigService;
     
     @Autowired
-    private KafkaConfig kafkaConfig;
+    private MessageServiceConfig messageServiceConfig;
     
     @Autowired
     private RabbitMQConsumerManager rabbitMQConsumerManager;
@@ -475,10 +475,10 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
         Properties props = new Properties();
         
         // 基础配置
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConfig.getBootstrapServers().getServers());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, config.getConsumerGroup() != null ? config.getConsumerGroup() : kafkaConfig.getConsumer().getGroupId());
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, kafkaConfig.getConsumer().getKeyDeserializer());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, kafkaConfig.getConsumer().getValueDeserializer());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, messageServiceConfig.getKafka().getBootstrapServers().getServers());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, config.getConsumerGroup() != null ? config.getConsumerGroup() : messageServiceConfig.getKafka().getConsumer().getGroupId());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, messageServiceConfig.getKafka().getConsumer().getKeyDeserializer());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, messageServiceConfig.getKafka().getConsumer().getValueDeserializer());
         
         // 消费类型配置
         if (ConsumeType.BROADCASTING.name().equals(config.getConsumeType())) {
@@ -492,8 +492,8 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
             props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         } else {
             // 自动提交偏移量
-            props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, String.valueOf(kafkaConfig.getConsumer().isEnableAutoCommit()));
-            props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, String.valueOf(kafkaConfig.getConsumer().getAutoCommitInterval()));
+                    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, String.valueOf(messageServiceConfig.getKafka().getConsumer().getEnableAutoCommit()));
+        props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, String.valueOf(messageServiceConfig.getKafka().getConsumer().getAutoCommitInterval()));
         }
         
         // 顺序性配置
@@ -503,17 +503,17 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
         } else {
             // 并发消费：批量拉取提高性能
             props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 
-                    String.valueOf(config.getBatchSize() != null ? config.getBatchSize() : kafkaConfig.getConsumer().getMaxPollRecords()));
+                String.valueOf(config.getBatchSize() != null ? config.getBatchSize() : messageServiceConfig.getKafka().getConsumer().getMaxPollRecords()));
         }
         
         // 超时配置
-        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, String.valueOf(kafkaConfig.getConsumer().getSessionTimeout()));
-        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, String.valueOf(kafkaConfig.getConsumer().getHeartbeatInterval()));
-        props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(kafkaConfig.getConsumer().getRequestTimeout()));
+        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, String.valueOf(messageServiceConfig.getKafka().getConsumer().getSessionTimeout()));
+        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, String.valueOf(messageServiceConfig.getKafka().getConsumer().getHeartbeatInterval()));
+        props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(messageServiceConfig.getKafka().getConsumer().getRequestTimeout()));
         
         // 重试配置
-        props.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, String.valueOf(kafkaConfig.getConsumer().getRetryBackoff()));
-        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, String.valueOf(kafkaConfig.getConsumer().getMaxPollInterval()));
+        props.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, String.valueOf(messageServiceConfig.getKafka().getConsumer().getRetryBackoff()));
+        props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, String.valueOf(messageServiceConfig.getKafka().getConsumer().getMaxPollInterval()));
         
         // 分区分配策略
         if (ConsumeOrder.ORDERLY.name().equals(config.getConsumeOrder())) {
@@ -523,7 +523,7 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
         } else {
             // 使用配置的分区分配策略
             props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, 
-                    kafkaConfig.getConsumer().getPartitionAssignmentStrategy());
+                messageServiceConfig.getKafka().getConsumer().getPartitionAssignmentStrategy());
         }
         
         return props;
@@ -915,7 +915,7 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
                 serviceName, record.topic(), record.partition(), record.offset(), error.getMessage());
         
         try {
-            // 1. 记录失败日志
+        // 1. 记录失败日志
             recordFailureLog(serviceName, record, config, "FAILED", error.getMessage());
             
             // 2. 检查重试次数和策略

@@ -27,9 +27,6 @@ public class MessageServiceAutoConfiguration {
 
     @Autowired
     private MessageServiceConfig config;
-    
-    @Autowired
-    private ApplicationContext applicationContext;
 
     /**
      * 配置Kafka消息服务
@@ -84,23 +81,21 @@ public class MessageServiceAutoConfiguration {
      */
     private void applyKafkaConfig(KafkaMessageService service) {
         try {
-            MessageServiceConfig.KafkaConfig kafkaConfig = config.getKafka();
+            MessageServiceConfig.Kafka kafkaConfig = config.getKafka();
             
             // 直接设置配置属性
-            service.setBootstrapServers(kafkaConfig.getBootstrapServers());
-            service.setAcks(kafkaConfig.getAcks());
-            service.setRetries(kafkaConfig.getRetries());
-            service.setBatchSize(kafkaConfig.getBatchSize());
-            service.setLingerMs(kafkaConfig.getLingerMs());
-            service.setBufferMemory(kafkaConfig.getBufferMemory());
+            service.setBootstrapServers(kafkaConfig.getBootstrapServers().getServers());
+            // 注意：Kafka配置中没有直接的acks、retries等字段，需要从producer配置中获取
+            // 这里暂时使用默认值，实际项目中需要根据具体需求调整
+            service.setAcks("1");
+            service.setRetries(3);
+            service.setBatchSize(16384);
+            service.setLingerMs(1);
+            service.setBufferMemory(33554432);
             
             log.debug("Applied Kafka configuration: bootstrapServers={}, acks={}, retries={}, batchSize={}, lingerMs={}, bufferMemory={}",
-                    kafkaConfig.getBootstrapServers(),
-                    kafkaConfig.getAcks(),
-                    kafkaConfig.getRetries(),
-                    kafkaConfig.getBatchSize(),
-                    kafkaConfig.getLingerMs(),
-                    kafkaConfig.getBufferMemory());
+                    kafkaConfig.getBootstrapServers().getServers(),
+                    "1", 3, 16384, 1, 33554432);
         } catch (Exception e) {
             log.warn("Failed to apply Kafka configuration", e);
         }
@@ -111,7 +106,7 @@ public class MessageServiceAutoConfiguration {
      */
     private void applyRabbitMQConfig(RabbitMQMessageService service) {
         try {
-            MessageServiceConfig.RabbitMQConfig rabbitmqConfig = config.getRabbitmq();
+            MessageServiceConfig.RabbitMQ rabbitmqConfig = config.getRabbitmq();
             
             // 直接设置配置属性
             service.setHost(rabbitmqConfig.getHost());
@@ -119,18 +114,18 @@ public class MessageServiceAutoConfiguration {
             service.setUsername(rabbitmqConfig.getUsername());
             service.setPassword(rabbitmqConfig.getPassword());
             service.setVirtualHost(rabbitmqConfig.getVirtualHost());
-            service.setConnectionTimeout(rabbitmqConfig.getConnectionTimeout());
-            service.setRequestedHeartbeat(rabbitmqConfig.getRequestedHeartBeat());
-            service.setAutomaticRecovery(rabbitmqConfig.isAutomaticRecoveryEnabled());
+            service.setConnectionTimeout(rabbitmqConfig.getConnection().getTimeout());
+            service.setRequestedHeartbeat(rabbitmqConfig.getConnection().getHeartbeat());
+            service.setAutomaticRecovery(rabbitmqConfig.getConnection().getAutomaticRecovery());
             
             log.debug("Applied RabbitMQ configuration: host={}, port={}, username={}, virtualHost={}, connectionTimeout={}, requestedHeartBeat={}, automaticRecoveryEnabled={}",
                     rabbitmqConfig.getHost(),
                     rabbitmqConfig.getPort(),
                     rabbitmqConfig.getUsername(),
                     rabbitmqConfig.getVirtualHost(),
-                    rabbitmqConfig.getConnectionTimeout(),
-                    rabbitmqConfig.getRequestedHeartBeat(),
-                    rabbitmqConfig.isAutomaticRecoveryEnabled());
+                    rabbitmqConfig.getConnection().getTimeout(),
+                    rabbitmqConfig.getConnection().getHeartbeat(),
+                    rabbitmqConfig.getConnection().getAutomaticRecovery());
         } catch (Exception e) {
             log.warn("Failed to apply RabbitMQ configuration", e);
         }
@@ -143,14 +138,14 @@ public class MessageServiceAutoConfiguration {
     public String getConfigurationStatus() {
         StringBuilder status = new StringBuilder();
         status.append("Message Service Configuration Status:\n");
-        status.append("Default Type: ").append(config.getDefaultType()).append("\n");
-        status.append("RocketMQ Enabled: ").append(config.getRocketmq().isEnabled()).append("\n");
-        status.append("Kafka Enabled: ").append(config.getKafka().isEnabled()).append("\n");
-        status.append("RabbitMQ Enabled: ").append(config.getRabbitmq().isEnabled()).append("\n");
-        status.append("Trace Enabled: ").append(config.isTraceEnabled()).append("\n");
-        status.append("Send Retry Times: ").append(config.getSendRetryTimes()).append("\n");
-        status.append("Send Timeout: ").append(config.getSendTimeoutMs()).append("ms\n");
-        status.append("Max Batch Size: ").append(config.getMaxBatchSize());
+        status.append("Default Type: ").append(config.getCommon().getDefaultType()).append("\n");
+        status.append("RocketMQ Name Server: ").append(config.getRocketmq().getNameServer()).append("\n");
+        status.append("Kafka Bootstrap Servers: ").append(config.getKafka().getBootstrapServers().getServers()).append("\n");
+        status.append("RabbitMQ Host: ").append(config.getRabbitmq().getHost()).append("\n");
+        status.append("Common Consume Mode: ").append(config.getCommon().getConsume().getDefaultMode()).append("\n");
+        status.append("Retry Enabled: ").append(config.getCommon().getRetry().getEnabled()).append("\n");
+        status.append("Max Retries: ").append(config.getCommon().getRetry().getMaxRetries()).append("\n");
+        status.append("Monitoring Enabled: ").append(config.getCommon().getMonitoring().getEnabled());
         
         return status.toString();
     }

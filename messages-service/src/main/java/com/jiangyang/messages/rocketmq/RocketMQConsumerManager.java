@@ -125,9 +125,9 @@ public class RocketMQConsumerManager {
         // 订阅主题和标签
         if (tag != null && !tag.trim().isEmpty()) {
             consumer.subscribe(topic, tag);
-        } else {
-            consumer.subscribe(topic, "*");
-        }
+            } else {
+                consumer.subscribe(topic, "*");
+            }
 
         // 启动消费者
         consumer.start();
@@ -158,10 +158,10 @@ public class RocketMQConsumerManager {
         // 设置消费者实例名称
         if (config.getInstanceId() != null) {
             consumer.setInstanceName(config.getInstanceId());
-        }
+            }
 
-        // 启动消费者
-        consumer.start();
+            // 启动消费者
+            consumer.start();
         
         log.info("拉模式消费者创建成功: serviceName={}, consumerGroup={}, topic={}", 
                 serviceName, consumerGroup, topic);
@@ -247,8 +247,8 @@ public class RocketMQConsumerManager {
                 try {
                     return !f.get();
                 } catch (Exception e) {
-                    return true;
-                }
+            return true;
+        }
             });
             
             if (hasFailure) {
@@ -409,7 +409,7 @@ public class RocketMQConsumerManager {
                 
                 log.info("消费者已关闭: serviceName={}", serviceName);
                 
-            } catch (Exception e) {
+        } catch (Exception e) {
                 log.error("关闭消费者失败: serviceName={}, error={}", serviceName, e.getMessage(), e);
             }
         }
@@ -473,7 +473,7 @@ public class RocketMQConsumerManager {
             return System.currentTimeMillis() - startTime;
         }
     }
-
+    
     /**
      * 基于配置的消费者接口
      */
@@ -538,7 +538,7 @@ public class RocketMQConsumerManager {
                 try {
                     consumer.shutdown();
                     log.info("推模式消费者已关闭: serviceName={}", config.getServiceName());
-                } catch (Exception e) {
+        } catch (Exception e) {
                     log.error("关闭推模式消费者失败: serviceName={}, error={}", 
                             config.getServiceName(), e.getMessage(), e);
                 }

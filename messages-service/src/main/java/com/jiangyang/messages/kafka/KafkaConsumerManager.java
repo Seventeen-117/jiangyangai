@@ -1,6 +1,6 @@
 package com.jiangyang.messages.kafka;
 
-import com.jiangyang.messages.config.KafkaConfig;
+import com.jiangyang.messages.config.MessageServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 public class KafkaConsumerManager {
 
     @Autowired
-    private KafkaConfig config;
+    private MessageServiceConfig config;
 
     /**
      * 消费者映射：consumerId -> consumer
@@ -52,7 +52,8 @@ public class KafkaConsumerManager {
      * 批量处理线程池
      */
     private final ExecutorService batchExecutor = Executors.newFixedThreadPool(
-            config.getConsumer().getBatchThreadPoolSize(),
+            config.getKafka().getConsumer().getBatchThreadPoolSize() != null ? 
+            config.getKafka().getConsumer().getBatchThreadPoolSize() : 4,
             r -> new Thread(r, "kafka-batch-processor")
     );
 
@@ -60,7 +61,8 @@ public class KafkaConsumerManager {
      * 顺序消费线程池
      */
     private final ExecutorService orderlyExecutor = Executors.newFixedThreadPool(
-            config.getConsumer().getOrderThreadCount(),
+            config.getKafka().getConsumer().getOrderThreadCount() != null ? 
+            config.getKafka().getConsumer().getOrderThreadCount() : 1,
             r -> new Thread(r, "kafka-orderly-processor")
     );
 
@@ -119,7 +121,7 @@ public class KafkaConsumerManager {
         
         try {
             // 获取集群消费配置
-            Map<String, Object> props = config.getConsumerProperties(KafkaConfig.ConsumerType.CLUSTER);
+            Map<String, Object> props = config.getKafka().getConsumerProperties(MessageServiceConfig.Kafka.ConsumerType.CLUSTER);
             props.put("group.id", groupId);
             
             // 创建消费者
@@ -150,7 +152,7 @@ public class KafkaConsumerManager {
         
         try {
             // 获取广播消费配置
-            Map<String, Object> props = config.getConsumerProperties(KafkaConfig.ConsumerType.BROADCAST);
+            Map<String, Object> props = config.getKafka().getConsumerProperties(MessageServiceConfig.Kafka.ConsumerType.BROADCAST);
             props.put("group.id", groupId);
             
             // 创建消费者
@@ -181,7 +183,7 @@ public class KafkaConsumerManager {
         
         try {
             // 获取顺序消费配置
-            Map<String, Object> props = config.getConsumerProperties(KafkaConfig.ConsumerType.ORDERLY);
+            Map<String, Object> props = config.getKafka().getConsumerProperties(MessageServiceConfig.Kafka.ConsumerType.ORDERLY);
             props.put("group.id", groupId);
             
             // 创建消费者
@@ -212,7 +214,7 @@ public class KafkaConsumerManager {
         
         try {
             // 获取批量消费配置
-            Map<String, Object> props = config.getConsumerProperties(KafkaConfig.ConsumerType.BATCH);
+            Map<String, Object> props = config.getKafka().getConsumerProperties(MessageServiceConfig.Kafka.ConsumerType.BATCH);
             props.put("group.id", groupId);
             
             // 创建消费者
@@ -262,7 +264,7 @@ public class KafkaConsumerManager {
                                     messageHandler.accept(record);
                                     
                                     // 手动提交偏移量（集群消费）
-                                    if (!config.getConsumer().isEnableAutoCommit()) {
+                                    if (!config.getKafka().getConsumer().getEnableAutoCommit()) {
                                         commitOffset(consumerId, consumer, record);
                                     }
                                     
@@ -387,7 +389,8 @@ public class KafkaConsumerManager {
                                 batchRecords.add(record);
                                 
                                 // 达到批量大小或超时时处理
-                                if (batchRecords.size() >= config.getConsumer().getBatchSize()) {
+                                if (batchRecords.size() >= (config.getKafka().getConsumer().getBatchSize() != null ? 
+                                    config.getKafka().getConsumer().getBatchSize() : 100)) {
                                     processBatch(consumerId, consumer, batchRecords, batchHandler);
                                     batchRecords.clear();
                                 }
@@ -431,7 +434,7 @@ public class KafkaConsumerManager {
             batchHandler.accept(batchRecords);
             
             // 批量提交偏移量
-            if (!config.getConsumer().isEnableAutoCommit()) {
+            if (!config.getKafka().getConsumer().getEnableAutoCommit()) {
                 commitBatchOffset(consumerId, consumer, batchRecords);
             }
             
@@ -508,7 +511,8 @@ public class KafkaConsumerManager {
     private void handleMessageError(String consumerId, KafkaConsumer<String, String> consumer,
                                   ConsumerRecord<String, String> record, Exception error) {
         // 实现重试机制
-        if (config.getConsumer().isRetryEnabled()) {
+        if (config.getKafka().getConsumer().getRetryEnabled() != null && 
+            config.getKafka().getConsumer().getRetryEnabled()) {
             // TODO: 实现重试逻辑
             log.warn("消息处理失败，将进行重试: consumerId={}, topic={}, partition={}, offset={}",
                     consumerId, record.topic(), record.partition(), record.offset());
@@ -521,7 +525,8 @@ public class KafkaConsumerManager {
     private void handleBatchError(String consumerId, KafkaConsumer<String, String> consumer,
                                 List<ConsumerRecord<String, String>> batchRecords, Exception error) {
         // 实现批量重试机制
-        if (config.getConsumer().isRetryEnabled()) {
+        if (config.getKafka().getConsumer().getRetryEnabled() != null && 
+            config.getKafka().getConsumer().getRetryEnabled()) {
             // TODO: 实现批量重试逻辑
             log.warn("批量消息处理失败，将进行重试: consumerId={}, batchSize={}",
                     consumerId, batchRecords.size());

@@ -611,8 +611,8 @@ public class MessageSagaStateMachine {
             // 3.3 存储消息到ES
             if (elasticsearchMessageService != null && elasticsearchMessageService.isESAvailable()) {
                 try {
-                    String messageType = messageServiceConfig.getDefaultMessageType();
-                    String topic = messageServiceConfig.getDefaultTopic();
+                    String messageType = messageServiceConfig.getCommon().getDefaultMessageType();
+                    String topic = messageServiceConfig.getCommon().getDefaultTopic();
                     
                     boolean esStoreResult = elasticsearchMessageService.storeMessageToES(
                         messageId, content, messageType, topic);
@@ -1043,8 +1043,8 @@ public class MessageSagaStateMachine {
         log.setId(IdUtil.getSnowflakeNextId());
         log.setMessageId(messageId);
         log.setBusinessMessageId(messageId);
-        log.setMessageType(messageServiceConfig.getDefaultMessageType());
-        log.setTopic(messageServiceConfig.getDefaultTopic());
+                    log.setMessageType(messageServiceConfig.getCommon().getDefaultMessageType());
+            log.setTopic(messageServiceConfig.getCommon().getDefaultTopic());
         log.setLifecycleStage(stage);
         log.setStageStatus(status);
         log.setProducerService("messages-service");
@@ -1518,7 +1518,7 @@ public class MessageSagaStateMachine {
         try {
             // 使用TransactionEventSenderService的便捷方法
             transactionEventSenderService.sendMessageSendEvent(
-                globalTransactionId, transactionId, "messages-service", "message", messageId, messageServiceConfig.getDefaultMessageType());
+                globalTransactionId, transactionId, "messages-service", "message", messageId, messageServiceConfig.getCommon().getDefaultMessageType());
 
             log.debug("消息发送事件已发送: messageId={}, transactionId={}", messageId, transactionId);
         } catch (Exception e) {
@@ -1534,7 +1534,7 @@ public class MessageSagaStateMachine {
         try {
             // 使用TransactionEventSenderService的便捷方法
             transactionEventSenderService.sendMessageConsumeEvent(
-                globalTransactionId, transactionId, "messages-service", "message", messageId, messageServiceConfig.getDefaultMessageType());
+                globalTransactionId, transactionId, "messages-service", "message", messageId, messageServiceConfig.getCommon().getDefaultMessageType());
             
             log.debug("消息消费事件已发送: messageId={}, transactionId={}", messageId, transactionId);
         } catch (Exception e) {

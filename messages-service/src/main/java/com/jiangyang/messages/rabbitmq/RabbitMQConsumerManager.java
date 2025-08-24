@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.jiangyang.messages.service.MessageListener;
 import com.jiangyang.messages.utils.MessageServiceException;
 import com.jiangyang.messages.entity.MessageConsumerConfig;
-import com.jiangyang.messages.config.RabbitMQConfig;
+import com.jiangyang.messages.config.MessageServiceConfig;
 import com.rabbitmq.client.*;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +69,7 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
     private RabbitConsumerProperties rabbitProps;
     
     @Autowired(required = false)
-    private RabbitMQConfig rabbitMQConfig;
+    private MessageServiceConfig messageServiceConfig;
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -305,7 +305,7 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
      */
     public ConfigBasedConsumer createConfigBasedConsumer(MessageConsumerConfig config) {
         String consumerKey = config.getServiceName() + "_" + config.getTopic();
-        ConfigBasedConsumer consumer = new ConfigBasedConsumer(config, rabbitMQConfig);
+        ConfigBasedConsumer consumer = new ConfigBasedConsumer(config, messageServiceConfig);
         configBasedConsumers.put(consumerKey, consumer);
         return consumer;
     }
@@ -391,7 +391,7 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
      */
     public static class ConfigBasedConsumer {
         private final MessageConsumerConfig config;
-        private final RabbitMQConfig rabbitMQConfig;
+        private final MessageServiceConfig messageServiceConfig;
         
         private Connection connection;
         private Channel channel;
@@ -399,9 +399,9 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
         private final AtomicBoolean stopFlag;
         private String consumerTag;
 
-        public ConfigBasedConsumer(MessageConsumerConfig config, RabbitMQConfig rabbitMQConfig) {
+        public ConfigBasedConsumer(MessageConsumerConfig config, MessageServiceConfig messageServiceConfig) {
             this.config = config;
-            this.rabbitMQConfig = rabbitMQConfig;
+            this.messageServiceConfig = messageServiceConfig;
             this.stopFlag = new AtomicBoolean(false);
         }
 
@@ -424,7 +424,7 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
                 if (config.getBatchSize() != null && config.getBatchSize() > 0) {
                     channel.basicQos(config.getBatchSize());
                 } else {
-                    channel.basicQos(rabbitMQConfig.getConsumer().getPrefetchCount());
+                    channel.basicQos(messageServiceConfig.getRabbitmq().getConsumer().getPrefetchCount());
                 }
                 
                 // 定义消息处理回调
@@ -521,7 +521,7 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
                             }
                         } else {
                             // 没有消息时等待一段时间
-                            Thread.sleep(rabbitMQConfig.getConsumer().getConsumeInterval());
+                            Thread.sleep(messageServiceConfig.getRabbitmq().getConsumer().getConsumeInterval());
                         }
                         
                     } catch (Exception e) {
@@ -541,22 +541,22 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
          */
         private void establishConnection() throws Exception {
             ConnectionFactory factory = new ConnectionFactory();
-            factory.setHost(rabbitMQConfig.getHost());
-            factory.setPort(rabbitMQConfig.getPort());
-            factory.setUsername(rabbitMQConfig.getUsername());
-            factory.setPassword(rabbitMQConfig.getPassword());
-            factory.setVirtualHost(rabbitMQConfig.getVirtualHost());
-            factory.setConnectionTimeout(rabbitMQConfig.getConnection().getTimeout());
-            factory.setRequestedHeartbeat(rabbitMQConfig.getConnection().getHeartbeat());
-            factory.setAutomaticRecoveryEnabled(rabbitMQConfig.getConnection().isAutomaticRecovery());
-            factory.setNetworkRecoveryInterval(rabbitMQConfig.getConnection().getNetworkRecoveryInterval());
+            factory.setHost(messageServiceConfig.getRabbitmq().getHost());
+            factory.setPort(messageServiceConfig.getRabbitmq().getPort());
+            factory.setUsername(messageServiceConfig.getRabbitmq().getUsername());
+            factory.setPassword(messageServiceConfig.getRabbitmq().getPassword());
+            factory.setVirtualHost(messageServiceConfig.getRabbitmq().getVirtualHost());
+            factory.setConnectionTimeout(messageServiceConfig.getRabbitmq().getConnection().getTimeout());
+            factory.setRequestedHeartbeat(messageServiceConfig.getRabbitmq().getConnection().getHeartbeat());
+            factory.setAutomaticRecoveryEnabled(messageServiceConfig.getRabbitmq().getConnection().getAutomaticRecovery());
+            factory.setNetworkRecoveryInterval(messageServiceConfig.getRabbitmq().getConnection().getNetworkRecoveryInterval());
 
             connection = factory.newConnection();
             channel = connection.createChannel();
             channel.confirmSelect(); // 启用发布确认
 
             log.info("RabbitMQ连接建立成功: serviceName={}, host={}, port={}, virtualHost={}",
-                    config.getServiceName(), rabbitMQConfig.getHost(), rabbitMQConfig.getPort(), rabbitMQConfig.getVirtualHost());
+                    config.getServiceName(), messageServiceConfig.getRabbitmq().getHost(), messageServiceConfig.getRabbitmq().getPort(), messageServiceConfig.getRabbitmq().getVirtualHost());
         }
 
         /**
@@ -567,9 +567,9 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
             if (config.getExchange() != null && !config.getExchange().isEmpty()) {
                 channel.exchangeDeclare(
                     config.getExchange(), 
-                    rabbitMQConfig.getExchange().getDefaultType(), 
-                    rabbitMQConfig.getExchange().isDurable(), 
-                    rabbitMQConfig.getExchange().isAutoDelete(), 
+                    messageServiceConfig.getRabbitmq().getExchange().getDefaultType(), 
+                    messageServiceConfig.getRabbitmq().getExchange().getDurable(), 
+                    messageServiceConfig.getRabbitmq().getExchange().getAutoDelete(), 
                     null
                 );
                 log.info("交换机声明成功: exchange={}", config.getExchange());
@@ -579,9 +579,9 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
             Map<String, Object> queueArgs = new HashMap<>();
             
             // 配置死信队列（如果配置了）
-            if (rabbitMQConfig.getDeadLetter().isEnabled() && config.getMaxRetryTimes() != null && config.getMaxRetryTimes() > 0) {
-                queueArgs.put("x-dead-letter-exchange", rabbitMQConfig.getDeadLetter().getExchangePrefix() + config.getExchange());
-                queueArgs.put("x-dead-letter-routing-key", rabbitMQConfig.getDeadLetter().getRoutingKeyPrefix() + config.getRoutingKey());
+            if (messageServiceConfig.getRabbitmq().getDeadLetter().getEnabled() && config.getMaxRetryTimes() != null && config.getMaxRetryTimes() > 0) {
+                queueArgs.put("x-dead-letter-exchange", messageServiceConfig.getRabbitmq().getDeadLetter().getExchangePrefix() + config.getExchange());
+                queueArgs.put("x-dead-letter-routing-key", messageServiceConfig.getRabbitmq().getDeadLetter().getRoutingKeyPrefix() + config.getRoutingKey());
             }
             
             // 配置消息TTL（如果配置了）
@@ -590,21 +590,21 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
             }
             
             // 配置优先级（如果配置了）
-            if (rabbitMQConfig.getPriority().isEnabled() && 
+            if (messageServiceConfig.getRabbitmq().getPriority().getEnabled() && 
                 config.getConsumeOrder() != null && "PRIORITY".equals(config.getConsumeOrder())) {
-                queueArgs.put("x-max-priority", rabbitMQConfig.getPriority().getMaxPriority());
+                queueArgs.put("x-max-priority", messageServiceConfig.getRabbitmq().getPriority().getMaxPriority());
             }
             
             // 配置队列长度限制
-            if (rabbitMQConfig.getQueue().getMaxLength() > 0) {
-                queueArgs.put("x-max-length", rabbitMQConfig.getQueue().getMaxLength());
+            if (messageServiceConfig.getRabbitmq().getQueue().getMaxLength() > 0) {
+                queueArgs.put("x-max-length", messageServiceConfig.getRabbitmq().getQueue().getMaxLength());
             }
             
             channel.queueDeclare(
                 config.getTopic(), 
-                rabbitMQConfig.getQueue().isDurable(), 
-                rabbitMQConfig.getQueue().isExclusive(), 
-                rabbitMQConfig.getQueue().isAutoDelete(), 
+                messageServiceConfig.getRabbitmq().getQueue().getDurable(), 
+                messageServiceConfig.getRabbitmq().getQueue().getExclusive(), 
+                messageServiceConfig.getRabbitmq().getQueue().getAutoDelete(), 
                 queueArgs
             );
             log.info("队列声明成功: queue={}, args={}", config.getTopic(), queueArgs);

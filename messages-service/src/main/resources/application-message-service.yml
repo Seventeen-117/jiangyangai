@@ -1,0 +1,283 @@
+# 消息服务统一配置文件
+# 所有配置都从环境变量或配置文件读取，避免硬编码
+message:
+  service:
+    # 通用消息服务配置
+    common:
+      # 默认消息服务类型
+      default-type: ${MESSAGE_SERVICE_DEFAULT_TYPE:rocketmq}
+      # 默认消息类型
+      default-message-type: ${MESSAGE_SERVICE_DEFAULT_MESSAGE_TYPE:normal}
+      # 默认主题
+      default-topic: ${MESSAGE_SERVICE_DEFAULT_TOPIC:default-topic}
+      
+      # 消息发送配置
+      send:
+        async-enabled: ${MESSAGE_SERVICE_SEND_ASYNC_ENABLED:true}
+        max-retries: ${MESSAGE_SERVICE_SEND_MAX_RETRIES:3}
+        retry-interval: ${MESSAGE_SERVICE_SEND_RETRY_INTERVAL:1000}
+        confirm-enabled: ${MESSAGE_SERVICE_SEND_CONFIRM_ENABLED:true}
+        confirm-timeout: ${MESSAGE_SERVICE_SEND_CONFIRM_TIMEOUT:5000}
+      
+      # 消息消费配置
+      consume:
+        default-mode: ${MESSAGE_SERVICE_CONSUME_DEFAULT_MODE:PUSH}
+        default-type: ${MESSAGE_SERVICE_CONSUME_DEFAULT_TYPE:CLUSTERING}
+        default-order: ${MESSAGE_SERVICE_CONSUME_DEFAULT_ORDER:CONCURRENT}
+        max-concurrency: ${MESSAGE_SERVICE_CONSUME_MAX_CONCURRENCY:10}
+        batch-size: ${MESSAGE_SERVICE_CONSUME_BATCH_SIZE:100}
+        timeout: ${MESSAGE_SERVICE_CONSUME_TIMEOUT:30000}
+      
+      # 重试配置
+      retry:
+        enabled: ${MESSAGE_SERVICE_RETRY_ENABLED:true}
+        max-retries: ${MESSAGE_SERVICE_RETRY_MAX_RETRIES:3}
+        retry-interval: ${MESSAGE_SERVICE_RETRY_INTERVAL:1000}
+        backoff-strategy: ${MESSAGE_SERVICE_RETRY_BACKOFF_STRATEGY:EXPONENTIAL}
+        backoff-multiplier: ${MESSAGE_SERVICE_RETRY_BACKOFF_MULTIPLIER:2.0}
+        max-retry-interval: ${MESSAGE_SERVICE_RETRY_MAX_RETRY_INTERVAL:60000}
+      
+      # 监控配置
+      monitoring:
+        enabled: ${MESSAGE_SERVICE_MONITORING_ENABLED:true}
+        interval: ${MESSAGE_SERVICE_MONITORING_INTERVAL:30}
+        verbose-logging: ${MESSAGE_SERVICE_MONITORING_VERBOSE_LOGGING:false}
+        metrics-backend: ${MESSAGE_SERVICE_MONITORING_METRICS_BACKEND:prometheus}
+    
+    # Kafka配置
+    kafka:
+      # 是否启用Kafka服务
+      enabled: ${KAFKA_ENABLED:true}
+      
+      # 基础连接配置
+      bootstrap-servers:
+        servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      
+      # 安全配置
+      security:
+        protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+        sasl:
+          mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+          username: ${KAFKA_SASL_USERNAME:}
+          password: ${KAFKA_SASL_PASSWORD:}
+      
+      # 消费者配置
+      consumer:
+        # 基础配置
+        group-id: ${KAFKA_CONSUMER_GROUP_ID:default-consumer-group}
+        client-id: ${KAFKA_CONSUMER_CLIENT_ID:default-consumer-client}
+        enable-auto-commit: ${KAFKA_CONSUMER_ENABLE_AUTO_COMMIT:false}
+        auto-commit-interval: ${KAFKA_CONSUMER_AUTO_COMMIT_INTERVAL:1000}
+        session-timeout: ${KAFKA_CONSUMER_SESSION_TIMEOUT:30000}
+        heartbeat-interval: ${KAFKA_CONSUMER_HEARTBEAT_INTERVAL:10000}
+        request-timeout: ${KAFKA_CONSUMER_REQUEST_TIMEOUT:40000}
+        retry-backoff: ${KAFKA_CONSUMER_RETRY_BACKOFF:1000}
+        max-poll-interval: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL:300000}
+        max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:500}
+        max-poll-bytes: ${KAFKA_CONSUMER_MAX_POLL_BYTES:52428800}
+        connections-max-idle-ms: ${KAFKA_CONSUMER_CONNECTIONS_MAX_IDLE_MS:540000}
+        metadata-max-age-ms: ${KAFKA_CONSUMER_METADATA_MAX_AGE_MS:300000}
+        reconnect-backoff-ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MS:50}
+        reconnect-backoff-max-ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS:1000}
+        retry-backoff-max-ms: ${KAFKA_CONSUMER_RETRY_BACKOFF_MAX_MS:1000}
+        partition-assignment-strategy: ${KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY:org.apache.kafka.clients.consumer.RangeAssignor}
+        key-deserializer: ${KAFKA_CONSUMER_KEY_DESERIALIZER:org.apache.kafka.common.serialization.StringDeserializer}
+        value-deserializer: ${KAFKA_CONSUMER_VALUE_DESERIALIZER:org.apache.kafka.common.serialization.StringDeserializer}
+        
+        # 消费组配置
+        protocol: ${KAFKA_CONSUMER_GROUP_PROTOCOL:range}
+        rebalance-timeout-ms: ${KAFKA_CONSUMER_REBALANCE_TIMEOUT_MS:60000}
+        coordinator-address: ${KAFKA_CONSUMER_COORDINATOR_ADDRESS:}
+        group-enabled: ${KAFKA_CONSUMER_GROUP_ENABLED:true}
+        
+        # 偏移量管理配置
+        auto-offset-reset: ${KAFKA_CONSUMER_AUTO_OFFSET_RESET:latest}
+        commit-timeout-ms: ${KAFKA_CONSUMER_COMMIT_TIMEOUT_MS:5000}
+        commit-retry-count: ${KAFKA_CONSUMER_COMMIT_RETRY_COUNT:3}
+        commit-retry-interval-ms: ${KAFKA_CONSUMER_COMMIT_RETRY_INTERVAL_MS:1000}
+        enable-offset-cache: ${KAFKA_CONSUMER_ENABLE_OFFSET_CACHE:true}
+        offset-cache-size: ${KAFKA_CONSUMER_OFFSET_CACHE_SIZE:1000}
+        offset-cache-expire-ms: ${KAFKA_CONSUMER_OFFSET_CACHE_EXPIRE_MS:300000}
+        
+        # 批量消费配置
+        batch-enabled: ${KAFKA_CONSUMER_BATCH_ENABLED:true}
+        batch-size: ${KAFKA_CONSUMER_BATCH_SIZE:100}
+        batch-timeout-ms: ${KAFKA_CONSUMER_BATCH_TIMEOUT_MS:1000}
+        batch-thread-pool-size: ${KAFKA_CONSUMER_BATCH_THREAD_POOL_SIZE:4}
+        batch-queue-size: ${KAFKA_CONSUMER_BATCH_QUEUE_SIZE:1000}
+        batch-strategy: ${KAFKA_CONSUMER_BATCH_STRATEGY:FIXED_SIZE}
+        batch-max-wait-time-ms: ${KAFKA_CONSUMER_BATCH_MAX_WAIT_TIME_MS:5000}
+        
+        # 顺序消费配置
+        order-enabled: ${KAFKA_CONSUMER_ORDER_ENABLED:false}
+        order-partition-count: ${KAFKA_CONSUMER_ORDER_PARTITION_COUNT:1}
+        order-thread-count: ${KAFKA_CONSUMER_ORDER_THREAD_COUNT:1}
+        order-timeout-ms: ${KAFKA_CONSUMER_ORDER_TIMEOUT_MS:30000}
+        order-retry-count: ${KAFKA_CONSUMER_ORDER_RETRY_COUNT:3}
+        order-retry-interval-ms: ${KAFKA_CONSUMER_ORDER_RETRY_INTERVAL_MS:1000}
+        order-strategy: ${KAFKA_CONSUMER_ORDER_STRATEGY:PARTITION_BASED}
+        
+        # 重试配置
+        retry-enabled: ${KAFKA_CONSUMER_RETRY_ENABLED:true}
+        max-retries: ${KAFKA_CONSUMER_MAX_RETRIES:3}
+        retry-interval-ms: ${KAFKA_CONSUMER_RETRY_INTERVAL_MS:1000}
+        retry-backoff-strategy: ${KAFKA_CONSUMER_RETRY_BACKOFF_STRATEGY:EXPONENTIAL}
+        retry-backoff-multiplier: ${KAFKA_CONSUMER_RETRY_BACKOFF_MULTIPLIER:2.0}
+        max-retry-interval-ms: ${KAFKA_CONSUMER_MAX_RETRY_INTERVAL_MS:60000}
+        retryable-exceptions: ${KAFKA_CONSUMER_RETRYABLE_EXCEPTIONS:org.apache.kafka.common.errors.RetriableException,java.net.SocketTimeoutException,java.net.ConnectException}
+      
+      # 生产者配置
+      producer:
+        bootstrap-servers: ${KAFKA_PRODUCER_BOOTSTRAP_SERVERS:localhost:9092}
+        key-serializer: ${KAFKA_PRODUCER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
+        value-serializer: ${KAFKA_PRODUCER_VALUE_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
+        acks: ${KAFKA_PRODUCER_ACKS:all}
+        retries: ${KAFKA_PRODUCER_RETRIES:3}
+        batch-size: ${KAFKA_PRODUCER_BATCH_SIZE:16384}
+        linger-ms: ${KAFKA_PRODUCER_LINGER_MS:1}
+        buffer-memory: ${KAFKA_PRODUCER_BUFFER_MEMORY:33554432}
+      
+      # 主题配置
+      topics:
+        default-topic: ${KAFKA_TOPICS_DEFAULT:default-topic}
+        dlq: ${KAFKA_TOPICS_DLQ:dlq-topic}
+        retry: ${KAFKA_TOPICS_RETRY:retry-topic}
+      
+      # 消费配置
+      consume:
+        default-mode: ${KAFKA_CONSUME_DEFAULT_MODE:PUSH}
+        default-type: ${KAFKA_CONSUME_DEFAULT_TYPE:CLUSTERING}
+        default-order: ${KAFKA_CONSUME_DEFAULT_ORDER:CONCURRENT}
+        default-batch-size: ${KAFKA_CONSUME_DEFAULT_BATCH_SIZE:100}
+        default-max-retry: ${KAFKA_CONSUME_DEFAULT_MAX_RETRY:3}
+        default-timeout: ${KAFKA_CONSUME_DEFAULT_TIMEOUT:30000}
+    
+    # RabbitMQ配置
+    rabbitmq:
+      # 是否启用RabbitMQ服务
+      enabled: ${RABBITMQ_ENABLED:true}
+      
+      # 基础连接配置
+      host: ${RABBITMQ_HOST:localhost}
+      port: ${RABBITMQ_PORT:5672}
+      username: ${RABBITMQ_USERNAME:guest}
+      password: ${RABBITMQ_PASSWORD:guest}
+      virtual-host: ${RABBITMQ_VIRTUAL_HOST:/}
+      
+      # 连接池配置
+      connection:
+        timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
+        heartbeat: ${RABBITMQ_CONNECTION_HEARTBEAT:60}
+        automatic-recovery: ${RABBITMQ_CONNECTION_AUTOMATIC_RECOVERY:true}
+        network-recovery-interval: ${RABBITMQ_CONNECTION_NETWORK_RECOVERY_INTERVAL:5000}
+      
+      # 消费者配置
+      consumer:
+        default-mode: ${RABBITMQ_CONSUMER_DEFAULT_MODE:PUSH}
+        default-ack-mode: ${RABBITMQ_CONSUMER_DEFAULT_ACK_MODE:MANUAL}
+        prefetch-count: ${RABBITMQ_CONSUMER_PREFETCH_COUNT:1}
+        batch-size: ${RABBITMQ_CONSUMER_BATCH_SIZE:100}
+        consume-interval: ${RABBITMQ_CONSUMER_CONSUME_INTERVAL:1000}
+        max-retry-times: ${RABBITMQ_CONSUMER_MAX_RETRY_TIMES:3}
+        timeout: ${RABBITMQ_CONSUMER_TIMEOUT:30000}
+      
+      # 生产者配置
+      producer:
+        confirm-mode: ${RABBITMQ_PRODUCER_CONFIRM_MODE:CORRELATED}
+        return-mode: ${RABBITMQ_PRODUCER_RETURN_MODE:BASIC}
+        batch-size: ${RABBITMQ_PRODUCER_BATCH_SIZE:100}
+        timeout: ${RABBITMQ_PRODUCER_TIMEOUT:5000}
+      
+      # 队列配置
+      queue:
+        default-type: ${RABBITMQ_QUEUE_DEFAULT_TYPE:CLASSIC}
+        durable: ${RABBITMQ_QUEUE_DURABLE:true}
+        exclusive: ${RABBITMQ_QUEUE_EXCLUSIVE:false}
+        auto-delete: ${RABBITMQ_QUEUE_AUTO_DELETE:false}
+        max-priority: ${RABBITMQ_QUEUE_MAX_PRIORITY:10}
+        max-length: ${RABBITMQ_QUEUE_MAX_LENGTH:10000}
+        message-ttl: ${RABBITMQ_QUEUE_MESSAGE_TTL:86400000}
+      
+      # 交换机配置
+      exchange:
+        default-type: ${RABBITMQ_EXCHANGE_DEFAULT_TYPE:DIRECT}
+        durable: ${RABBITMQ_EXCHANGE_DURABLE:true}
+        auto-delete: ${RABBITMQ_EXCHANGE_AUTO_DELETE:false}
+        internal: ${RABBITMQ_EXCHANGE_INTERNAL:false}
+      
+      # 死信队列配置
+      dead-letter:
+        exchange-prefix: ${RABBITMQ_DEAD_LETTER_EXCHANGE_PREFIX:dlx.}
+        routing-key-prefix: ${RABBITMQ_DEAD_LETTER_ROUTING_KEY_PREFIX:dlq.}
+        queue-prefix: ${RABBITMQ_DEAD_LETTER_QUEUE_PREFIX:dlq.}
+        enabled: ${RABBITMQ_DEAD_LETTER_ENABLED:true}
+      
+      # 延迟队列配置
+      delay:
+        enabled: ${RABBITMQ_DELAY_ENABLED:true}
+        exchange-prefix: ${RABBITMQ_DELAY_EXCHANGE_PREFIX:delay.}
+        queue-prefix: ${RABBITMQ_DELAY_QUEUE_PREFIX:delay.}
+        default-ttl: ${RABBITMQ_DELAY_DEFAULT_TTL:30000}
+      
+      # 优先级队列配置
+      priority:
+        enabled: ${RABBITMQ_PRIORITY_ENABLED:true}
+        max-priority: ${RABBITMQ_PRIORITY_MAX_PRIORITY:10}
+        default-priority: ${RABBITMQ_PRIORITY_DEFAULT_PRIORITY:5}
+      
+      # 集群配置
+      cluster:
+        enabled: ${RABBITMQ_CLUSTER_ENABLED:false}
+        nodes: ${RABBITMQ_CLUSTER_NODES:}
+        load-balance: ${RABBITMQ_CLUSTER_LOAD_BALANCE:ROUND_ROBIN}
+      
+      # 监控配置
+      monitoring:
+        enabled: ${RABBITMQ_MONITORING_ENABLED:true}
+        interval: ${RABBITMQ_MONITORING_INTERVAL:30}
+        verbose-logging: ${RABBITMQ_MONITORING_VERBOSE_LOGGING:false}
+    
+    # RocketMQ配置
+    rocketmq:
+      # 是否启用RocketMQ服务
+      enabled: ${ROCKETMQ_ENABLED:true}
+      
+      # 基础配置
+      name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+      producer-group: ${ROCKETMQ_PRODUCER_GROUP:default-producer-group}
+      consumer-group: ${ROCKETMQ_CONSUMER_GROUP:default-consumer-group}
+      
+      # 生产者配置
+      producer:
+        send-msg-timeout: ${ROCKETMQ_PRODUCER_SEND_MSG_TIMEOUT:3000}
+        retry-times-when-send-failed: ${ROCKETMQ_PRODUCER_RETRY_TIMES_WHEN_SEND_FAILED:3}
+        retry-times-when-send-async-failed: ${ROCKETMQ_PRODUCER_RETRY_TIMES_WHEN_SEND_ASYNC_FAILED:3}
+        compress-msg-body-over-howmuch: ${ROCKETMQ_PRODUCER_COMPRESS_MSG_BODY_OVER_HOWMUCH:4096}
+        max-message-size: ${ROCKETMQ_PRODUCER_MAX_MESSAGE_SIZE:4194304}
+        vip-channel-enabled: ${ROCKETMQ_PRODUCER_VIP_CHANNEL_ENABLED:false}
+        instance-name: ${ROCKETMQ_PRODUCER_INSTANCE_NAME:}
+      
+      # 消费者配置
+      consumer:
+        consume-from-where: ${ROCKETMQ_CONSUMER_CONSUME_FROM_WHERE:CONSUME_FROM_LAST_OFFSET}
+        consume-timeout: ${ROCKETMQ_CONSUMER_CONSUME_TIMEOUT:15}
+        pull-batch-size: ${ROCKETMQ_CONSUMER_PULL_BATCH_SIZE:32}
+        pull-interval: ${ROCKETMQ_CONSUMER_PULL_INTERVAL:0}
+        consume-message-batch-max-size: ${ROCKETMQ_CONSUMER_CONSUME_MESSAGE_BATCH_MAX_SIZE:1}
+        max-reconsume-times: ${ROCKETMQ_CONSUMER_MAX_RECONSUME_TIMES:16}
+      
+      # 事务消息配置
+      transaction:
+        enabled: ${ROCKETMQ_TRANSACTION_ENABLED:true}
+        check-thread-pool-min-size: ${ROCKETMQ_TRANSACTION_CHECK_THREAD_POOL_MIN_SIZE:1}
+        check-thread-pool-max-size: ${ROCKETMQ_TRANSACTION_CHECK_THREAD_POOL_MAX_SIZE:1}
+        check-request-hold-max: ${ROCKETMQ_TRANSACTION_CHECK_REQUEST_HOLD_MAX:2000}
+        check-request-hold-max-value: ${ROCKETMQ_TRANSACTION_CHECK_REQUEST_HOLD_MAX_VALUE:2000}
+
+# 配置说明：
+# 1. 所有配置都支持环境变量覆盖，格式：${ENV_VAR_NAME:default_value}
+# 2. 环境变量优先级高于配置文件
+# 3. 如果没有环境变量，则使用配置文件中的默认值
+# 4. 支持不同环境的配置覆盖（dev, test, prod等）
+# 5. 集群节点配置支持逗号分隔的字符串，如：node1:5672,node2:5672
+# 6. 配置前缀统一为 message.service.*

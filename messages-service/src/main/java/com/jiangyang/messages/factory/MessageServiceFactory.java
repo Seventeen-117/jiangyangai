@@ -36,7 +36,7 @@ public class MessageServiceFactory {
      * @return 消息服务
      */
     public MessageService getDefaultMessageService() {
-        return getMessageService(MessageServiceType.valueOf(config.getDefaultType().toUpperCase()));
+        return getMessageService(MessageServiceType.valueOf(config.getCommon().getDefaultType().toUpperCase()));
     }
 
     /**
@@ -50,7 +50,7 @@ public class MessageServiceFactory {
                 if (rocketMQMessageService == null) {
                     throw new MessageServiceException("RocketMQ service is not available");
                 }
-                if (!config.getRocketmq().isEnabled()) {
+                if (!config.getRocketmq().getEnabled()) {
                     log.warn("RocketMQ service is not enabled, using it may cause issues");
                 }
                 return rocketMQMessageService;
@@ -58,7 +58,7 @@ public class MessageServiceFactory {
                 if (kafkaMessageService == null) {
                     throw new MessageServiceException("Kafka service is not available");
                 }
-                if (!config.getKafka().isEnabled()) {
+                if (!config.getKafka().getEnabled()) {
                     log.warn("Kafka service is not enabled, using it may cause issues");
                 }
                 return kafkaMessageService;
@@ -66,7 +66,7 @@ public class MessageServiceFactory {
                 if (rabbitMQMessageService == null) {
                     throw new MessageServiceException("RabbitMQ service is not available");
                 }
-                if (!config.getRabbitmq().isEnabled()) {
+                if (!config.getRabbitmq().getEnabled()) {
                     log.warn("RabbitMQ service is not enabled, using it may cause issues");
                 }
                 return rabbitMQMessageService;
@@ -83,11 +83,11 @@ public class MessageServiceFactory {
     public boolean isServiceAvailable(MessageServiceType type) {
         switch (type) {
             case ROCKETMQ:
-                return rocketMQMessageService != null && config.getRocketmq().isEnabled();
+                return rocketMQMessageService != null && config.getRocketmq().getEnabled();
             case KAFKA:
-                return kafkaMessageService != null && config.getKafka().isEnabled();
+                return kafkaMessageService != null && config.getKafka().getEnabled();
             case RABBITMQ:
-                return rabbitMQMessageService != null && config.getRabbitmq().isEnabled();
+                return rabbitMQMessageService != null && config.getRabbitmq().getEnabled();
             default:
                 return false;
         }
