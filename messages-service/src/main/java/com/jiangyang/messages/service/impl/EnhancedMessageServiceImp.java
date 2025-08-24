@@ -17,8 +17,25 @@ import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 增强消息服务实现类
- * 根据消息类型动态路由到不同的消息中间件
+ * 增强消息服务实现类 - 消息发送执行器
+ * 
+ * 职责分工：
+ * 1. EnhancedMessageServiceImp：负责消息发送的技术实现和路由
+ *    - 消息参数验证
+ *    - 消息中间件路由选择
+ *    - 具体消息发送策略执行
+ *    - 自定义topic的直接发送
+ * 
+ * 2. MessageSagaStateMachine：负责分布式事务管理
+ *    - Saga事务状态管理
+ *    - 事务补偿机制
+ *    - 消息一致性保证
+ *    - 事务协调和回滚
+ * 
+ * 协作模式：
+ * - 需要事务保证的消息：委托给MessageSagaStateMachine
+ * - 简单消息发送：EnhancedMessageServiceImp直接处理
+ * - 自定义topic：绕过Saga事务，直接发送
  */
 @Slf4j
 @Service
@@ -229,13 +246,25 @@ public class EnhancedMessageServiceImp implements EnhancedMessageService {
             
             switch (messageServiceType) {
                 case ROCKETMQ:
-                    result = sendRocketMQWithCustomTopic(messageService, customTopic, messageId, messageBody, msgType, parameters);
+                    // 获取RocketMQ相关参数
+                    String tag = (String) parameters.getOrDefault("tag", "");
+                    result = sendToRocketMQ(messageId, customTopic, tag, msgType, messageBody, parameters);
                     break;
                 case KAFKA:
-                    result = sendKafkaWithCustomTopic(messageService, customTopic, messageId, messageBody, msgType, parameters);
+                    // 获取Kafka相关参数
+                    String key = (String) parameters.getOrDefault("key", messageId);
+                    result = sendToKafka(messageId, customTopic, key, msgType, messageBody, parameters);
                     break;
                 case RABBITMQ:
-                    result = sendRabbitMQWithCustomTopic(messageService, customTopic, messageId, messageBody, msgType, parameters);
+                    // 获取RabbitMQ相关参数
+                    String queueName = (String) parameters.getOrDefault("queueName", customTopic);
+                    String exchange = (String) parameters.getOrDefault("exchange", customTopic);
+                    String routingKey = (String) parameters.getOrDefault("routingKey", "");
+                    boolean durable = (Boolean) parameters.getOrDefault("durable", true);
+                    boolean exclusive = (Boolean) parameters.getOrDefault("exclusive", false);
+                    boolean autoDelete = (Boolean) parameters.getOrDefault("autoDelete", false);
+                    Map<String, Object> otherProperties = (Map<String, Object>) parameters.getOrDefault("otherProperties", new HashMap<>());
+                    result = sendToRabbitMQ(messageId, queueName, durable, exclusive, autoDelete, exchange, routingKey, msgType, otherProperties, messageBody, parameters);
                     break;
                 default:
                     throw new MessageServiceException("不支持的消息中间件类型: " + messageServiceType);
@@ -258,64 +287,7 @@ public class EnhancedMessageServiceImp implements EnhancedMessageService {
         }
     }
 
-    /**
-     * 发送RocketMQ消息到自定义topic
-     */
-    private boolean sendRocketMQWithCustomTopic(MessageService messageService, String customTopic, 
-                                              String messageId, String messageBody, MessageType msgType, 
-                                              Map<String, Object> parameters) {
-        try {
-            String tag = (String) parameters.getOrDefault("tag", "");
-            
-            switch (msgType) {
-                case NORMAL:
-                    return messageService.sendMessage(customTopic, tag, messageBody);
-                case DELAY:
-                    int delayLevel = (Integer) parameters.getOrDefault("delayLevel", 1);
-                    return messageService.sendDelayMessage(customTopic, messageBody, delayLevel);
-                case ORDERED:
-                    String hashKey = (String) parameters.getOrDefault("hashKey", messageId);
-                    return messageService.sendOrderedMessage(customTopic, messageBody, hashKey);
-                case TRANSACTION:
-                    String transactionId = (String) parameters.getOrDefault("transactionId", 
-                            "txn_" + System.currentTimeMillis() + "_" + Thread.currentThread().getId());
-                    String businessKey = (String) parameters.getOrDefault("businessKey", "");
-                    int timeout = (Integer) parameters.getOrDefault("timeout", 3000);
-                    return messageService.sendTransactionMessage(customTopic, tag, messageBody, 
-                            transactionId, businessKey, timeout);
-                default:
-                    throw new MessageServiceException("不支持的RocketMQ消息类型: " + msgType);
-            }
-        } catch (Exception e) {
-            log.error("RocketMQ自定义topic消息发送异常: topic={}, messageId={}, error={}", 
-                    customTopic, messageId, e.getMessage(), e);
-            return false;
-        }
-    }
 
-    /**
-     * 发送Kafka消息到自定义topic
-     */
-    private boolean sendKafkaWithCustomTopic(MessageService messageService, String customTopic, 
-                                           String messageId, String messageBody, MessageType msgType, 
-                                           Map<String, Object> parameters) {
-        try {
-            String key = (String) parameters.getOrDefault("key", messageId);
-            
-            switch (msgType) {
-                case SYNC_BLOCKING:
-                case ASYNC_CALLBACK:
-                case ASYNC_NO_CALLBACK:
-                    return messageService.sendMessage(customTopic, null, key, messageBody);
-                default:
-                    throw new MessageServiceException("不支持的Kafka消息类型: " + msgType);
-            }
-        } catch (Exception e) {
-            log.error("Kafka自定义topic消息发送异常: topic={}, messageId={}, error={}", 
-                    customTopic, messageId, e.getMessage(), e);
-            return false;
-        }
-    }
 
     /**
      * Kafka同步阻塞发送 - 高可靠性，中等性能
@@ -1002,47 +974,175 @@ public class EnhancedMessageServiceImp implements EnhancedMessageService {
         log.info("动态发送消息: messageId={}, messageType={}, parameters={}", messageId, messageType, parameters);
         
         try {
-            // 验证消息中间件类型
-            MessageServiceType type = MessageServiceType.fromCode(messageType.toUpperCase());
+            // 1. EnhancedMessageServiceImp 负责：参数验证和基础检查
+            validateMessageParameters(messageId, messageType, parameters);
             
-            // 获取消息内容
+            // 2. 获取消息中间件类型
+            MessageServiceType messageServiceType = MessageServiceType.fromCode(messageType.toUpperCase());
+            
+            // 3. 获取消息内容
             String messageBody = (String) parameters.get("messageBody");
-            if (messageBody == null || messageBody.trim().isEmpty()) {
-                throw new MessageServiceException("消息内容不能为空");
+            
+            // 4. 判断是否需要Saga事务管理
+            if (shouldUseSagaTransaction(parameters)) {
+                // 使用Saga事务管理：委托给MessageSagaStateMachine
+                log.info("使用Saga事务管理发送消息: messageId={}, messageType={}", messageId, messageType);
+                return executeMessageWithSaga(messageId, messageBody, messageType, parameters);
+            } else {
+                // 直接发送：EnhancedMessageServiceImp 负责消息发送执行
+                log.info("直接发送消息: messageId={}, messageType={}", messageId, messageType);
+                return executeMessageDirectly(messageServiceType, messageId, messageBody, parameters);
             }
-            
-            // 获取自定义topic（如果提供）
-            String customTopic = (String) parameters.get("topic");
-            if (customTopic != null && !customTopic.trim().isEmpty()) {
-                log.info("使用自定义topic: {}", customTopic);
-                
-                // 根据消息中间件类型，直接调用对应的消息服务发送消息
-                // 这样可以支持自定义topic，而不受MessageSagaStateMachine的默认topic限制
-                boolean result = sendMessageWithCustomTopic(type, customTopic, messageId, messageBody, parameters);
-                
-                if (result) {
-                    log.info("自定义topic消息发送成功: messageId={}, messageType={}, topic={}", 
-                            messageId, messageType, customTopic);
-                    return true;
-                } else {
-                    throw new MessageServiceException("自定义topic消息发送失败");
-                }
-            }
-            
-            // 如果没有自定义topic，使用MessageSagaStateMachine执行完整的Saga事务
-            // 确保分布式事务一致性
-            log.info("使用默认topic发送消息，执行Saga事务: messageId={}, messageType={}", 
-                    messageId, messageType);
-            messageSagaStateMachine.executeMessageSendSaga(messageId, messageBody, messageType);
-            
-            log.info("消息发送成功: messageId={}, messageType={}, topic={}", 
-                    messageId, messageType, customTopic != null ? customTopic : "default");
-            return true;
             
         } catch (Exception e) {
             log.error("动态发送消息失败: messageId={}, messageType={}, error={}", 
                     messageId, messageType, e.getMessage(), e);
             throw new RuntimeException("动态发送消息失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * EnhancedMessageServiceImp 职责：验证消息参数
+     */
+    private void validateMessageParameters(String messageId, String messageType, Map<String, Object> parameters) {
+        if (messageId == null || messageId.trim().isEmpty()) {
+            throw new MessageServiceException("消息ID不能为空");
+        }
+        
+        if (messageType == null || messageType.trim().isEmpty()) {
+            throw new MessageServiceException("消息类型不能为空");
+        }
+        
+        String messageBody = (String) parameters.get("messageBody");
+        if (messageBody == null || messageBody.trim().isEmpty()) {
+            throw new MessageServiceException("消息内容不能为空");
+        }
+        
+        log.debug("消息参数验证通过: messageId={}, messageType={}", messageId, messageType);
+    }
+
+    /**
+     * EnhancedMessageServiceImp 职责：判断是否使用Saga事务
+     * 
+     * 配置参数说明：
+     * 1. topic: 自定义topic，指定后绕过Saga事务，直接发送
+     * 2. useSaga: 明确指定是否使用Saga事务（true/false）
+     * 3. messageType: 消息类型，TRANSACTION类型强制使用Saga事务
+     * 4. sagaTimeout: Saga事务超时时间（毫秒）
+     * 5. sagaRetries: Saga事务重试次数
+     * 
+     * 优先级：topic > useSaga > messageType > 默认值
+     */
+    private boolean shouldUseSagaTransaction(Map<String, Object> parameters) {
+        // 1. 检查是否有自定义topic（自定义topic不使用Saga事务）
+        String customTopic = (String) parameters.get("topic");
+        if (customTopic != null && !customTopic.trim().isEmpty()) {
+            log.debug("检测到自定义topic，不使用Saga事务: topic={}", customTopic);
+            return false;
+        }
+        
+        // 2. 检查是否明确指定不使用Saga事务
+        Boolean useSaga = (Boolean) parameters.get("useSaga");
+        if (useSaga != null && !useSaga) {
+            log.debug("明确指定不使用Saga事务");
+            return false;
+        }
+        
+        // 3. 检查消息类型是否需要事务保证
+        String messageType = (String) parameters.get("messageType");
+        if (messageType != null && messageType.equals("TRANSACTION")) {
+            log.debug("事务消息类型，使用Saga事务");
+            return true;
+        }
+        
+        // 4. 默认使用Saga事务（保证消息一致性）
+        log.debug("默认使用Saga事务管理");
+        return true;
+    }
+
+    /**
+     * EnhancedMessageServiceImp 职责：使用Saga事务执行消息发送
+     * 委托给MessageSagaStateMachine进行事务管理
+     * 
+     * 使用场景：
+     * 1. 订单支付流程：需要保证订单状态和支付状态的一致性
+     * 2. 库存扣减：需要保证订单创建和库存扣减的原子性
+     * 3. 用户注册：需要保证用户信息和权限分配的一致性
+     * 
+     * Saga事务步骤示例：
+     * 1. 发送订单消息
+     * 2. 等待订单确认
+     * 3. 发送库存扣减消息
+     * 4. 等待库存确认
+     * 5. 提交事务或执行补偿
+     */
+    private boolean executeMessageWithSaga(String messageId, String messageBody, 
+                                         String messageType, Map<String, Object> parameters) {
+        try {
+            log.info("委托MessageSagaStateMachine执行Saga事务: messageId={}, messageType={}", 
+                    messageId, messageType);
+            
+            // 获取消息中间件类型，用于Saga事务中的消息发送
+            MessageServiceType messageServiceType = MessageServiceType.fromCode(messageType.toUpperCase());
+            
+            // 委托给MessageSagaStateMachine进行完整的Saga事务管理
+            // 传递消息中间件类型，让Saga事务知道使用哪种中间件发送消息
+            messageSagaStateMachine.executeMessageSendSaga(messageId, messageBody, messageType, messageServiceType, this);
+            
+            log.info("Saga事务执行成功: messageId={}, messageType={}", messageId, messageType);
+            return true;
+            
+        } catch (Exception e) {
+            log.error("Saga事务执行失败: messageId={}, messageType={}, error={}", 
+                    messageId, messageType, e.getMessage(), e);
+            throw new RuntimeException("Saga事务执行失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * EnhancedMessageServiceImp 职责：直接执行消息发送
+     * 不经过Saga事务管理，直接调用对应的消息服务
+     * 
+     * 使用场景：
+     * 1. 日志记录：简单的日志消息，无需事务保证
+     * 2. 通知推送：用户通知、系统告警等
+     * 3. 数据同步：非关键数据的同步操作
+     * 4. 监控指标：性能监控、业务统计等
+     * 5. 测试消息：开发测试阶段的消息发送
+     * 
+     * 优势：
+     * 1. 性能更高：无事务开销
+     * 2. 延迟更低：直接发送，无协调等待
+     * 3. 资源消耗少：无需维护事务状态
+     * 4. 部署简单：无需额外的Saga状态机
+     */
+    public boolean executeMessageDirectly(MessageServiceType messageServiceType, String messageId, 
+                                        String messageBody, Map<String, Object> parameters) {
+        try {
+            log.info("EnhancedMessageServiceImp直接执行消息发送: serviceType={}, messageId={}", 
+                    messageServiceType, messageId);
+            
+            // 获取自定义topic
+            String customTopic = (String) parameters.get("topic");
+            if (customTopic == null || customTopic.trim().isEmpty()) {
+                throw new MessageServiceException("直接发送模式必须指定自定义topic");
+            }
+            
+            // 根据消息中间件类型，直接调用对应的消息服务
+            boolean result = sendMessageWithCustomTopic(messageServiceType, customTopic, messageId, messageBody, parameters);
+            
+            if (result) {
+                log.info("直接消息发送成功: serviceType={}, messageId={}, topic={}", 
+                        messageServiceType, messageId, customTopic);
+                return true;
+            } else {
+                throw new MessageServiceException("直接消息发送失败");
+            }
+            
+        } catch (Exception e) {
+            log.error("直接消息发送异常: serviceType={}, messageId={}, error={}", 
+                    messageServiceType, messageId, e.getMessage(), e);
+            throw new RuntimeException("直接消息发送失败: " + e.getMessage(), e);
         }
     }
 

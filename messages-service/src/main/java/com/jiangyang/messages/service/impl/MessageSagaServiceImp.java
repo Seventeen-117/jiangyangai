@@ -3,6 +3,7 @@ package com.jiangyang.messages.service.impl;
 import com.jiangyang.base.datasource.annotation.DataSource;
 import com.jiangyang.messages.saga.MessageSagaStateMachine;
 import com.jiangyang.messages.service.MessageSagaService;
+import com.jiangyang.messages.utils.MessageServiceType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,9 @@ public class MessageSagaServiceImp implements MessageSagaService {
     @Autowired
     private MessageSagaStateMachine messageSagaStateMachine;
 
+    @Autowired
+    private EnhancedMessageServiceImp enhancedMessageService;
+
     /**
      * 发送消息（使用Saga事务）
      * 
@@ -31,7 +35,9 @@ public class MessageSagaServiceImp implements MessageSagaService {
         log.info("开始发送消息，使用Saga事务: messageId={}, content={}, messageType={}", messageId, content, messageType);
         
         try {
-            messageSagaStateMachine.executeMessageSendSaga(messageId, content, messageType);
+            // 将messageType转换为MessageServiceType
+            MessageServiceType messageServiceType = MessageServiceType.fromCode(messageType.toUpperCase());
+            messageSagaStateMachine.executeMessageSendSaga(messageId, content, messageType, messageServiceType, enhancedMessageService);
             log.info("消息发送成功: messageId={}, messageType={}", messageId, messageType);
         } catch (Exception e) {
             log.error("消息发送失败: messageId={}, messageType={}, error={}", messageId, messageType, e.getMessage(), e);
@@ -96,28 +102,6 @@ public class MessageSagaServiceImp implements MessageSagaService {
             log.error("事务消息处理失败: transactionId={}, messageId={}, error={}", 
                     transactionId, messageId, e.getMessage(), e);
             throw new RuntimeException("事务消息处理失败", e);
-        }
-    }
-
-    /**
-     * 发送消息（同步方式）
-     * 
-     * @param messageId 消息ID
-     * @param content 消息内容
-     * @return 是否发送成功
-     */
-    @Override
-    public boolean sendMessageSync(String messageId, String content) {
-        log.info("同步发送消息: messageId={}, content={}", messageId, content);
-        
-        try {
-            messageSagaStateMachine.sendMessage(messageId, content, "ROCKETMQ"); // 默认使用RocketMQ
-            messageSagaStateMachine.confirmMessage(messageId);
-            log.info("同步消息发送成功: messageId={}", messageId);
-            return true;
-        } catch (Exception e) {
-            log.error("同步消息发送失败: messageId={}, error={}", messageId, e.getMessage(), e);
-            return false;
         }
     }
 

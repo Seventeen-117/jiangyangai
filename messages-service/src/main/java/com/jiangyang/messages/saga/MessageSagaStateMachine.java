@@ -21,6 +21,7 @@ import com.jiangyang.messages.saga.service.MessageSagaLogService;
 import com.jiangyang.messages.service.TransactionEventSenderService;
 import com.jiangyang.messages.service.ElasticsearchMessageService;
 import com.jiangyang.messages.service.CacheService;
+import com.jiangyang.messages.service.impl.EnhancedMessageServiceImp;
 import io.seata.core.context.RootContext;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
@@ -47,16 +48,6 @@ public class MessageSagaStateMachine {
 
     @Autowired
     private MessageServiceConfig messageServiceConfig;
-    
-    @Autowired
-    private RocketMQTemplateService rocketMQMessageService;
-    
-    @Autowired(required = false)
-    private KafkaMessageService kafkaMessageService;
-    
-    @Autowired(required = false)
-    private RabbitMQMessageService rabbitMQMessageService;
-    
     @Autowired
     private MessageSagaLogService messageSagaLogService;
     
@@ -87,23 +78,35 @@ public class MessageSagaStateMachine {
     @Autowired(required = false)
     private AuditLogService auditLogService;
 
+    @Autowired
+    private EnhancedMessageServiceImp enhancedMessageService;
+
     /**
      * 消息发送Saga事务
      * 包含：消息发送 -> 消息确认 -> 补偿处理
+     * 
+     * 架构说明：
+     * 1. MessageSagaStateMachine 负责：事务状态管理、补偿机制、事务协调
+     * 2. EnhancedMessageServiceImp 负责：具体的消息发送逻辑和中间件路由
+     * 3. 通过依赖注入的方式，Saga事务调用消息服务进行消息发送
      */
     @GlobalTransactional(name = "message-send-saga", rollbackFor = Exception.class)
-    public void executeMessageSendSaga(String messageId, String content, String messageType) {
+    public void executeMessageSendSaga(String messageId, String content, String messageType, 
+                                     MessageServiceType messageServiceType, 
+                                     EnhancedMessageServiceImp messageService) {
         String globalTransactionId = RootContext.getXID();
         String transactionId = "msg_send_" + messageId;
         
-        log.info("开始执行消息发送Saga事务，消息ID: {}, 消息类型: {}, XID: {}", messageId, messageType, globalTransactionId);
+        log.info("开始执行消息发送Saga事务，消息ID: {}, 消息类型: {}, 中间件类型: {}, XID: {}", 
+                messageId, messageType, messageServiceType, globalTransactionId);
         
         try {
             // 发送事务开始事件
             sendTransactionBeginEvent(globalTransactionId, transactionId, messageId, content);
             
-            // 步骤1: 消息发送
-            sendMessage(messageId, content, messageType);
+            // 步骤1: 消息发送 - 委托给EnhancedMessageServiceImp执行具体的发送逻辑
+            // 这里不再自己实现sendMessage，而是调用传入的messageService
+            sendMessageViaService(messageId, content, messageType, messageServiceType, messageService);
             
             // 发送消息发送事件
             sendMessageSendEvent(globalTransactionId, transactionId, messageId, content);
@@ -226,8 +229,10 @@ public class MessageSagaStateMachine {
             // 发送Saga执行事件
             sendSagaExecuteEvent(globalTransactionId, businessTransactionId, "transaction-message", transactionId, "事务开始");
             
-            // 步骤2: 消息发送
-            sendMessage(messageId, content, "ROCKETMQ"); // 默认使用RocketMQ
+            // 步骤2: 消息发送 - 委托给EnhancedMessageServiceImp
+            // 注意：这里需要注入EnhancedMessageServiceImp，或者通过参数传入
+            // 为了保持一致性，我们使用与executeMessageSendSaga相同的模式
+            sendTransactionMessageViaService(messageId, content, transactionId);
             
             // 发送Saga执行事件
             sendSagaExecuteEvent(globalTransactionId, businessTransactionId, "transaction-message", transactionId, "消息发送");
@@ -253,9 +258,21 @@ public class MessageSagaStateMachine {
 
     // ==================== 具体业务方法实现 ====================
 
+    /**
+     * 通过消息服务发送消息（Saga事务中使用）
+     * 委托给EnhancedMessageServiceImp执行具体的消息发送逻辑
+     * 
+     * 架构说明：
+     * 1. MessageSagaStateMachine 负责事务状态管理和协调
+     * 2. EnhancedMessageServiceImp 负责具体的消息发送实现
+     * 3. 避免循环调用，实现真正的职责分离
+     */
     @Transactional
-    public void sendMessage(String messageId, String content, String messageType) {
-        log.info("发送消息: ID={}, 内容={}, 消息类型={}", messageId, content, messageType);
+    public void sendMessageViaService(String messageId, String content, String messageType, 
+                                    MessageServiceType messageServiceType, 
+                                    EnhancedMessageServiceImp messageService) {
+        log.info("通过消息服务发送消息: ID={}, 内容={}, 消息类型={}, 中间件类型={}", 
+                messageId, content, messageType, messageServiceType);
         
         try {
             // 1. 记录Saga日志
@@ -278,33 +295,27 @@ public class MessageSagaStateMachine {
                     trace.setOperationName("MessageSend");
                     trace.setOperationType("MQ");
                     trace.setCallDirection("OUTBOUND");
-                    trace.setTargetService(messageServiceConfig.getDefaultMessageType());
+                    trace.setTargetService(messageServiceType.name());
                     trace.setCallStatus("PROCESSING");
                     trace.setStartTime(LocalDateTime.now());
                     auditLogService.recordBusinessTraceLog(trace);
                 }
-            } catch (Exception ignore) {}
-            
-            // 3. 根据传入的消息类型选择消息中间件发送消息
-            String topic = messageServiceConfig.getDefaultTopic();
-            
-            boolean sendResult = false;
-            switch (MessageServiceType.valueOf(messageType.toUpperCase())) {
-                case ROCKETMQ:
-                    sendResult = rocketMQMessageService.sendMessage(topic, content);
-                    break;
-                case KAFKA:
-                    sendResult = kafkaMessageService.sendMessage(topic, content);
-                    break;
-                case RABBITMQ:
-                    sendResult = rabbitMQMessageService.sendMessage(topic, content);
-                    break;
-                default:
-                    throw new IllegalArgumentException("不支持的消息类型: " + messageType);
+            } catch (Exception ignore) {
+                log.warn("记录业务轨迹失败: messageId={}, error={}", messageId, ignore.getMessage());
             }
             
+            // 3. 委托给EnhancedMessageServiceImp执行具体的消息发送
+            // 构建发送参数
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("messageBody", content);
+            parameters.put("messageType", messageType);
+            parameters.put("useSaga", false); // 避免再次触发Saga事务
+            
+            // 调用消息服务的直接发送方法
+            boolean sendResult = messageService.executeMessageDirectly(messageServiceType, messageId, content, parameters);
+            
             if (!sendResult) {
-                throw new RuntimeException("消息发送失败");
+                throw new RuntimeException("消息发送失败: " + messageId);
             }
             
             // 4. 更新Saga日志状态
@@ -315,11 +326,9 @@ public class MessageSagaStateMachine {
             // 5. 更新生命周期日志状态
             lifecycleLog.setStageStatus("SUCCESS");
             lifecycleLog.setStageEndTime(LocalDateTime.now());
-            lifecycleLog.setProcessingTime(System.currentTimeMillis() - lifecycleLog.getStageStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+            lifecycleLog.setProcessingTime(System.currentTimeMillis() - lifecycleLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             messageLifecycleService.updateById(lifecycleLog);
             
-            log.info("消息发送成功: ID={}, 类型={}, 主题={}", messageId, messageType, topic);
-
             // 5.1 完成业务轨迹（发送阶段）
             try {
                 if (auditLogService != null) {
@@ -332,23 +341,149 @@ public class MessageSagaStateMachine {
                     traceDone.setOperationName("MessageSend");
                     traceDone.setOperationType("MQ");
                     traceDone.setCallDirection("OUTBOUND");
-                    traceDone.setTargetService(messageServiceConfig.getDefaultMessageType());
+                    traceDone.setTargetService(messageServiceType.name());
                     traceDone.setCallStatus("SUCCESS");
                     traceDone.setEndTime(LocalDateTime.now());
                     auditLogService.recordBusinessTraceLog(traceDone);
                 }
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+                log.warn("记录业务轨迹完成状态失败: messageId={}, error={}", messageId, ignore.getMessage());
+            }
+            
+            log.info("Saga事务消息发送成功: messageId={}, 消息类型={}, 中间件类型={}", 
+                    messageId, messageType, messageServiceType);
             
         } catch (Exception e) {
-            log.error("消息发送失败: ID={}, 消息类型={}, 错误: {}", messageId, messageType, e.getMessage(), e);
+            log.error("Saga事务消息发送失败: messageId={}, 消息类型={}, 中间件类型={}, 错误: {}", 
+                    messageId, messageType, messageServiceType, e.getMessage(), e);
             
-            // 记录失败状态
-            updateSagaLogStatus(messageId, "FAILED", e.getMessage());
-            updateLifecycleLogStatus(messageId, "FAILED", e.getMessage());
+            // 更新失败状态
+            try {
+                updateSagaLogStatus(messageId, "FAILED", e.getMessage());
+                updateLifecycleLogStatus(messageId, "FAILED", e.getMessage());
+            } catch (Exception updateError) {
+                log.error("更新失败状态失败: messageId={}, error={}", messageId, updateError.getMessage());
+            }
             
-            throw new RuntimeException("消息发送失败: " + e.getMessage(), e);
+            throw e;
         }
     }
+
+    /**
+     * 委托给EnhancedMessageServiceImp执行事务消息发送逻辑
+     * 
+     * 架构说明：
+     * 1. MessageSagaStateMachine 负责事务状态管理和协调
+     * 2. EnhancedMessageServiceImp 负责具体的事务消息发送实现
+     * 3. 避免循环调用，实现真正的职责分离
+     */
+    @Transactional
+    public void sendTransactionMessageViaService(String messageId, String content, String transactionId) {
+        log.info("通过消息服务发送事务消息: ID={}, 内容={}, 事务ID={}", 
+                messageId, content, transactionId);
+        
+        try {
+            // 1. 记录Saga日志
+            MessageSagaLog sagaLog = createSagaLog(transactionId, "TRANSACTION_MESSAGE_SEND", "PROCESSING");
+            messageSagaLogService.save(sagaLog);
+            
+            // 2. 记录消息生命周期
+            MessageLifecycleLog lifecycleLog = createLifecycleLog(messageId, "TRANSACTION_PRODUCE", "PROCESSING", content);
+            messageLifecycleService.save(lifecycleLog);
+
+            // 2.1 记录业务轨迹（事务消息发送阶段）
+            try {
+                if (auditLogService != null) {
+                    BusinessTraceLog trace = new BusinessTraceLog();
+                    trace.setGlobalTransactionId(RootContext.getXID());
+                    trace.setBusinessTransactionId("txn_msg_" + transactionId);
+                    trace.setTraceId(messageId);
+                    trace.setSpanId("TRANSACTION_SEND");
+                    trace.setServiceName("messages-service");
+                    trace.setOperationName("TransactionMessageSend");
+                    trace.setOperationType("MQ");
+                    trace.setCallDirection("OUTBOUND");
+                    trace.setTargetService("ROCKETMQ");
+                    trace.setCallStatus("PROCESSING");
+                    trace.setStartTime(LocalDateTime.now());
+                    auditLogService.recordBusinessTraceLog(trace);
+                }
+            } catch (Exception ignore) {
+                log.warn("记录事务消息业务轨迹失败: messageId={}, transactionId={}, error={}", 
+                        messageId, transactionId, ignore.getMessage());
+            }
+            
+            // 3. 委托给EnhancedMessageServiceImp执行具体的事务消息发送
+            // 构建发送参数
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("messageBody", content);
+            parameters.put("messageType", "TRANSACTION"); // 事务消息类型
+            parameters.put("useSaga", false); // 避免再次触发Saga事务
+            parameters.put("transactionId", transactionId); // 传递事务ID
+            
+            // 默认使用RocketMQ发送事务消息
+            MessageServiceType messageServiceType = MessageServiceType.ROCKETMQ;
+            
+            // 调用消息服务的直接发送方法
+            boolean sendResult = enhancedMessageService.executeMessageDirectly(messageServiceType, messageId, content, parameters);
+            
+            if (!sendResult) {
+                throw new RuntimeException("事务消息发送失败: " + messageId);
+            }
+            
+            // 4. 更新Saga日志状态
+            sagaLog.setStatus("SUCCESS");
+            sagaLog.setEndTime(LocalDateTime.now());
+            messageSagaLogService.updateById(sagaLog);
+            
+            // 5. 更新生命周期日志状态
+            lifecycleLog.setStageStatus("SUCCESS");
+            lifecycleLog.setStageEndTime(LocalDateTime.now());
+            lifecycleLog.setProcessingTime(System.currentTimeMillis() - lifecycleLog.getStageStartTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            messageLifecycleService.updateById(lifecycleLog);
+            
+            // 5.1 完成业务轨迹（事务消息发送阶段）
+            try {
+                if (auditLogService != null) {
+                    BusinessTraceLog traceDone = new BusinessTraceLog();
+                    traceDone.setGlobalTransactionId(RootContext.getXID());
+                    traceDone.setBusinessTransactionId("txn_msg_" + transactionId);
+                    traceDone.setTraceId(messageId);
+                    traceDone.setSpanId("TRANSACTION_SEND");
+                    traceDone.setServiceName("messages-service");
+                    traceDone.setOperationName("TransactionMessageSend");
+                    traceDone.setOperationType("MQ");
+                    traceDone.setCallDirection("OUTBOUND");
+                    traceDone.setTargetService("ROCKETMQ");
+                    traceDone.setCallStatus("SUCCESS");
+                    traceDone.setEndTime(LocalDateTime.now());
+                    auditLogService.recordBusinessTraceLog(traceDone);
+                }
+            } catch (Exception ignore) {
+                log.warn("记录事务消息业务轨迹完成状态失败: messageId={}, transactionId={}, error={}", 
+                        messageId, transactionId, ignore.getMessage());
+            }
+            
+            log.info("事务消息Saga事务发送成功: messageId={}, transactionId={}, 中间件类型={}", 
+                    messageId, transactionId, messageServiceType);
+            
+        } catch (Exception e) {
+            log.error("事务消息Saga事务发送失败: messageId={}, transactionId={}, 错误: {}", 
+                    messageId, transactionId, e.getMessage(), e);
+            
+            // 更新失败状态
+            try {
+                updateSagaLogStatus(transactionId, "FAILED", e.getMessage());
+                updateLifecycleLogStatus(messageId, "FAILED", e.getMessage());
+            } catch (Exception updateError) {
+                log.error("更新事务消息失败状态失败: messageId={}, transactionId={}, error={}", 
+                        messageId, transactionId, updateError.getMessage());
+            }
+            
+            throw e;
+        }
+    }
+
 
     @Transactional
     public void confirmMessage(String messageId) {

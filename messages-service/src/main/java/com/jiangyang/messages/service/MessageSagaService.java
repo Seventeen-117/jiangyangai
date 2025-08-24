@@ -13,7 +13,5 @@ public interface MessageSagaService {
 
     void processTransactionMessageWithSaga(String transactionId, String messageId, String content);
 
-    boolean sendMessageSync(String messageId, String content);
-
     boolean consumeMessageSync(String messageId, String content);
 }

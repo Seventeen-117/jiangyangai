@@ -155,18 +155,18 @@ public class MessageSagaController {
     @PostMapping("/send/sync")
     public ResponseEntity<Map<String, Object>> sendMessageSync(@RequestBody Map<String, String> request) {
         String messageId = request.getOrDefault("messageId", UUID.randomUUID().toString());
+        String messageType = request.getOrDefault("messageType", "NORMAL"); // 具体的消息类型
         String content = request.get("content");
-        
-        if (content == null || content.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(createErrorResponse("消息内容不能为空"));
-        }
-        
-        boolean success = messageSagaService.sendMessageSync(messageId, content);
-        
-        if (success) {
+        try {
+            if (content == null || content.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(createErrorResponse("消息内容不能为空"));
+            }
+
+            messageSagaService.sendMessageWithSaga(messageId, content,messageType);
             return ResponseEntity.ok(createSuccessResponse("同步消息发送成功", messageId));
-        } else {
-            return ResponseEntity.internalServerError().body(createErrorResponse("同步消息发送失败"));
+        } catch (Exception e) {
+            log.error("同步发送消息失败: messageId={}, error={}", messageId, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(createErrorResponse("同步消息发送失败: " + e.getMessage()));
         }
     }
 
