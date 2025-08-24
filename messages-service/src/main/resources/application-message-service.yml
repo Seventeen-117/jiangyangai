@@ -50,8 +50,7 @@ message:
       enabled: ${KAFKA_ENABLED:true}
       
       # 基础连接配置
-      bootstrap-servers:
-        servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:8.133.246.113:9092}
       
       # 安全配置
       security:
@@ -128,7 +127,7 @@ message:
       
       # 生产者配置
       producer:
-        bootstrap-servers: ${KAFKA_PRODUCER_BOOTSTRAP_SERVERS:localhost:9092}
+        bootstrap-servers: ${KAFKA_PRODUCER_BOOTSTRAP_SERVERS:8.133.246.113:9092}
         key-serializer: ${KAFKA_PRODUCER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
         value-serializer: ${KAFKA_PRODUCER_VALUE_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
         acks: ${KAFKA_PRODUCER_ACKS:all}
@@ -158,7 +157,7 @@ message:
       enabled: ${RABBITMQ_ENABLED:true}
       
       # 基础连接配置
-      host: ${RABBITMQ_HOST:localhost}
+      host: ${RABBITMQ_HOST:8.133.246.113}
       port: ${RABBITMQ_PORT:5672}
       username: ${RABBITMQ_USERNAME:guest}
       password: ${RABBITMQ_PASSWORD:guest}
@@ -243,7 +242,7 @@ message:
       enabled: ${ROCKETMQ_ENABLED:true}
       
       # 基础配置
-      name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+      name-server: ${ROCKETMQ_NAME_SERVER:8.133.246.113:9876}
       producer-group: ${ROCKETMQ_PRODUCER_GROUP:default-producer-group}
       consumer-group: ${ROCKETMQ_CONSUMER_GROUP:default-consumer-group}
       

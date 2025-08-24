@@ -84,7 +84,7 @@ public class MessageServiceAutoConfiguration {
             MessageServiceConfig.Kafka kafkaConfig = config.getKafka();
             
             // 直接设置配置属性
-            service.setBootstrapServers(kafkaConfig.getBootstrapServers().getServers());
+            service.setBootstrapServers(kafkaConfig.getBootstrapServers());
             // 注意：Kafka配置中没有直接的acks、retries等字段，需要从producer配置中获取
             // 这里暂时使用默认值，实际项目中需要根据具体需求调整
             service.setAcks("1");
@@ -94,7 +94,7 @@ public class MessageServiceAutoConfiguration {
             service.setBufferMemory(33554432);
             
             log.debug("Applied Kafka configuration: bootstrapServers={}, acks={}, retries={}, batchSize={}, lingerMs={}, bufferMemory={}",
-                    kafkaConfig.getBootstrapServers().getServers(),
+                    kafkaConfig.getBootstrapServers(),
                     "1", 3, 16384, 1, 33554432);
         } catch (Exception e) {
             log.warn("Failed to apply Kafka configuration", e);
@@ -140,7 +140,7 @@ public class MessageServiceAutoConfiguration {
         status.append("Message Service Configuration Status:\n");
         status.append("Default Type: ").append(config.getCommon().getDefaultType()).append("\n");
         status.append("RocketMQ Name Server: ").append(config.getRocketmq().getNameServer()).append("\n");
-        status.append("Kafka Bootstrap Servers: ").append(config.getKafka().getBootstrapServers().getServers()).append("\n");
+        status.append("Kafka Bootstrap Servers: ").append(config.getKafka().getBootstrapServers()).append("\n");
         status.append("RabbitMQ Host: ").append(config.getRabbitmq().getHost()).append("\n");
         status.append("Common Consume Mode: ").append(config.getCommon().getConsume().getDefaultMode()).append("\n");
         status.append("Retry Enabled: ").append(config.getCommon().getRetry().getEnabled()).append("\n");

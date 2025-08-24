@@ -60,16 +60,30 @@ public class KafkaMessageService implements MessageService {
             props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId != null ? clientId : "default-kafka-producer");
             props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
             props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-            props.put(ProducerConfig.ACKS_CONFIG, acks != null ? acks : "all");
+            // 设置acks配置
+            String acksValue = acks != null ? acks : "all";
+            props.put(ProducerConfig.ACKS_CONFIG, acksValue);
+            
+            // 只有当acks为"all"时才启用幂等性，否则Kafka会抛出异常
+            boolean enableIdempotence = "all".equals(acksValue);
+            props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, enableIdempotence);
+            
+            // 如果启用幂等性，设置相关配置
+            if (enableIdempotence) {
+                props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
+            } else {
+                // 当不启用幂等性时，可以设置更高的并发请求数
+                props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 10);
+            }
+            
             props.put(ProducerConfig.RETRIES_CONFIG, retries);
             props.put(ProducerConfig.BATCH_SIZE_CONFIG, batchSize);
             props.put(ProducerConfig.LINGER_MS_CONFIG, lingerMs);
             props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, bufferMemory);
-            props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-            props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
 
             producer = new KafkaProducer<>(props);
-            log.info("Kafka生产者启动成功: bootstrapServers={}, clientId={}", bootstrapServers, clientId);
+            log.info("Kafka生产者启动成功: bootstrapServers={}, clientId={}, acks={}, idempotence={}", 
+                    bootstrapServers, clientId, acksValue, enableIdempotence);
         } catch (Exception e) {
             log.error("Kafka生产者启动失败: {}", e.getMessage(), e);
             throw new RuntimeException("Kafka生产者启动失败", e);

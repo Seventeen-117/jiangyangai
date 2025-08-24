@@ -12,6 +12,9 @@ spring:
     lazy-initialization: false
   autoconfigure:
     exclude: []
+  config:
+    import:
+      - optional:classpath:application-message-service.yml
 
 # 服务配置
 service:

@@ -1,44 +1,44 @@
 # 生产环境配置
 
+# Spring Boot RocketMQ配置 - 生产环境
+# 这些属性是Spring Boot RocketMQ自动配置所必需的
+rocketmq:
+  name-server: rocketmq-namesrv:9876
+  producer:
+    group: jiangyang-prod-consumer-group
+  consumer:
+    group: jiangyang-prod-consumer-group
+
 # 消息服务配置 - 生产环境
 message:
   service:
-    # 消息服务类型
-    type: rocketmq
-    
-    # 是否启用消息轨迹追踪
-    trace-enabled: true
-    
-    # 消息发送重试次数
-    send-retry-times: 5
-    
-    # 消息发送超时时间（毫秒）
-    send-timeout-ms: 10000
-    
-    # 最大批量发送消息数量
-    max-batch-size: 200
+    # 通用消息服务配置
+    common:
+      # 默认消息服务类型
+      default-type: rocketmq
+      # 默认消息类型
+      default-message-type: normal
+      # 默认主题
+      default-topic: default-topic
     
     # RocketMQ配置 - 生产环境
     rocketmq:
       enabled: true
       name-server: rocketmq-namesrv:9876
-      producer-group: jiangyang-prod-producer-group
+      producer-group: jiangyang-prod-consumer-group
       consumer-group: jiangyang-prod-consumer-group
-      compression-strategy: ZSTD
-      retry-sync-times: 5
-      retry-async-times: 5
-      queue-count-per-topic: 8
-      message-retention-hours: 168
     
     # Kafka配置 - 生产环境
     kafka:
       enabled: false
       bootstrap-servers: kafka-broker:9092
-      consumer-group-id: jiangyang-prod-consumer-group
-      acks: all
-      batch-size: 32768
-      linger-ms: 5
-      buffer-memory: 67108864
+      consumer:
+        group-id: jiangyang-prod-consumer-group
+      producer:
+        acks: all
+        batch-size: 32768
+        linger-ms: 5
+        buffer-memory: 67108864
     
     # RabbitMQ配置 - 生产环境
     rabbitmq:
@@ -48,8 +48,9 @@ message:
       username: ${RABBITMQ_USERNAME:admin}
       password: ${RABBITMQ_PASSWORD:admin123}
       virtual-host: /
-      connection-timeout: 120000
-      heartbeat: 60
+      connection:
+        timeout: 120000
+        heartbeat: 60
 
 # 日志配置 - 生产环境
 logging:

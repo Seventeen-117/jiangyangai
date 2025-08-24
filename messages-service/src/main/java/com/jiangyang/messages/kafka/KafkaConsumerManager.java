@@ -51,20 +51,12 @@ public class KafkaConsumerManager {
     /**
      * 批量处理线程池
      */
-    private final ExecutorService batchExecutor = Executors.newFixedThreadPool(
-            config.getKafka().getConsumer().getBatchThreadPoolSize() != null ? 
-            config.getKafka().getConsumer().getBatchThreadPoolSize() : 4,
-            r -> new Thread(r, "kafka-batch-processor")
-    );
+    private ExecutorService batchExecutor;
 
     /**
      * 顺序消费线程池
      */
-    private final ExecutorService orderlyExecutor = Executors.newFixedThreadPool(
-            config.getKafka().getConsumer().getOrderThreadCount() != null ? 
-            config.getKafka().getConsumer().getOrderThreadCount() : 1,
-            r -> new Thread(r, "kafka-orderly-processor")
-    );
+    private ExecutorService orderlyExecutor;
 
     /**
      * 偏移量缓存
@@ -74,6 +66,20 @@ public class KafkaConsumerManager {
     @PostConstruct
     public void init() {
         log.info("初始化Kafka消费者管理器");
+        
+        // 初始化线程池
+        int batchThreadPoolSize = config.getKafka().getConsumer().getBatchThreadPoolSize() != null ? 
+            config.getKafka().getConsumer().getBatchThreadPoolSize() : 4;
+        int orderThreadCount = config.getKafka().getConsumer().getOrderThreadCount() != null ? 
+            config.getKafka().getConsumer().getOrderThreadCount() : 1;
+            
+        batchExecutor = Executors.newFixedThreadPool(batchThreadPoolSize,
+            r -> new Thread(r, "kafka-batch-processor"));
+        orderlyExecutor = Executors.newFixedThreadPool(orderThreadCount,
+            r -> new Thread(r, "kafka-orderly-processor"));
+            
+        log.info("Kafka消费者管理器线程池初始化完成: batchThreadPoolSize={}, orderThreadCount={}", 
+                batchThreadPoolSize, orderThreadCount);
     }
 
     @PreDestroy

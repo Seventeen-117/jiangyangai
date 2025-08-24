@@ -475,7 +475,7 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
         Properties props = new Properties();
         
         // 基础配置
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, messageServiceConfig.getKafka().getBootstrapServers().getServers());
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, messageServiceConfig.getKafka().getBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, config.getConsumerGroup() != null ? config.getConsumerGroup() : messageServiceConfig.getKafka().getConsumer().getGroupId());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, messageServiceConfig.getKafka().getConsumer().getKeyDeserializer());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, messageServiceConfig.getKafka().getConsumer().getValueDeserializer());

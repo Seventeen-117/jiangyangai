@@ -1,9 +1,11 @@
 package com.jiangyang.messages.config;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,6 +15,7 @@ import java.util.Map;
  * 读取application-message-service.yml中的配置
  * 所有配置都从配置文件读取，支持环境变量覆盖
  */
+@Slf4j
 @Data
 @Component
 @ConfigurationProperties(prefix = "message.service")
@@ -39,6 +42,35 @@ public class MessageServiceConfig {
     private Common common = new Common();
     
     /**
+     * 配置加载完成后的验证
+     */
+    @PostConstruct
+    public void validateConfig() {
+        log.info("=== MessageServiceConfig 配置验证开始 ===");
+        
+        // 验证通用配置
+        log.info("通用配置: defaultType={}, defaultMessageType={}, defaultTopic={}", 
+                common.getDefaultType(), common.getDefaultMessageType(), common.getDefaultTopic());
+        
+        // 验证RocketMQ配置
+        log.info("RocketMQ配置: enabled={}, nameServer={}, producerGroup={}, consumerGroup={}", 
+                rocketmq.getEnabled(), rocketmq.getNameServer(), 
+                rocketmq.getProducerGroup(), rocketmq.getConsumerGroup());
+        
+        // 验证Kafka配置
+        log.info("Kafka配置: enabled={}, bootstrapServers={}", 
+                kafka.getEnabled(), kafka.getBootstrapServers());
+        
+        // 验证RabbitMQ配置
+        log.info("RabbitMQ配置: enabled={}, host={}, port={}", 
+                rabbitmq.getEnabled(), rabbitmq.getHost(), rabbitmq.getPort());
+        
+        log.info("=== MessageServiceConfig 配置验证完成 ===");
+    }
+    
+
+    
+    /**
      * Kafka配置
      */
     @Data
@@ -51,7 +83,7 @@ public class MessageServiceConfig {
         /**
          * 基础连接配置
          */
-        private BootstrapServers bootstrapServers = new BootstrapServers();
+        private String bootstrapServers;
         
         /**
          * 安全配置
@@ -78,10 +110,7 @@ public class MessageServiceConfig {
          */
         private Consume consume = new Consume();
         
-        @Data
-        public static class BootstrapServers {
-            private String servers;
-        }
+
         
         @Data
         public static class Security {
@@ -208,7 +237,7 @@ public class MessageServiceConfig {
             Map<String, Object> props = new HashMap<>();
 
             // 基础配置
-            props.put("bootstrap.servers", bootstrapServers.getServers());
+            props.put("bootstrap.servers", bootstrapServers);
             props.put("group.id", consumer.getGroupId());
             props.put("client.id", consumer.getClientId());
             props.put("session.timeout.ms", consumer.getSessionTimeout());
@@ -440,8 +469,8 @@ public class MessageServiceConfig {
                 return nodes.split(",");
             }
         }
-        
-        @Data
+
+    @Data
         public static class Monitoring {
             private Boolean enabled;
             private Integer interval;

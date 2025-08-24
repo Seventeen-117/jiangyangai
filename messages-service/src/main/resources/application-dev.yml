@@ -48,6 +48,9 @@ logging:
     org.springframework.boot.autoconfigure: WARN
     org.springframework.boot.autoconfigure.logging: WARN
     org.springframework.boot.diagnostics: WARN
+    # RocketMQ日志配置 - 开发环境启用详细日志
+    org.apache.rocketmq: DEBUG
+    com.jiangyang.messages: DEBUG
 
 # Dubbo配置
 dubbo:
@@ -128,23 +131,65 @@ management:
       show-details: always
       validate-group-membership: false
 
+
+
+# Spring Boot RocketMQ自动配置 - 开发环境
+# 这些属性是Spring Boot RocketMQ自动配置所必需的
+rocketmq:
+  name-server: 8.133.246.113:9876
+  producer:
+    group: jiangyang-dev-producer-group
+    send-message-timeout: 3000
+    retry-times-when-send-failed: 2
+    retry-times-when-send-async-failed: 2
+    compress-message-body-threshold: 4096
+    max-message-size: 4194304
+  consumer:
+    group: jiangyang-dev-consumer-group
+    pull-batch-size: 32
+    consume-timeout: 15
+
 # 消息服务配置 - 开发环境
 message:
   service:
-    # 消息服务类型
-    type: rocketmq
-    
-    # 是否启用消息轨迹追踪
-    trace-enabled: true
-    
-    # 消息发送重试次数
-    send-retry-times: 2
-    
-    # 消息发送超时时间（毫秒）
-    send-timeout-ms: 5000
-    
-    # 最大批量发送消息数量
-    max-batch-size: 50
+    # 通用消息服务配置
+    common:
+      default-type: rocketmq
+      default-message-type: normal
+      default-topic: default-topic
+      
+      # 消息发送配置
+      send:
+        async-enabled: true
+        max-retries: 3
+        retry-interval: 1000
+        confirm-enabled: true
+        confirm-timeout: 5000
+      
+      # 消息消费配置
+      consume:
+        default-mode: PUSH
+        default-type: CLUSTERING
+        default-order: CONCURRENT
+        max-concurrency: 10
+        batch-size: 100
+        timeout: 30000
+      
+      # 重试配置
+      retry:
+        enabled: true
+        max-retries: 3
+        retry-interval: 1000
+        backoff-strategy: EXPONENTIAL
+        backoff-multiplier: 2.0
+        max-retry-interval: 60000
+      
+      # 监控配置
+      monitoring:
+        enabled: true
+        interval: 30
+        verbose-logging: false
+        metrics-backend: prometheus
     
     # RocketMQ配置 - 开发环境
     rocketmq:
@@ -152,21 +197,106 @@ message:
       name-server: 8.133.246.113:9876
       producer-group: jiangyang-dev-producer-group
       consumer-group: jiangyang-dev-consumer-group
-      compression-strategy: LZ4
-      retry-sync-times: 2
-      retry-async-times: 2
-      queue-count-per-topic: 2
-      message-retention-hours: 24
+      
+      # 生产者配置
+      producer:
+        send-message-timeout: 3000
+        retry-times-when-send-failed: 2
+        retry-times-when-send-async-failed: 2
+        compress-message-body-threshold: 4096
+        max-message-size: 4194304
+        vip-channel-enabled: false
+        send-latency-fault-enable: false
+      
+      # 消费者配置
+      consumer:
+        pull-batch-size: 32
+        consume-timeout: 15
+        max-reconsume-times: 16
+        message-model: CLUSTERING
+        consume-from-where: CONSUME_FROM_LAST_OFFSET
+        subscription: []
+      
+      # 主题配置
+      topics:
+        default: default-topic
+        billing: billing-topic
+        notification: notification-topic
+        audit: audit-topic
+      
+      # 消费配置
+      consume:
+        mode: PUSH
+        type: CLUSTERING
+        order: CONCURRENT
+        max-concurrency: 10
+        batch-size: 100
+        timeout: 30000
+        retry:
+          enabled: true
+          max-retries: 3
+          retry-interval: 1000
+          backoff-strategy: EXPONENTIAL
+          backoff-multiplier: 2.0
+          max-retry-interval: 60000
     
     # Kafka配置 - 开发环境
     kafka:
       enabled: false
       bootstrap-servers: 8.133.246.113:9092
-      consumer-group-id: jiangyang-dev-consumer-group
-      acks: 1
-      batch-size: 8192
-      linger-ms: 10
-      buffer-memory: 16777216
+      consumer:
+        group-id: jiangyang-dev-consumer-group
+        client-id: jiangyang-dev-consumer-client
+        enable-auto-commit: false
+        auto-commit-interval: 1000
+        session-timeout: 30000
+        heartbeat-interval: 10000
+        request-timeout: 40000
+        retry-backoff: 1000
+        max-poll-interval: 300000
+        max-poll-records: 500
+        max-poll-bytes: 52428800
+        auto-offset-reset: latest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      producer:
+        acks: 1
+        batch-size: 8192
+        linger-ms: 10
+        buffer-memory: 16777216
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        retries: 3
+        request-timeout: 30000
+        delivery-timeout: 120000
+        enable-idempotence: false
+        max-in-flight-requests: 5
+        compression-type: none
+        security:
+          protocol: PLAINTEXT
+          sasl:
+            mechanism: PLAIN
+            username: ""
+            password: ""
+      topics:
+        default: default-topic
+        billing: billing-topic
+        notification: notification-topic
+        audit: audit-topic
+      consume:
+        mode: PULL
+        type: CLUSTERING
+        order: CONCURRENT
+        max-concurrency: 10
+        batch-size: 100
+        timeout: 30000
+        retry:
+          enabled: true
+          max-retries: 3
+          retry-interval: 1000
+          backoff-strategy: EXPONENTIAL
+          backoff-multiplier: 2.0
+          max-retry-interval: 60000
     
     # RabbitMQ配置 - 开发环境
     rabbitmq:
@@ -176,8 +306,67 @@ message:
       username: guest
       password: guest
       virtual-host: /
-      connection-timeout: 30000
-      heartbeat: 30
+      connection:
+        timeout: 30000
+        heartbeat: 30
+        requested-heartbeat: 30
+        requested-channel-max: 0
+        requested-frame-max: 0
+        connection-retry-delay: 1000
+        connection-retry-timeout: 60000
+        shutdown-timeout: 10000
+      ssl:
+        enabled: false
+        key-store: ""
+        key-store-password: ""
+        key-store-type: JKS
+        trust-store: ""
+        trust-store-password: ""
+        trust-store-type: JKS
+        algorithm: ""
+        verify-hostname: true
+      publisher:
+        confirm-type: NONE
+        returns-enabled: false
+        confirm-timeout: 5000
+        return-timeout: 5000
+      listener:
+        simple:
+          acknowledge-mode: AUTO
+          auto-startup: true
+          default-requeue-rejected: true
+          retry:
+            enabled: false
+            max-attempts: 3
+            initial-interval: 1000
+            multiplier: 1.0
+            max-interval: 10000
+          concurrency: 1
+          max-concurrency: 10
+          prefetch: 250
+          batch-size: 1
+          consumer-batch-enabled: false
+          idle-event-interval: 60000
+          missing-queues-fatal: true
+      topics:
+        default: default-topic
+        billing: billing-topic
+        notification: notification-topic
+        audit: audit-topic
+      consume:
+        mode: PUSH
+        type: CLUSTERING
+        order: CONCURRENT
+        max-concurrency: 10
+        batch-size: 100
+        timeout: 30000
+        retry:
+          enabled: true
+          max-retries: 3
+          retry-interval: 1000
+          backoff-strategy: EXPONENTIAL
+          backoff-multiplier: 2.0
+          max-retry-interval: 60000
 
 
 

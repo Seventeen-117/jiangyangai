@@ -12,6 +12,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +30,40 @@ public class RocketMQTemplateService implements MessageService {
 
     private final ConcurrentHashMap<String, AtomicInteger> retryCountMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> messageDedupMap = new ConcurrentHashMap<>();
+
+    /**
+     * 服务初始化后的检查
+     */
+    @PostConstruct
+    public void init() {
+        log.info("=== RocketMQTemplateService 初始化检查 ===");
+        
+        if (rocketMQTemplate == null) {
+            log.error("❌ RocketMQTemplate 未被注入，Spring Boot 自动配置可能未生效");
+            log.error("请检查：");
+            log.error("1. rocketmq-spring-boot-starter 依赖是否正确");
+            log.error("2. application-dev.yml 中的 rocketmq.* 配置是否正确");
+            log.error("3. Spring Boot 版本与 RocketMQ starter 版本是否兼容");
+        } else {
+            log.info("✅ RocketMQTemplate 注入成功");
+            log.info("RocketMQTemplate 类型: {}", rocketMQTemplate.getClass().getName());
+            
+            // 检查生产者状态
+            try {
+                if (rocketMQTemplate.getProducer() != null) {
+                    log.info("✅ RocketMQ 生产者已就绪");
+                    log.info("生产者组: {}", rocketMQTemplate.getProducer().getProducerGroup());
+                    log.info("NameServer: {}", rocketMQTemplate.getProducer().getNamesrvAddr());
+                } else {
+                    log.warn("⚠️ RocketMQ 生产者未就绪");
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ 检查 RocketMQ 生产者状态时出现异常: {}", e.getMessage());
+            }
+        }
+        
+        log.info("=== RocketMQTemplateService 初始化检查完成 ===");
+    }
 
     @Override
     public boolean sendMessage(String topic, String content) {
