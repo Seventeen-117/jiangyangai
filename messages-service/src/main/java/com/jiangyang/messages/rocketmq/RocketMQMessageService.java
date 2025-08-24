@@ -371,4 +371,40 @@ public class RocketMQMessageService implements MessageService {
     public int getRetryAsyncTimes() {
         return maxRetryTimes;
     }
+
+    @Override
+    public boolean sendTransactionMessage(String topic, String tag, String messageBody, 
+                                       String transactionId, String businessKey, int timeout) {
+        try {
+            log.info("发送RocketMQ事务消息: topic={}, tag={}, transactionId={}, businessKey={}, timeout={}", 
+                    topic, tag, transactionId, businessKey, timeout);
+            
+            // 创建事务消息
+            Message message = new Message(topic, tag, businessKey, messageBody.getBytes(StandardCharsets.UTF_8));
+            
+            // 设置事务相关属性
+            message.putUserProperty("transactionId", transactionId);
+            message.putUserProperty("businessKey", businessKey);
+            message.putUserProperty("messageType", "TRANSACTION");
+            
+            // 使用事务发送器发送消息
+            // 注意：这里需要配置TransactionMQProducer来支持真正的事务消息
+            // 目前先使用普通发送器，后续可以扩展为TransactionMQProducer
+            SendResult sendResult = producer.send(message);
+            
+            if (sendResult.getSendStatus().name().equals("SEND_OK")) {
+                log.info("RocketMQ事务消息发送成功: topic={}, tag={}, transactionId={}, msgId={}", 
+                        topic, tag, transactionId, sendResult.getMsgId());
+                return true;
+            } else {
+                log.error("RocketMQ事务消息发送失败: topic={}, tag={}, transactionId={}, status={}", 
+                        topic, tag, transactionId, sendResult.getSendStatus());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("RocketMQ事务消息发送异常: topic={}, tag={}, transactionId={}, error={}", 
+                    topic, tag, transactionId, e.getMessage(), e);
+            return false;
+        }
+    }
 }

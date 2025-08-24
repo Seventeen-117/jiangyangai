@@ -36,19 +36,21 @@ public class MessageSagaController {
     @PostMapping("/send")
     public ResponseEntity<Map<String, Object>> sendMessageWithSaga(@RequestBody Map<String, Object> request) {
         String messageId = (String) request.getOrDefault("messageId", UUID.randomUUID().toString());
-        String messageType = (String) request.getOrDefault("messageType", "ROCKETMQ"); // 默认使用RocketMQ
+        String messageQueueType = (String) request.getOrDefault("messageQueueType", "ROCKETMQ"); // 消息中间件类型
+        String messageType = (String) request.getOrDefault("messageType", "NORMAL"); // 具体的消息类型
         
         if (messageId == null || messageId.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(createErrorResponse("消息ID不能为空"));
         }
         
         try {
-            // 根据消息类型动态路由
-            boolean success = enhancedMessageService.sendMessage(messageId, messageType, request);
+            // 根据消息中间件类型动态路由
+            boolean success = enhancedMessageService.sendMessage(messageId, messageQueueType, request);
             
             if (success) {
                 return ResponseEntity.ok(createSuccessResponse("消息发送成功", Map.of(
                     "messageId", messageId,
+                    "messageQueueType", messageQueueType,
                     "messageType", messageType,
                     "status", "SENT"
                 )));
@@ -56,7 +58,8 @@ public class MessageSagaController {
                 return ResponseEntity.internalServerError().body(createErrorResponse("消息发送失败"));
             }
         } catch (Exception e) {
-            log.error("发送消息失败: messageId={}, messageType={}, error={}", messageId, messageType, e.getMessage(), e);
+            log.error("发送消息失败: messageId={}, messageQueueType={}, messageType={}, error={}", 
+                    messageId, messageQueueType, messageType, e.getMessage(), e);
             return ResponseEntity.internalServerError().body(createErrorResponse("消息发送失败: " + e.getMessage()));
         }
     }
@@ -201,7 +204,7 @@ public class MessageSagaController {
     @PostMapping("/send/enhanced")
     public ResponseEntity<Map<String, Object>> sendEnhancedMessage(@RequestBody Map<String, Object> request) {
         String messageId = (String) request.getOrDefault("messageId", UUID.randomUUID().toString());
-        String messageQueueType = (String) request.get("messageType"); // 消息中间件类型
+        String messageQueueType = (String) request.get("messageQueueType"); // 消息中间件类型
         String messageType = (String) request.getOrDefault("messageType", "NORMAL"); // 消息类型（普通、定时、顺序、事务）
         
         if (messageId == null || messageId.trim().isEmpty()) {

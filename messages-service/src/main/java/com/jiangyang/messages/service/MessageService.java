@@ -79,4 +79,17 @@ public interface MessageService {
      * 关闭服务
      */
     void shutdown();
+
+    /**
+     * 发送事务消息
+     * @param topic 主题
+     * @param tag 标签
+     * @param messageBody 消息体
+     * @param transactionId 事务ID
+     * @param businessKey 业务键
+     * @param timeout 超时时间（毫秒）
+     * @return 是否发送成功
+     */
+    boolean sendTransactionMessage(String topic, String tag, String messageBody, 
+                                 String transactionId, String businessKey, int timeout);
 }

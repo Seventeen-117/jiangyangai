@@ -200,6 +200,11 @@ public class RocketMQTemplateService implements MessageService {
         }
     }
 
+    @Override
+    public boolean sendTransactionMessage(String topic, String tag, String messageBody, String transactionId, String businessKey, int timeout) {
+        return false;
+    }
+
     /**
      * 异步发送消息
      */

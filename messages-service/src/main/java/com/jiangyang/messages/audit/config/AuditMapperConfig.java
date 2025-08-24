@@ -10,6 +10,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @MapperScan(basePackages = {
         "com.jiangyang.messages.audit.mapper"
-})
+}, sqlSessionFactoryRef = "sqlSessionFactory")
 public class AuditMapperConfig {
 }

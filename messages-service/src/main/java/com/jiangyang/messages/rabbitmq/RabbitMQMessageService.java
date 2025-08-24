@@ -414,4 +414,54 @@ public class RabbitMQMessageService implements MessageService {
     public int getConnectionTimeout() { return connectionTimeout; }
     public int getRequestedHeartbeat() { return requestedHeartbeat; }
     public boolean isAutomaticRecovery() { return automaticRecovery; }
+
+    @Override
+    public boolean sendTransactionMessage(String topic, String tag, String messageBody, 
+                                       String transactionId, String businessKey, int timeout) {
+        try {
+            log.info("发送RabbitMQ事务消息: topic={}, tag={}, transactionId={}, businessKey={}, timeout={}", 
+                    topic, tag, transactionId, businessKey, timeout);
+            
+            if (channel == null || !channel.isOpen()) {
+                log.warn("RabbitMQ channel not available, skip transaction message send");
+                return false;
+            }
+            
+            // 创建事务消息属性
+            AMQP.BasicProperties.Builder propsBuilder = new AMQP.BasicProperties.Builder();
+            propsBuilder.deliveryMode(2); // 持久化消息
+            propsBuilder.priority(0); // 默认优先级
+            
+            // 设置事务相关属性
+            Map<String, Object> headers = new HashMap<>();
+            headers.put("transactionId", transactionId);
+            headers.put("businessKey", businessKey != null ? businessKey : "");
+            headers.put("messageType", "TRANSACTION");
+            headers.put("timestamp", System.currentTimeMillis());
+            propsBuilder.headers(headers);
+            
+            AMQP.BasicProperties props = propsBuilder.build();
+            
+            // 发送事务消息
+            // 注意：RabbitMQ的事务消息需要启用事务模式
+            // 目前先使用普通发送，后续可以扩展为真正的事务消息
+            channel.basicPublish("", topic, props, messageBody.getBytes(StandardCharsets.UTF_8));
+            
+            // 等待发布确认
+            if (channel.waitForConfirms(timeout)) {
+                log.info("RabbitMQ事务消息发送成功: topic={}, tag={}, transactionId={}", 
+                        topic, tag, transactionId);
+                return true;
+            } else {
+                log.error("RabbitMQ事务消息发送失败: topic={}, tag={}, transactionId={}", 
+                        topic, tag, transactionId);
+                return false;
+            }
+            
+        } catch (Exception e) {
+            log.error("RabbitMQ事务消息发送异常: topic={}, tag={}, transactionId={}, error={}", 
+                    topic, tag, transactionId, e.getMessage(), e);
+            return false;
+        }
+    }
 }

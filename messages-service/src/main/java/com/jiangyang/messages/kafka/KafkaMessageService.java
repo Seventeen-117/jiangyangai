@@ -354,4 +354,41 @@ public class KafkaMessageService implements MessageService {
         retryCountMap.remove(messageKey);
     }
 
+    @Override
+    public boolean sendTransactionMessage(String topic, String tag, String messageBody, 
+                                       String transactionId, String businessKey, int timeout) {
+        try {
+            log.info("发送Kafka事务消息: topic={}, tag={}, transactionId={}, businessKey={}, timeout={}", 
+                    topic, tag, transactionId, businessKey, timeout);
+            
+            if (producer == null) {
+                log.warn("Kafka producer not initialized, skip transaction message send");
+                return false;
+            }
+            
+            // 创建事务消息记录
+            String messageKey = businessKey != null ? businessKey : transactionId;
+            ProducerRecord<String, String> record = new ProducerRecord<>(topic, messageKey, messageBody);
+            
+            // 设置事务相关属性到消息头
+            record.headers().add("transactionId", transactionId.getBytes());
+            record.headers().add("businessKey", businessKey != null ? businessKey.getBytes() : "".getBytes());
+            record.headers().add("messageType", "TRANSACTION".getBytes());
+            
+            // 发送事务消息
+            // 注意：Kafka的事务消息需要配置事务ID和启用幂等性
+            // 目前先使用普通发送，后续可以扩展为真正的事务消息
+            Future<RecordMetadata> future = producer.send(record);
+            RecordMetadata metadata = future.get(); // 同步等待发送结果
+            
+            log.info("Kafka事务消息发送成功: topic={}, tag={}, transactionId={}, partition={}, offset={}", 
+                    topic, tag, transactionId, metadata.partition(), metadata.offset());
+            return true;
+            
+        } catch (Exception e) {
+            log.error("Kafka事务消息发送异常: topic={}, tag={}, transactionId={}, error={}", 
+                    topic, tag, transactionId, e.getMessage(), e);
+            return false;
+        }
+    }
 }

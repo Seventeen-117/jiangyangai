@@ -21,7 +21,8 @@ import org.mybatis.spring.annotation.MapperScan;
 @EnableDubbo
 @MapperScan(basePackages = {
     "com.jiangyang.messages.saga.mapper",
-    "com.jiangyang.messages.audit.mapper"
+    "com.jiangyang.messages.audit.mapper",
+    "com.jiangyang.messages.mapper"
 })
 public class MessagesServiceApplication {
 
