@@ -43,9 +43,6 @@ public class AutoConsumeServiceImpl implements AutoConsumeService {
     private KafkaConfig kafkaConfig;
     
     @Autowired
-    private RabbitMQConfig rabbitMQConfig;
-    
-    @Autowired
     private RabbitMQConsumerManager rabbitMQConsumerManager;
 
     /**
