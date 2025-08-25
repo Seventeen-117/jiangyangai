@@ -6,6 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.jiangyang.messages.config.MessageServiceConfig;
 
 import java.util.List;
 import java.net.InetAddress;
@@ -21,7 +25,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 提供Kafka消息中间件的具体实现
  */
 @Slf4j
+@Service
 public class KafkaMessageService implements MessageService {
+
+    @Autowired
+    private MessageServiceConfig config;
 
     private String bootstrapServers;
 
@@ -41,8 +49,56 @@ public class KafkaMessageService implements MessageService {
     private final ConcurrentHashMap<String, AtomicInteger> retryCountMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> messageDedupMap = new ConcurrentHashMap<>();
 
+    @PostConstruct
     public void init() {
         try {
+            log.info("=== KafkaMessageService 初始化开始 ===");
+            
+            // 输出环境信息
+            log.info("环境信息:");
+            log.info("  - spring.profiles.active: {}", System.getProperty("spring.profiles.active"));
+            log.info("  - SPRING_PROFILES_ACTIVE: {}", System.getenv("SPRING_PROFILES_ACTIVE"));
+            log.info("  - KAFKA_ENABLED: {}", System.getenv("KAFKA_ENABLED"));
+            log.info("  - KAFKA_BOOTSTRAP_SERVERS: {}", System.getenv("KAFKA_BOOTSTRAP_SERVERS"));
+            
+            // 从配置中获取Kafka配置
+            MessageServiceConfig.Kafka kafkaConfig = config.getKafka();
+            log.info("从MessageServiceConfig获取的Kafka配置: {}", kafkaConfig);
+            
+            if (kafkaConfig == null) {
+                log.warn("Kafka配置对象为null，跳过初始化");
+                log.info("可能的原因:");
+                log.info("  1. 配置文件未正确加载");
+                log.info("  2. 配置结构不匹配");
+                log.info("  3. Spring Boot配置绑定失败");
+                return;
+            }
+            
+            log.info("Kafka配置详情:");
+            log.info("  - enabled: {}", kafkaConfig.getEnabled());
+            log.info("  - bootstrapServers: {}", kafkaConfig.getBootstrapServers());
+            log.info("  - consumer: {}", kafkaConfig.getConsumer() != null ? "已配置" : "未配置");
+            log.info("  - producer: {}", kafkaConfig.getProducer() != null ? "已配置" : "未配置");
+            
+            if (kafkaConfig.getEnabled() == null) {
+                log.warn("Kafka enabled为null，跳过初始化");
+                return;
+            }
+            
+            if (!kafkaConfig.getEnabled()) {
+                log.warn("Kafka服务未启用(enabled=false)，跳过初始化");
+                return;
+            }
+            
+            // 设置配置属性
+            this.bootstrapServers = kafkaConfig.getBootstrapServers();
+            this.clientId = kafkaConfig.getConsumer().getClientId();
+            this.acks = kafkaConfig.getProducer().getAcks();
+            this.retries = kafkaConfig.getProducer().getRetries();
+            this.batchSize = kafkaConfig.getProducer().getBatchSize();
+            this.lingerMs = kafkaConfig.getProducer().getLingerMs();
+            this.bufferMemory = kafkaConfig.getProducer().getBufferMemory();
+            
             // 检查必要的配置属性
             if (bootstrapServers == null || bootstrapServers.trim().isEmpty()) {
                 log.warn("Kafka bootstrapServers is not configured, skipping initialization");

@@ -1,0 +1,185 @@
+# 测试环境配置
+
+# 消息服务配置 - 测试环境
+message:
+  service:
+    # 通用消息服务配置
+    common:
+      default-type: kafka
+      default-message-type: normal
+      default-topic: test-topic
+      
+      # 消息发送配置
+      send:
+        async-enabled: true
+        max-retries: 3
+        retry-interval: 1000
+        confirm-enabled: true
+        confirm-timeout: 5000
+      
+      # 消息消费配置
+      consume:
+        default-mode: PUSH
+        default-type: CLUSTERING
+        default-order: CONCURRENT
+        max-concurrency: 10
+        batch-size: 100
+        timeout: 30000
+      
+      # 重试配置
+      retry:
+        enabled: true
+        max-retries: 3
+        retry-interval: 1000
+        backoff-strategy: EXPONENTIAL
+        backoff-multiplier: 2.0
+        max-retry-interval: 60000
+      
+      # 监控配置
+      monitoring:
+        enabled: true
+        interval: 30
+        verbose-logging: false
+        metrics-backend: prometheus
+    
+    # Kafka配置 - 测试环境
+    kafka:
+      enabled: true
+      bootstrap-servers: localhost:9092
+      security:
+        protocol: PLAINTEXT
+        sasl:
+          mechanism: PLAIN
+          username: ""
+          password: ""
+      consumer:
+        group-id: test-consumer-group
+        client-id: test-consumer-client
+        enable-auto-commit: false
+        auto-commit-interval: 1000
+        session-timeout: 30000
+        heartbeat-interval: 10000
+        request-timeout: 40000
+        retry-backoff: 1000
+        max-poll-interval: 300000
+        max-poll-records: 500
+        max-poll-bytes: 52428800
+        auto-offset-reset: latest
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      producer:
+        bootstrap-servers: localhost:9092
+        acks: "1"
+        batch-size: 8192
+        linger-ms: 10
+        buffer-memory: 16777216
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        retries: 3
+      topics:
+        default-topic: test-topic
+        dlq: test-dlq-topic
+        retry: test-retry-topic
+      consume:
+        default-mode: PULL
+        default-type: CLUSTERING
+        default-order: CONCURRENT
+        default-batch-size: 100
+        default-max-retry: 3
+        default-timeout: 30000
+    
+    # RocketMQ配置 - 测试环境
+    rocketmq:
+      enabled: true
+      name-server: localhost:9876
+      producer-group: test-producer-group
+      consumer-group: test-consumer-group
+      
+      # 生产者配置
+      producer:
+        send-msg-timeout: 3000
+        retry-times-when-send-failed: 2
+        retry-times-when-send-async-failed: 2
+        compress-msg-body-over-howmuch: 4096
+        max-message-size: 4194304
+        vip-channel-enabled: false
+        instance-name: ""
+      
+      # 消费者配置
+      consumer:
+        consume-from-where: CONSUME_FROM_LAST_OFFSET
+        consume-timeout: 15
+        pull-batch-size: 32
+        pull-interval: 0
+        consume-message-batch-max-size: 1
+        max-reconsume-times: 16
+      
+      # 事务消息配置
+      transaction:
+        enabled: true
+        check-thread-pool-min-size: 1
+        check-thread-pool-max-size: 1
+        check-request-hold-max: 2000
+        check-request-hold-max-value: 2000
+    
+    # RabbitMQ配置 - 测试环境
+    rabbitmq:
+      enabled: false
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      virtual-host: /
+      connection:
+        timeout: 30000
+        heartbeat: 30
+        automatic-recovery: true
+        network-recovery-interval: 5000
+      consumer:
+        default-mode: PUSH
+        default-ack-mode: MANUAL
+        prefetch-count: 1
+        batch-size: 100
+        consume-interval: 1000
+        max-retry-times: 3
+        timeout: 30000
+      producer:
+        confirm-mode: CORRELATED
+        return-mode: BASIC
+        batch-size: 100
+        timeout: 5000
+      queue:
+        default-type: CLASSIC
+        durable: true
+        exclusive: false
+        auto-delete: false
+        max-priority: 10
+        max-length: 10000
+        message-ttl: 86400000
+      exchange:
+        default-type: DIRECT
+        durable: true
+        auto-delete: false
+        internal: false
+      dead-letter:
+        exchange-prefix: dlx.
+        routing-key-prefix: dlq.
+        queue-prefix: dlq.
+        enabled: true
+      delay:
+        enabled: true
+        exchange-prefix: delay.
+        queue-prefix: delay.
+        default-ttl: 30000
+      priority:
+        enabled: true
+        max-priority: 10
+        default-priority: 5
+      cluster:
+        enabled: false
+        nodes: ""
+        load-balance: ROUND_ROBIN
+      monitoring:
+        enabled: true
+        interval: 30
+        verbose-logging: false

@@ -41,9 +41,9 @@
 		<spring-ai.version>1.0.1</spring-ai.version>
 		<seata.version>1.7.0</seata.version>
 		<!-- Dubbo 相关版本 -->
-		<dubbo.version>3.2.8</dubbo.version>
-		<dubbo-spring-boot-starter.version>3.2.8</dubbo-spring-boot-starter.version>
-		<dubbo-nacos-registry.version>3.2.8</dubbo-nacos-registry.version>
+		<dubbo.version>3.3.0</dubbo.version>
+		<dubbo-spring-boot-starter.version>3.3.0</dubbo-spring-boot-starter.version>
+		<dubbo-nacos-registry.version>3.3.0</dubbo-nacos-registry.version>
 		<hessian.version>4.0.66</hessian.version>
 		<!-- Elasticsearch 版本 -->
 		<elasticsearch.version>8.12.2</elasticsearch.version>

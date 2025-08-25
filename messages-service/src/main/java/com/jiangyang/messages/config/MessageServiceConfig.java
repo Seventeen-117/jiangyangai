@@ -48,6 +48,13 @@ public class MessageServiceConfig {
     public void validateConfig() {
         log.info("=== MessageServiceConfig 配置验证开始 ===");
         
+        // 输出环境信息
+        log.info("当前环境信息:");
+        log.info("  - spring.profiles.active: {}", System.getProperty("spring.profiles.active"));
+        log.info("  - SPRING_PROFILES_ACTIVE: {}", System.getenv("SPRING_PROFILES_ACTIVE"));
+        log.info("  - KAFKA_ENABLED: {}", System.getenv("KAFKA_ENABLED"));
+        log.info("  - KAFKA_BOOTSTRAP_SERVERS: {}", System.getenv("KAFKA_BOOTSTRAP_SERVERS"));
+        
         // 验证通用配置
         log.info("通用配置: defaultType={}, defaultMessageType={}, defaultTopic={}", 
                 common.getDefaultType(), common.getDefaultMessageType(), common.getDefaultTopic());
@@ -57,15 +64,57 @@ public class MessageServiceConfig {
                 rocketmq.getEnabled(), rocketmq.getNameServer(), 
                 rocketmq.getProducerGroup(), rocketmq.getConsumerGroup());
         
-        // 验证Kafka配置
+        // 验证Kafka配置 - 添加更详细的调试信息
         log.info("Kafka配置: enabled={}, bootstrapServers={}", 
                 kafka.getEnabled(), kafka.getBootstrapServers());
+        
+        // 详细检查Kafka配置的各个部分
+        if (kafka != null) {
+            log.info("Kafka配置详情:");
+            log.info("  - enabled: {}", kafka.getEnabled());
+            log.info("  - bootstrapServers: {}", kafka.getBootstrapServers());
+            log.info("  - consumer: {}", kafka.getConsumer() != null ? "已配置" : "未配置");
+            log.info("  - producer: {}", kafka.getProducer() != null ? "已配置" : "未配置");
+            log.info("  - topics: {}", kafka.getTopics() != null ? "已配置" : "未配置");
+            log.info("  - consume: {}", kafka.getConsume() != null ? "已配置" : "未配置");
+            
+            if (kafka.getConsumer() != null) {
+                log.info("  - consumer.groupId: {}", kafka.getConsumer().getGroupId());
+                log.info("  - consumer.clientId: {}", kafka.getConsumer().getClientId());
+            }
+            
+            if (kafka.getProducer() != null) {
+                log.info("  - producer.acks: {}", kafka.getProducer().getAcks());
+                log.info("  - producer.retries: {}", kafka.getProducer().getRetries());
+            }
+        } else {
+            log.warn("Kafka配置对象为null");
+        }
         
         // 验证RabbitMQ配置
         log.info("RabbitMQ配置: enabled={}, host={}, port={}", 
                 rabbitmq.getEnabled(), rabbitmq.getHost(), rabbitmq.getPort());
         
         log.info("=== MessageServiceConfig 配置验证完成 ===");
+    }
+
+    @PostConstruct
+    public void logConfigStatus() {
+        log.info("=== MessageServiceConfig 配置加载状态 ===");
+        log.info("Kafka配置: enabled={}, bootstrapServers={}", 
+                kafka != null ? kafka.getEnabled() : "null", 
+                kafka != null ? kafka.getBootstrapServers() : "null");
+        log.info("RocketMQ配置: enabled={}, nameServer={}", 
+                rocketmq != null ? rocketmq.getEnabled() : "null", 
+                rocketmq != null ? rocketmq.getNameServer() : "null");
+        log.info("RabbitMQ配置: enabled={}, host={}", 
+                rabbitmq != null ? rabbitmq.getEnabled() : "null", 
+                rabbitmq != null ? rabbitmq.getHost() : "null");
+        log.info("通用配置: defaultType={}, defaultMessageType={}, defaultTopic={}", 
+                common != null ? common.getDefaultType() : "null",
+                common != null ? common.getDefaultMessageType() : "null",
+                common != null ? common.getDefaultTopic() : "null");
+        log.info("========================================");
     }
     
 

@@ -1,0 +1,13 @@
+# 测试环境主配置文件
+spring:
+  profiles:
+    active: test
+  config:
+    import:
+      - optional:classpath:application-test.yml
+      - optional:classpath:application-message-service.yml
+
+# 服务配置
+service:
+  name: messages-service-test
+  version: 1.0.0

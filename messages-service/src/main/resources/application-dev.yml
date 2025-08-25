@@ -83,7 +83,7 @@ dubbo:
     retries: 2
     check: false
     # 禁用 monitor 过滤器，避免调用 MonitorService
-    filter: -monitor
+    filter: -monitor,-observationsender
     # 禁用消费者缓存
     cache-file: false
     # 配置消费者元数据类型
@@ -96,7 +96,12 @@ dubbo:
     # 配置提供者元数据类型
     metadata-type: local
     # 禁用提供者监控
-    filter: -monitor
+    filter: -monitor,-observationsender
+  # 禁用tracing和observability功能
+  tracing:
+    enabled: false
+  observability:
+    enabled: false
   # 全局配置
   config-center:
     timeout: 3000
@@ -242,8 +247,14 @@ message:
     
     # Kafka配置 - 开发环境
     kafka:
-      enabled: false
+      enabled: true
       bootstrap-servers: 8.133.246.113:9092
+      security:
+        protocol: PLAINTEXT
+        sasl:
+          mechanism: PLAIN
+          username: ""
+          password: ""
       consumer:
         group-id: jiangyang-dev-consumer-group
         client-id: jiangyang-dev-consumer-client
@@ -260,43 +271,25 @@ message:
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       producer:
-        acks: 1
+        bootstrap-servers: 8.133.246.113:9092
+        acks: "1"
         batch-size: 8192
         linger-ms: 10
         buffer-memory: 16777216
         key-serializer: org.apache.kafka.common.serialization.StringSerializer
         value-serializer: org.apache.kafka.common.serialization.StringSerializer
         retries: 3
-        request-timeout: 30000
-        delivery-timeout: 120000
-        enable-idempotence: false
-        max-in-flight-requests: 5
-        compression-type: none
-        security:
-          protocol: PLAINTEXT
-          sasl:
-            mechanism: PLAIN
-            username: ""
-            password: ""
       topics:
-        default: default-topic
-        billing: billing-topic
-        notification: notification-topic
-        audit: audit-topic
+        default-topic: default-topic
+        dlq: dlq-topic
+        retry: retry-topic
       consume:
-        mode: PULL
-        type: CLUSTERING
-        order: CONCURRENT
-        max-concurrency: 10
-        batch-size: 100
-        timeout: 30000
-        retry:
-          enabled: true
-          max-retries: 3
-          retry-interval: 1000
-          backoff-strategy: EXPONENTIAL
-          backoff-multiplier: 2.0
-          max-retry-interval: 60000
+        default-mode: PULL
+        default-type: CLUSTERING
+        default-order: CONCURRENT
+        default-batch-size: 100
+        default-max-retry: 3
+        default-timeout: 30000
     
     # RabbitMQ配置 - 开发环境
     rabbitmq:

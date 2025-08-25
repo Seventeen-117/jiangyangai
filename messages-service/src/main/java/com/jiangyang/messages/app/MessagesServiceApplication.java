@@ -34,7 +34,7 @@ public class MessagesServiceApplication {
     }
     
     /**
-     * 设置系统属性，禁用Dubbo监控
+     * 设置系统属性，禁用Dubbo监控和冲突的过滤器
      */
     private static void setupSystemProperties() {
         // 禁用Dubbo监控
@@ -46,7 +46,16 @@ public class MessagesServiceApplication {
         System.setProperty("dubbo.consumer.filter", "-monitor");
         System.setProperty("dubbo.provider.filter", "-monitor");
         
-        System.out.println("Dubbo监控已禁用");
+        // 禁用冲突的ObservationSenderFilter
+        System.setProperty("dubbo.cluster.filter", "-observationsender");
+        System.setProperty("dubbo.consumer.filter", "-observationsender");
+        System.setProperty("dubbo.provider.filter", "-observationsender");
+        
+        // 禁用Dubbo的tracing功能
+        System.setProperty("dubbo.tracing.enabled", "false");
+        System.setProperty("dubbo.observability.enabled", "false");
+        
+        System.out.println("Dubbo监控和冲突过滤器已禁用");
     }
 }
 

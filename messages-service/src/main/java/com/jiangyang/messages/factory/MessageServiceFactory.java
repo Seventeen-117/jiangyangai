@@ -83,12 +83,22 @@ public class MessageServiceFactory {
     public boolean isServiceAvailable(MessageServiceType type) {
         switch (type) {
             case ROCKETMQ:
-                return rocketMQMessageService != null && config.getRocketmq().getEnabled();
+                boolean rocketMQAvailable = rocketMQMessageService != null && config.getRocketmq().getEnabled();
+                log.debug("RocketMQ服务可用性检查: service={}, enabled={}, available={}", 
+                         rocketMQMessageService != null, config.getRocketmq().getEnabled(), rocketMQAvailable);
+                return rocketMQAvailable;
             case KAFKA:
-                return kafkaMessageService != null && config.getKafka().getEnabled();
+                boolean kafkaAvailable = kafkaMessageService != null && config.getKafka().getEnabled();
+                log.debug("Kafka服务可用性检查: service={}, enabled={}, available={}", 
+                         kafkaMessageService != null, config.getKafka().getEnabled(), kafkaAvailable);
+                return kafkaAvailable;
             case RABBITMQ:
-                return rabbitMQMessageService != null && config.getRabbitmq().getEnabled();
+                boolean rabbitMQAvailable = rabbitMQMessageService != null && config.getRabbitmq().getEnabled();
+                log.debug("RabbitMQ服务可用性检查: service={}, enabled={}, available={}", 
+                         rabbitMQMessageService != null, config.getRabbitmq().getEnabled(), rabbitMQAvailable);
+                return rabbitMQAvailable;
             default:
+                log.debug("不支持的消息服务类型: {}", type);
                 return false;
         }
     }
