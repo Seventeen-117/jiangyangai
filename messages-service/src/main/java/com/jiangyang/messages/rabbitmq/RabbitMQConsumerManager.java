@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Arrays;
 
 /**
  * RabbitMQ消费者管理类
@@ -565,14 +566,17 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
         private void declareExchangeAndQueue() throws Exception {
             // 声明交换机（如果配置了）
             if (config.getExchange() != null && !config.getExchange().isEmpty()) {
+                // 获取交换机类型，确保是小写
+                String exchangeType = getExchangeType();
+                
                 channel.exchangeDeclare(
                     config.getExchange(), 
-                    messageServiceConfig.getRabbitmq().getExchange().getDefaultType(), 
+                    exchangeType, 
                     messageServiceConfig.getRabbitmq().getExchange().getDurable(), 
                     messageServiceConfig.getRabbitmq().getExchange().getAutoDelete(), 
                     null
                 );
-                log.info("交换机声明成功: exchange={}", config.getExchange());
+                log.info("交换机声明成功: exchange={}, type={}", config.getExchange(), exchangeType);
             }
             
             // 声明队列
@@ -637,6 +641,34 @@ public class RabbitMQConsumerManager implements InitializingBean, DisposableBean
                 log.error("处理RabbitMQ消息失败: serviceName={}, error={}", config.getServiceName(), e.getMessage(), e);
                 throw new RuntimeException("消息处理失败", e);
             }
+        }
+
+        /**
+         * 获取交换机类型，确保是小写
+         */
+        private String getExchangeType() {
+            String configType = messageServiceConfig.getRabbitmq().getExchange().getDefaultType();
+            if (configType == null || configType.trim().isEmpty()) {
+                return "direct"; // 默认类型
+            }
+            
+            // 转换为小写，确保RabbitMQ能识别
+            String exchangeType = configType.toLowerCase();
+            
+            // 验证交换机类型是否有效
+            if (!isValidExchangeType(exchangeType)) {
+                log.warn("无效的交换机类型: {}, 使用默认值: direct", configType);
+                return "direct";
+            }
+            
+            return exchangeType;
+        }
+        
+        /**
+         * 验证交换机类型是否有效
+         */
+        private boolean isValidExchangeType(String type) {
+            return Arrays.asList("direct", "topic", "fanout", "headers").contains(type);
         }
 
         /**

@@ -1,5 +1,6 @@
 package com.jiangyang.messages.rocketmq;
 
+import com.jiangyang.messages.config.MessageServiceConfig;
 import com.jiangyang.messages.entity.MessageConsumerConfig;
 import com.jiangyang.messages.consume.ConsumeMode;
 import com.jiangyang.messages.consume.ConsumeType;
@@ -14,6 +15,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -28,7 +31,11 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 @Component
 public class RocketMQConsumerManager {
+    @Value("${message.service.rocketmq.name-server}")
+    private String nameServer;
 
+    @Autowired
+    private MessageServiceConfig messageServiceConfig;
     /**
      * 消费者配置映射：serviceName -> consumer
      */
@@ -82,9 +89,8 @@ public class RocketMQConsumerManager {
 
         // 创建推模式消费者
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
-        
-        // 设置NameServer地址（实际项目中应该从配置中获取）
-        consumer.setNamesrvAddr("localhost:9876");
+        String namesrvAddr = messageServiceConfig.getRocketmq().getNameServer();
+        consumer.setNamesrvAddr(namesrvAddr);
         
         // 设置消费类型
         if (ConsumeType.BROADCASTING.name().equals(config.getConsumeType())) {
