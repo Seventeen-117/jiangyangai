@@ -1,9 +1,13 @@
 package com.bgpay.bgai.controller;
 
 import com.bgpay.bgai.entity.TransactionLog;
+import com.bgpay.bgai.service.BgaiTransactionService;
+import com.bgpay.bgai.service.BgaiTransactionUtil;
 import com.bgpay.bgai.service.TransactionLogService;
 import com.bgpay.bgai.transaction.TransactionCoordinator;
 import io.seata.core.context.RootContext;
+import io.seata.tm.api.GlobalTransaction;
+import io.seata.tm.api.GlobalTransactionContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -12,15 +16,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 事务日志监控控制器
- * 提供 REST API 来检查和诊断事务日志问题
+ * 事务监控控制器
+ * 提供 REST API 来检查和诊断事务状态
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/transaction-log")
+@RequestMapping("/api/transaction")
 @RequiredArgsConstructor
-public class TransactionLogMonitorController {
+public class TransactionMonitorController {
 
+    private final BgaiTransactionService bgaiTransactionService;
+    private final BgaiTransactionUtil transactionUtil;
     private final TransactionLogService transactionLogService;
     private final TransactionCoordinator transactionCoordinator;
 
@@ -58,9 +64,138 @@ public class TransactionLogMonitorController {
     }
 
     /**
+     * 获取事务诊断信息
+     */
+    @GetMapping("/diagnostics")
+    public Map<String, Object> getTransactionDiagnostics() {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            String xid = RootContext.getXID();
+            
+            result.put("currentXid", xid);
+            result.put("threadId", Thread.currentThread().getId());
+            result.put("threadName", Thread.currentThread().getName());
+            result.put("timestamp", System.currentTimeMillis());
+            
+            if (xid != null) {
+                // 检查事务日志
+                TransactionLog txLog = transactionLogService.findByXid(xid);
+                result.put("transactionLogExists", txLog != null);
+                
+                if (txLog != null) {
+                    result.put("transactionLogStatus", txLog.getStatus());
+                    result.put("transactionLogId", txLog.getId());
+                }
+            }
+            
+            log.info("事务诊断信息: {}", result);
+            
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+            log.error("获取事务诊断信息失败", e);
+        }
+        
+        return result;
+    }
+
+    /**
+     * 获取详细的事务信息
+     */
+    @GetMapping("/info")
+    public Map<String, Object> getTransactionInfo() {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            String xid = RootContext.getXID();
+            boolean inTransaction = xid != null;
+            
+            result.put("inTransaction", inTransaction);
+            result.put("xid", xid);
+            result.put("threadId", Thread.currentThread().getId());
+            result.put("threadName", Thread.currentThread().getName());
+            result.put("timestamp", System.currentTimeMillis());
+            
+            // 使用 BgaiTransactionService 的方法
+            result.put("bgaiServiceXid", bgaiTransactionService.getCurrentXid());
+            result.put("bgaiServiceHasActiveTransaction", bgaiTransactionService.hasActiveTransaction());
+            
+            if (inTransaction) {
+                result.put("message", "当前线程在全局事务中");
+                result.put("status", "ACTIVE");
+            } else {
+                result.put("message", "当前线程不在全局事务中");
+                result.put("status", "INACTIVE");
+            }
+            
+            log.info("详细事务信息: {}", result);
+            
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+            log.error("获取详细事务信息失败", e);
+        }
+        
+        return result;
+    }
+
+    /**
+     * 测试事务创建
+     */
+    @GetMapping("/test")
+    public Map<String, Object> testTransaction() {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            result.put("beforeTransaction", "开始测试事务");
+            result.put("beforeXid", RootContext.getXID());
+            
+            // 执行一个简单的事务测试
+            bgaiTransactionService.executeWithTransaction("test-transaction", 30000, () -> {
+                String testXid = RootContext.getXID();
+                log.info("测试事务内部 - XID: {}", testXid);
+                return "测试成功";
+            });
+            
+            result.put("afterTransaction", "测试事务完成");
+            result.put("afterXid", RootContext.getXID());
+            result.put("timestamp", System.currentTimeMillis());
+            
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+            log.error("测试事务失败", e);
+        }
+        
+        return result;
+    }
+
+    /**
+     * 验证事务工具类
+     */
+    @GetMapping("/util-test")
+    public Map<String, Object> testTransactionUtil() {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            result.put("currentXid", transactionUtil.getCurrentXid());
+            result.put("isInGlobalTransaction", transactionUtil.isInGlobalTransaction());
+            result.put("threadInfo", Thread.currentThread().getName() + " (ID: " + Thread.currentThread().getId() + ")");
+            result.put("timestamp", System.currentTimeMillis());
+            
+            // 打印事务状态
+            transactionUtil.printTransactionStatus("工具类测试", "test-util");
+            
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+            log.error("测试事务工具类失败", e);
+        }
+        
+        return result;
+    }
+
+    /**
      * 检查指定 XID 的事务日志
      */
-    @GetMapping("/check/{xid}")
+    @GetMapping("/log/{xid}")
     public Map<String, Object> checkTransactionLog(@PathVariable String xid) {
         Map<String, Object> result = new HashMap<>();
         
@@ -135,7 +270,7 @@ public class TransactionLogMonitorController {
     /**
      * 创建测试事务日志
      */
-    @PostMapping("/create-test")
+    @PostMapping("/log/create-test")
     public Map<String, Object> createTestTransactionLog(@RequestBody Map<String, String> request) {
         Map<String, Object> result = new HashMap<>();
         
@@ -194,7 +329,7 @@ public class TransactionLogMonitorController {
     /**
      * 更新事务日志状态
      */
-    @PutMapping("/update-status")
+    @PutMapping("/log/update-status")
     public Map<String, Object> updateTransactionStatus(@RequestBody Map<String, String> request) {
         Map<String, Object> result = new HashMap<>();
         
@@ -238,36 +373,32 @@ public class TransactionLogMonitorController {
     }
 
     /**
-     * 获取事务诊断信息
+     * 测试 Seata 连接
      */
-    @GetMapping("/diagnostics")
-    public Map<String, Object> getTransactionDiagnostics() {
+    @GetMapping("/seata/connection")
+    public Map<String, Object> testSeataConnection() {
         Map<String, Object> result = new HashMap<>();
         
         try {
-            String xid = RootContext.getXID();
-            
-            result.put("currentXid", xid);
-            result.put("threadId", Thread.currentThread().getId());
-            result.put("threadName", Thread.currentThread().getName());
             result.put("timestamp", System.currentTimeMillis());
             
-            if (xid != null) {
-                // 检查事务日志
-                TransactionLog txLog = transactionLogService.findByXid(xid);
-                result.put("transactionLogExists", txLog != null);
-                
-                if (txLog != null) {
-                    result.put("transactionLogStatus", txLog.getStatus());
-                    result.put("transactionLogId", txLog.getId());
-                }
+            // 尝试创建全局事务对象
+            try {
+                GlobalTransaction transaction = GlobalTransactionContext.getCurrentOrCreate();
+                result.put("seataAvailable", true);
+                result.put("transactionObject", transaction != null ? "GlobalTransaction" : "null");
+                result.put("message", "Seata 连接正常");
+            } catch (Exception e) {
+                result.put("seataAvailable", false);
+                result.put("error", e.getMessage());
+                result.put("message", "Seata 连接失败");
             }
             
-            log.info("事务诊断信息: {}", result);
+            log.info("Seata 连接测试: {}", result);
             
         } catch (Exception e) {
             result.put("error", e.getMessage());
-            log.error("获取事务诊断信息失败", e);
+            log.error("测试 Seata 连接失败", e);
         }
         
         return result;

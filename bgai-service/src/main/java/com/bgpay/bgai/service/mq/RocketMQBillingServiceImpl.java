@@ -113,17 +113,40 @@ public class RocketMQBillingServiceImpl implements BillingService {
                     .orElseThrow(() -> new BillingException("缺失USER_ID"));
             messageId = messageExt.getMsgId();
             
-            // 解析消息体 - 处理Base64编码
-            String base64Body = new String(messageExt.getBody(), StandardCharsets.UTF_8);
-            if (base64Body.startsWith("\"") && base64Body.endsWith("\"")) {
-                base64Body = base64Body.substring(1, base64Body.length() - 1);
+            // 解析消息体 - 只处理 Base64 编码的消息
+            String messageBody = new String(messageExt.getBody(), StandardCharsets.UTF_8);
+            String jsonStr = null;
+            
+            // 去除可能的引号包装
+            if (messageBody.startsWith("\"") && messageBody.endsWith("\"")) {
+                messageBody = messageBody.substring(1, messageBody.length() - 1);
             }
             
-            // Base64解码
-            byte[] jsonBytes = Base64.getDecoder().decode(base64Body);
-            String jsonStr = new String(jsonBytes, StandardCharsets.UTF_8);
+            // 检查是否是 Base64 编码
+            if (messageBody.startsWith("eyJ") && messageBody.length() > 10) {
+                try {
+                    // 尝试 Base64 解码
+                    byte[] jsonBytes = Base64.getDecoder().decode(messageBody);
+                    jsonStr = new String(jsonBytes, StandardCharsets.UTF_8);
+                    log.debug("Base64 解码成功，解码后内容: {}", jsonStr);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Base64 解码失败，跳过处理此消息: {}", e.getMessage());
+                    log.info("跳过非 Base64 编码消息: completionId={}, messageId={}", completionId, messageId);
+                    return; // 跳过处理
+                }
+            } else {
+                // 不是 Base64 编码，跳过处理
+                log.info("消息体不是 Base64 编码，跳过处理: completionId={}, messageId={}, messageBody={}", 
+                         completionId, messageId, messageBody);
+                return; // 跳过处理
+            }
             
-            log.debug("解码后的JSON数据: {}", jsonStr);
+            if (jsonStr == null) {
+                log.warn("无法解析消息体，跳过处理: completionId={}, messageId={}", completionId, messageId);
+                return; // 跳过处理
+            }
+            
+            log.debug("最终解析的JSON数据: {}", jsonStr);
             
             // 解析JSON
             UsageCalculationDTO dto = JSON.parseObject(jsonStr, UsageCalculationDTO.class);
@@ -170,14 +193,17 @@ public class RocketMQBillingServiceImpl implements BillingService {
             }
             
             // 执行第三步：更新账单状态
+            log.debug("开始执行第三步 - 更新账单状态: businessKey={}, messageId={}", businessKey, messageId);
             boolean thirdStepResult = bgaiService.executeThirdStep(businessKey, secondStepResult, messageId);
             if (!thirdStepResult) {
-                log.error("第三步执行失败，开始补偿, businessKey: {}", businessKey);
+                log.error("第三步执行失败，开始补偿, businessKey: {}, messageId: {}, completionId: {}", 
+                         businessKey, messageId, completionId);
                 bgaiService.compensateThirdStep(businessKey, messageId);
                 bgaiService.compensateSecondStep(businessKey);
                 bgaiService.compensateFirstStep(businessKey);
                 throw new BillingException("第三步执行失败");
             }
+            log.debug("第三步执行成功: businessKey={}, messageId={}", businessKey, messageId);
             
             // 标记消息完全处理完成
             redisTemplate.opsForValue().set(redisKey, "1", 24, TimeUnit.HOURS);

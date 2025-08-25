@@ -186,58 +186,70 @@ public class BGAIServiceImpl implements BGAIService {
         }
 
         try {
-            log.info("Executing third step - updating billing status, businessKey: {}", businessKey);
+            log.info("Executing third step - updating billing status, businessKey: {}, messageId: {}", businessKey, messageId);
             
             String[] parts = businessKey.split(":");
             String userId = parts[0];
             String completionId = parts[1];
+            
+            log.debug("Third step - Parsed businessKey: userId={}, completionId={}", userId, completionId);
 
             // 获取使用记录
+            log.debug("Third step - Looking for usage record: completionId={}, messageId={}", completionId, messageId);
             UsageRecord record = usageRecordService.findByCompletionIdAndMessageId(completionId, messageId);
             if (record == null) {
-                log.error("Usage record not found for completionId: {}, messageId: {}", completionId, messageId);
+                log.error("Third step failed - Usage record not found for completionId: {}, messageId: {}", completionId, messageId);
                 return false;
             }
+            log.debug("Third step - Found usage record: id={}, status={}, userId={}", record.getId(), record.getStatus(), record.getUserId());
 
             // 检查记录状态
             if ("COMPLETED".equals(record.getStatus())) {
-                log.info("Record already marked as completed: {}, messageId={}, status={}", completionId, messageId, record.getStatus());
+                log.info("Third step skipped - Record already marked as completed: {}, messageId={}, status={}", completionId, messageId, record.getStatus());
                 return true;
             }
 
             // 获取计费数据
+            log.debug("Third step - Getting calculation DTO for completionId: {}", completionId);
             UsageCalculationDTO dto = usageRecordService.getCalculationDTO(completionId);
             if (dto == null) {
-                log.error("Billing data not found for completionId: {}", completionId);
+                log.error("Third step failed - Billing data not found for completionId: {}", completionId);
                 return false;
             }
+            log.debug("Third step - Got calculation DTO: modelType={}, completionTokens={}", dto.getModelType(), dto.getCompletionTokens());
 
             try {
                 // 更新用户使用信息
+                log.debug("Third step - Processing usage info for user: {}, completionId: {}", userId, completionId);
                 boolean usageUpdateSuccess = usageInfoService.processUsageInfo(dto, userId);
                 if (!usageUpdateSuccess) {
-                    log.error("Failed to update usage info for user: {}, completionId: {}", userId, completionId);
+                    log.error("Third step failed - Failed to update usage info for user: {}, completionId: {}", userId, completionId);
                     return false;
                 }
+                log.debug("Third step - Usage info updated successfully for user: {}, completionId: {}", userId, completionId);
 
                 // 标记记录为已完成
+                log.debug("Third step - Marking record as completed: completionId={}, messageId={}", completionId, messageId);
                 usageRecordService.markAsCompleted(completionId, messageId);
+                log.debug("Third step - Record marked as completed successfully");
                 
                 // 清理缓存的计费数据
                 String cacheKey = CALCULATION_DTO_KEY_PREFIX + completionId;
+                log.debug("Third step - Cleaning up cached calculation data: {}", cacheKey);
                 redisTemplate.delete(cacheKey);
 
-                log.info("Third step completed successfully. businessKey: {}", businessKey);
+                log.info("Third step completed successfully. businessKey: {}, messageId: {}", businessKey, messageId);
                 return true;
                 
             } catch (Exception e) {
-                log.error("Error processing usage info: userId={}, completionId={}, error={}",
+                log.error("Third step failed - Error processing usage info: userId={}, completionId={}, error={}",
                         userId, completionId, e.getMessage(), e);
                 return false;
             }
 
         } catch (Exception e) {
-            log.error("Third step failed. businessKey: {}, error: {}", businessKey, e.getMessage(), e);
+            log.error("Third step failed. businessKey: {}, messageId: {}, error: {}", 
+                     businessKey, messageId, e.getMessage(), e);
             return false;
         }
     }

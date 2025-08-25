@@ -96,7 +96,8 @@ public class UsageRecordServiceImpl extends ServiceImpl<UsageRecordMapper, Usage
     public boolean existsByCompletionId(String completionId) {
         LambdaQueryWrapper<UsageRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UsageRecord::getChatCompletionId, completionId);
-        return getOne(wrapper) != null;
+        // 使用 count 避免 TooManyResultsException
+        return count(wrapper) > 0;
     }
 
     @Override

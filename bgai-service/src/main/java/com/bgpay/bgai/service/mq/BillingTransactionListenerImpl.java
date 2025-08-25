@@ -202,10 +202,39 @@ public class BillingTransactionListenerImpl implements RocketMQLocalTransactionL
 
         try {
             byte[] payload = (byte[]) msg.getPayload();
+            String payloadStr = new String(payload, StandardCharsets.UTF_8);
+            
+            // 检查是否是 Base64 编码
+            if (payloadStr.startsWith("eyJ") && payloadStr.length() > 10) {
+                try {
+                    // 尝试 Base64 解码
+                    byte[] decodedBytes = Base64.getDecoder().decode(payloadStr);
+                    String decodedStr = new String(decodedBytes, StandardCharsets.UTF_8);
+                    log.debug("Base64 解码成功，解码后内容: {}", decodedStr);
+                    
+                    // 解析解码后的 JSON
+                    UsageCalculationDTO dto = JSON.parseObject(decodedStr, UsageCalculationDTO.class);
+                    if (dto != null && dto.getChatCompletionId() != null) {
+                        log.debug("从 Base64 解码的消息中提取到 completionId: {}", dto.getChatCompletionId());
+                        return dto.getChatCompletionId();
+                    }
+                } catch (IllegalArgumentException e) {
+                    log.debug("Base64 解码失败，尝试直接解析: {}", e.getMessage());
+                }
+            }
+            
+            // 尝试直接解析为 JSON
             UsageCalculationDTO dto = JSON.parseObject(payload, UsageCalculationDTO.class);
-            return dto.getChatCompletionId();
+            if (dto != null && dto.getChatCompletionId() != null) {
+                log.debug("从原始消息中提取到 completionId: {}", dto.getChatCompletionId());
+                return dto.getChatCompletionId();
+            }
+            
+            log.warn("无法从消息中提取 completionId，payload: {}", payloadStr);
+            return null;
+            
         } catch (Exception e) {
-            log.error("消息体解析失败", e);
+            log.error("消息体解析失败，payload: {}", msg.getPayload(), e);
             return null;
         }
     }
@@ -220,20 +249,32 @@ public class BillingTransactionListenerImpl implements RocketMQLocalTransactionL
             return true;
         }
         
-        // 检查Redis缓存
-        String redisKey = PROCESSED_KEY_PREFIX + completionId;
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
-            localCache.put(completionId, true);
-            return true;
+        // 检查Redis缓存 - 添加连接状态检查
+        try {
+            String redisKey = PROCESSED_KEY_PREFIX + completionId;
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
+                localCache.put(completionId, true);
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("Redis 检查失败，跳过 Redis 缓存检查: {}", e.getMessage());
+            // 继续检查数据库，不因为 Redis 问题而中断
         }
         
         // 检查数据库
         try {
             boolean dbExists = usageInfoService.existsByCompletionId(completionId);
             if (dbExists) {
-                // 异步更新缓存
-                redisTemplate.opsForValue().set(redisKey, "1", REDIS_CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
-                localCache.put(completionId, true);
+                // 异步更新缓存，但不阻塞主流程
+                try {
+                    String redisKey = PROCESSED_KEY_PREFIX + completionId;
+                    redisTemplate.opsForValue().set(redisKey, "1", REDIS_CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+                    localCache.put(completionId, true);
+                } catch (Exception e) {
+                    log.warn("Redis 缓存更新失败，但不影响主流程: {}", e.getMessage());
+                    // 至少更新本地缓存
+                    localCache.put(completionId, true);
+                }
             }
             return dbExists;
         } catch (Exception e) {

@@ -10,38 +10,49 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RedissonConfig {
 
-    @Value("${bgpay.bgai.redis.single.address}")
-    private String redisSingleAddress;
+    @Value("${spring.data.redis.host}")
+    private String redisHost;
 
-    @Value("${bgpay.bgai.redis.single.password}")
-    private String redisSinglePassword;
+    @Value("${spring.data.redis.port}")
+    private int redisPort;
 
-    @Value("${bgpay.bgai.redis.single.connectionPoolSize:16}")
+    @Value("${spring.data.redis.password}")
+    private String redisPassword;
+
+    @Value("${spring.data.redis.database:0}")
+    private int redisDatabase;
+
+    @Value("${spring.data.redis.timeout:5000}")
+    private long redisTimeout;
+
+    @Value("${spring.data.redis.connect-timeout:5000}")
+    private long connectTimeout;
+
+    @Value("${spring.data.redis.lettuce.pool.max-active:16}")
     private int connectionPoolSize;
 
-    @Value("${bgpay.bgai.redis.single.connectionMinimumIdleSize:4}")
+    @Value("${spring.data.redis.lettuce.pool.min-idle:4}")
     private int connectionMinimumIdleSize;
 
-    @Value("${bgpay.bgai.redis.single.idleConnectionTimeout:10000}")
-    private int idleConnectionTimeout;
-
-    @Value("${bgpay.bgai.redis.single.connectTimeout:10000}")
-    private int connectTimeout;
-
-    @Value("${bgpay.bgai.redis.single.timeout:3000}")
-    private int timeout;
+    @Value("${spring.data.redis.lettuce.pool.max-idle:8}")
+    private int maxIdleSize;
 
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();
         config.useSingleServer()
-                .setAddress(redisSingleAddress)
-                .setPassword(redisSinglePassword)
+                .setAddress("redis://" + redisHost + ":" + redisPort)
+                .setPassword(redisPassword)
+                .setDatabase(redisDatabase)
                 .setConnectionPoolSize(connectionPoolSize)
                 .setConnectionMinimumIdleSize(connectionMinimumIdleSize)
-                .setIdleConnectionTimeout(idleConnectionTimeout)
-                .setConnectTimeout(connectTimeout)
-                .setTimeout(timeout);
+                .setIdleConnectionTimeout((int) redisTimeout)
+                .setConnectTimeout((int) connectTimeout)
+                .setTimeout((int) redisTimeout)
+                .setRetryAttempts(3)
+                .setRetryInterval(1500)
+                .setKeepAlive(true)
+                .setTcpNoDelay(true);
         return Redisson.create(config);
     }
 }

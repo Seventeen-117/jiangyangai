@@ -70,18 +70,27 @@ public class UsageInfoServiceImpl extends ServiceImpl<UsageInfoMapper, UsageInfo
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean processUsageInfo(UsageCalculationDTO dto, String userId) {
+        log.debug("processUsageInfo - Starting for user: {}, completionId: {}, modelType: {}", 
+                 userId, dto.getChatCompletionId(), dto.getModelType());
+        
         // 计算总的输入和输出tokens，处理可能为null的情况
         int totalInputTokens = (dto.getPromptCacheHitTokens() != null ? dto.getPromptCacheHitTokens() : 0) + 
                              (dto.getPromptCacheMissTokens() != null ? dto.getPromptCacheMissTokens() : 0);
         int totalOutputTokens = dto.getCompletionTokens() != null ? dto.getCompletionTokens() : 0;
+        
+        log.debug("processUsageInfo - Calculated tokens: input={}, output={}, total={}", 
+                 totalInputTokens, totalOutputTokens, totalInputTokens + totalOutputTokens);
 
         try {
             log.info("Processing usage info for user: {}, completionId: {}", userId, dto.getChatCompletionId());
             
             // 检查是否已经处理过
+            log.debug("processUsageInfo - Checking for existing usage info: completionId={}", dto.getChatCompletionId());
             UsageInfo existingInfo = usageInfoMapper.selectByCompletionId(dto.getChatCompletionId());
             if (existingInfo != null) {
                 log.info("Usage info already exists for completionId: {}, updating...", dto.getChatCompletionId());
+                log.debug("processUsageInfo - Found existing info: id={}, currentTokens={}", 
+                         existingInfo.getId(), existingInfo.getTotalTokens());
                 // 更新现有记录
                 int newInputTokens = existingInfo.getPromptTokens() + totalInputTokens;
                 int newOutputTokens = existingInfo.getCompletionTokens() + totalOutputTokens;
@@ -100,11 +109,15 @@ public class UsageInfoServiceImpl extends ServiceImpl<UsageInfoMapper, UsageInfo
                 existingInfo.setPromptTokensCached(dto.getPromptTokensCached());
                 existingInfo.setCompletionReasoningTokens(newReasoningTokens);
                 existingInfo.setUpdatedAt(LocalDateTime.now());
+                log.debug("processUsageInfo - Updating existing usage info: newTotalTokens={}", 
+                         existingInfo.getTotalTokens());
                 usageInfoMapper.updateById(existingInfo);
+                log.debug("processUsageInfo - Successfully updated existing usage info");
                 return true;
             }
 
             // 创建新的使用信息记录
+            log.debug("processUsageInfo - Creating new usage info record");
             UsageInfo usageInfo = new UsageInfo();
             usageInfo.setUserId(userId);
             usageInfo.setChatCompletionId(dto.getChatCompletionId());
@@ -120,7 +133,9 @@ public class UsageInfoServiceImpl extends ServiceImpl<UsageInfoMapper, UsageInfo
             usageInfo.setUpdatedAt(LocalDateTime.now());
 
             // 插入新记录
+            log.debug("processUsageInfo - Inserting new usage info: totalTokens={}", usageInfo.getTotalTokens());
             usageInfoMapper.insert(usageInfo);
+            log.debug("processUsageInfo - Successfully inserted new usage info");
             log.info("Successfully processed usage info for completionId: {}", dto.getChatCompletionId());
             
             return true;
@@ -128,6 +143,7 @@ public class UsageInfoServiceImpl extends ServiceImpl<UsageInfoMapper, UsageInfo
             // 处理并发情况下可能出现的重复插入
             log.warn("Duplicate record detected for completionId: {}, retrying update...", 
                     dto.getChatCompletionId());
+            log.debug("processUsageInfo - DuplicateKeyException details: {}", e.getMessage());
             try {
                 // 重试更新现有记录
                 UsageInfo existingInfo = usageInfoMapper.selectByCompletionId(dto.getChatCompletionId());
@@ -157,8 +173,10 @@ public class UsageInfoServiceImpl extends ServiceImpl<UsageInfoMapper, UsageInfo
             }
             return false;
         } catch (Exception e) {
-            log.error("Failed to process usage info for completionId: {}", 
-                    dto.getChatCompletionId(), e);
+            log.error("Failed to process usage info for completionId: {}, userId: {}, error: {}", 
+                    dto.getChatCompletionId(), userId, e.getMessage(), e);
+            log.debug("processUsageInfo - Exception details: class={}, message={}", 
+                     e.getClass().getSimpleName(), e.getMessage());
             return false;
         }
     }
