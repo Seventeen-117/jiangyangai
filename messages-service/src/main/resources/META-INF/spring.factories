@@ -1,5 +1,5 @@
 # Spring Boot自动配置文件
 # 确保MessageServiceAutoConfiguration被自动发现和加载
-
+org.springframework.boot.env.EnvironmentPostProcessor=com.jiangyang.messages.rocketmq.RocketMQEnvironmentPostProcessor
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 com.jiangyang.messages.utils.MessageServiceAutoConfiguration

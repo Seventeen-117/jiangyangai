@@ -39,12 +39,6 @@ public class ConfigurationDebugger implements ApplicationRunner {
         log.info("  - message.service.kafka.bootstrap-servers: {}", environment.getProperty("message.service.kafka.bootstrap-servers"));
         log.info("  - message.service.common.default-type: {}", environment.getProperty("message.service.common.default-type"));
         
-        // 检查环境变量
-        log.info("环境变量:");
-        log.info("  - SPRING_PROFILES_ACTIVE: {}", System.getenv("SPRING_PROFILES_ACTIVE"));
-        log.info("  - KAFKA_ENABLED: {}", System.getenv("KAFKA_ENABLED"));
-        log.info("  - KAFKA_BOOTSTRAP_SERVERS: {}", System.getenv("KAFKA_BOOTSTRAP_SERVERS"));
-        
         // 检查MessageServiceConfig对象
         if (messageServiceConfig != null) {
             log.info("MessageServiceConfig对象状态:");

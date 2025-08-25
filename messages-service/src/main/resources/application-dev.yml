@@ -140,20 +140,6 @@ management:
 
 # Spring Boot RocketMQ自动配置 - 开发环境
 # 这些属性是Spring Boot RocketMQ自动配置所必需的
-rocketmq:
-  name-server: 8.133.246.113:9876
-  producer:
-    group: jiangyang-dev-producer-group
-    send-message-timeout: 3000
-    retry-times-when-send-failed: 2
-    retry-times-when-send-async-failed: 2
-    compress-message-body-threshold: 4096
-    max-message-size: 4194304
-  consumer:
-    group: jiangyang-dev-consumer-group
-    pull-batch-size: 32
-    consume-timeout: 15
-
 # 消息服务配置 - 开发环境
 message:
   service:

@@ -21,10 +21,10 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class TransactionMessageProducer {
 
-    @Value("${rocketmq.name-server:localhost:9876}")
+    @Value("${rocketmq.name-server}")
     private String nameServer;
 
-    @Value("${rocketmq.producer.group:transaction-producer-group}")
+    @Value("${rocketmq.producer.group}")
     private String producerGroup;
 
     @Value("${rocketmq.producer.transaction.timeout:3000}")
