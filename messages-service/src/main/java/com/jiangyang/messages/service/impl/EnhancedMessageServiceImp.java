@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 增强消息服务实现类 - 消息发送执行器
@@ -60,25 +61,29 @@ public class EnhancedMessageServiceImp implements EnhancedMessageService {
             MessageService rocketMQService = messageServiceFactory.getMessageService(MessageServiceType.ROCKETMQ);
             boolean result = false;
             
+            // 构建完整的消息体，包含所有字段
+            String fullMessageBody = buildFullMessageBody(messageId, topic, messageType, messageBody, parameters);
+            log.info("RocketMQ完整消息体: {}", fullMessageBody);
+            
             // 根据消息类型选择不同的发送方法
             switch (messageType) {
                 case NORMAL:
                     // 普通消息：立即投递
-                    result = rocketMQService.sendMessage(topic, tag, messageBody);
+                    result = rocketMQService.sendMessage(topic, tag, fullMessageBody);
                     break;
                 case DELAY:
                     // 定时消息：支持延迟级别配置
                     int delayLevel = (Integer) parameters.getOrDefault("delayLevel", 1);
-                    result = rocketMQService.sendDelayMessage(topic, messageBody, delayLevel);
+                    result = rocketMQService.sendDelayMessage(topic, fullMessageBody, delayLevel);
                     break;
                 case ORDERED:
                     // 顺序消息：通过哈希键保证顺序
                     String hashKey = (String) parameters.getOrDefault("hashKey", messageId);
-                    result = rocketMQService.sendOrderedMessage(topic, messageBody, hashKey);
+                    result = rocketMQService.sendOrderedMessage(topic, fullMessageBody, hashKey);
                     break;
                 case TRANSACTION:
                     // 事务消息：使用事务发送器，确保消息一致性
-                    result = sendTransactionMessage(rocketMQService, topic, tag, messageBody, parameters);
+                    result = sendTransactionMessage(rocketMQService, topic, tag, fullMessageBody, parameters);
                     break;
                 default:
                     throw new MessageServiceException("不支持的RocketMQ消息类型: " + messageType);
@@ -1179,6 +1184,77 @@ public class EnhancedMessageServiceImp implements EnhancedMessageService {
             log.info("所有消息服务已关闭");
         } catch (Exception e) {
             log.error("关闭消息服务时发生异常: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 构建完整的消息体，包含所有字段信息
+     * 用于RocketMQ等消息中间件，确保消息体包含完整的业务信息
+     */
+    private String buildFullMessageBody(String messageId, String topic, MessageType messageType, 
+                                      String messageBody, Map<String, Object> parameters) {
+        try {
+            Map<String, Object> fullMessage = new HashMap<>();
+            
+            // 基础字段
+            fullMessage.put("messageId", messageId);
+            fullMessage.put("topic", topic);
+            fullMessage.put("messageType", messageType.getCode());
+            fullMessage.put("messageBody", messageBody);
+            fullMessage.put("timestamp", System.currentTimeMillis());
+            
+            // 从parameters中提取其他字段
+            if (parameters.containsKey("messageQueueType")) {
+                fullMessage.put("messageQueueType", parameters.get("messageQueueType"));
+            }
+            
+            // 确保tag字段被包含（从parameters或使用默认值）
+            String tag = (String) parameters.get("tag");
+            if (tag != null && !tag.trim().isEmpty()) {
+                fullMessage.put("tag", tag);
+            } else {
+                fullMessage.put("tag", ""); // 空字符串而不是null
+            }
+            
+            // 确保key字段被包含（从parameters或使用messageId作为默认值）
+            String key = (String) parameters.get("key");
+            if (key != null && !key.trim().isEmpty()) {
+                fullMessage.put("key", key);
+            } else {
+                fullMessage.put("key", messageId); // 使用messageId作为默认key
+            }
+            
+            if (parameters.containsKey("businessKey")) {
+                fullMessage.put("businessKey", parameters.get("businessKey"));
+            }
+            if (parameters.containsKey("transactionId")) {
+                fullMessage.put("transactionId", parameters.get("transactionId"));
+            }
+            if (parameters.containsKey("sourceService")) {
+                fullMessage.put("sourceService", parameters.get("sourceService"));
+            }
+            if (parameters.containsKey("targetService")) {
+                fullMessage.put("targetService", parameters.get("targetService"));
+            }
+            
+            // 添加其他自定义参数（排除系统内部参数）
+            parameters.forEach((paramKey, value) -> {
+                if (!paramKey.startsWith("_") && !paramKey.equals("messageId") && !paramKey.equals("topic") && 
+                    !paramKey.equals("messageType") && !paramKey.equals("messageBody") && 
+                    !paramKey.equals("tag") && !paramKey.equals("key")) { // 排除已处理的tag和key
+                    fullMessage.put(paramKey, value);
+                }
+            });
+            
+            // 使用Jackson序列化为JSON字符串
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(fullMessage);
+            
+        } catch (Exception e) {
+            log.error("构建完整消息体失败: messageId={}, error={}", messageId, e.getMessage(), e);
+            // 如果序列化失败，返回包含基本信息的JSON
+            return String.format("{\"messageId\":\"%s\",\"topic\":\"%s\",\"messageType\":\"%s\",\"messageBody\":\"%s\",\"tag\":\"\",\"key\":\"%s\",\"error\":\"序列化失败\"}", 
+                    messageId, topic, messageType.getCode(), messageBody, messageId);
         }
     }
 
