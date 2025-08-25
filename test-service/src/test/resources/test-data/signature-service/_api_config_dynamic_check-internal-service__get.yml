@@ -1,0 +1,11 @@
+service: signature-service
+name: "/api/config/dynamic/check-internal-service"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/config/dynamic/check-internal-service
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

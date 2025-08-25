@@ -1,0 +1,11 @@
+service: signature-service
+name: "/api/security/check-permission"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/security/check-permission
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

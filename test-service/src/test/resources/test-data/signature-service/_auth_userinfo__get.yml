@@ -1,0 +1,11 @@
+service: signature-service
+name: "/auth/userinfo"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/auth/userinfo
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

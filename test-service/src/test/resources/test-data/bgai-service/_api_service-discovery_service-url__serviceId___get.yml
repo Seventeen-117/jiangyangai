@@ -1,0 +1,11 @@
+service: bgai-service
+name: "/api/service-discovery/service-url/{serviceId}"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/service-discovery/service-url/{serviceId}
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

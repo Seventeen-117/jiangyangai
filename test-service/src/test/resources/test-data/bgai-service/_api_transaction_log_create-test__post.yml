@@ -1,0 +1,11 @@
+service: bgai-service
+name: "/api/transaction/log/create-test"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/transaction/log/create-test
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

@@ -1,0 +1,11 @@
+service: messages-service
+name: "/api/kafka/consumer/broadcast"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/kafka/consumer/broadcast
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

@@ -1,0 +1,11 @@
+service: messages-service
+name: "/api/transaction/producer/status"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/transaction/producer/status
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

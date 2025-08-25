@@ -1,0 +1,11 @@
+service: bgai-service
+name: "响应式上传并解析文件"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/files/upload/reactive
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

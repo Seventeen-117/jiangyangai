@@ -1,0 +1,11 @@
+service: bgai-service
+name: "查询时间范围内的事务事件"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/transaction-events/time-range
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

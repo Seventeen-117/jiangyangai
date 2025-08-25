@@ -1,0 +1,11 @@
+service: bgai-service
+name: "获取事务事件统计信息"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/transaction-events/statistics
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

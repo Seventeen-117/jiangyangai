@@ -1,0 +1,11 @@
+service: bgai-service
+name: "添加允许的文件类型"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/files/allowed-types
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

@@ -1,0 +1,11 @@
+service: bgai-service
+name: "获取价格配置"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/usage-stats/price-config
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

@@ -1,0 +1,11 @@
+service: deepSearch-service
+name: "/api/calculation/info"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/calculation/info
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

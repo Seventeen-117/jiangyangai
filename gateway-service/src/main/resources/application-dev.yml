@@ -1,414 +1,438 @@
-server:
-  port: 8080
-  tomcat:
-    max-http-header-size: 8KB
-    max-http-form-post-size: 2MB
-    max-http-header-count: 200
-
-spring:
-  application:
-    name: gateway-service
-  main:
-    web-application-type: reactive
-  # 禁用数据源
-  datasource:
-    enabled: false
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
-      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration
-      - com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
-      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
-  
-  # Nacos配置
-  cloud:
-    nacos:
-      discovery:
-        enabled: true
-      config:
-        enabled: true
-    gateway:
-      discovery:
-        locator:
-          enabled: true  # 启用自动路由发现，Nacos服务可用
-          lower-case-service-id: true
-      # HTTP客户端配置 - 解决超时问题
-      httpclient:
-        connect-timeout: 10000  # 连接超时 10秒
-        response-timeout: 30s   # 响应超时 30秒
-        pool:
-          max-connections: 200
-          max-idle-time: 15s
-          acquire-timeout: 5000  # 获取连接超时 5秒
-      routes:
-        # 签名验证服务路由 - 最高优先级
-        - id: signature-service
-          uri: http://localhost:8689
-          order: -1000
-          predicates:
-            - Path=/api/signature/**,/api/keys/**,/api/auth/**,/api/sso/**,/api/validation/**,/api/token/**,/api/app-secret/**
-          filters:
-            - AddRequestHeader=X-Gateway-Source, gateway-service
-            - AddResponseHeader=X-Gateway-Response, true
-        # AI代理服务路由
-        - id: chat-agent-service
-          uri: http://localhost:8690
-          order: -500
-          predicates:
-            - Path=/api/chat-agent/**,/api/aiChat/**
-          filters:
-            - AddRequestHeader=X-Gateway-Source, gateway-service
-            - AddResponseHeader=X-Gateway-Response, true
-        # bgai服务路由 - 需要验证的接口 (先经过验证过滤器)
-        - id: bgai-service-validated
-          uri: http://localhost:8688  # 直接路由到bgai-service
-          predicates:
-            - Path=/api/chatGatWay-internal/**,/api/admin/**
-          filters:
-            - ValidationFilter
-            - AddRequestHeader=X-Gateway-Source, gateway-service
-            - AddResponseHeader=X-Gateway-Response, true
-            - name: CircuitBreaker
-              args:
-                name: bgai-service-breaker
-                fallbackUri: forward:/fallback/bgai-service
-            - name: Retry
-              args:
-                retries: 3
-                statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE,INTERNAL_SERVER_ERROR
-                methods: GET,POST
-                backoff:
-                  firstBackoff: 1000ms
-                  maxBackoff: 5000ms
-                  factor: 2
-        # bgai服务路由 - 公开接口
-        - id: bgai-service-public
-          uri: http://localhost:8688
-          predicates:
-            - Path=/api/bgai/**,/api/public/**
-          filters:
-            - StripPrefix=1
-            - AddRequestHeader=X-Gateway-Source, gateway-service
-            - AddResponseHeader=X-Gateway-Response, true
-            - name: CircuitBreaker
-              args:
-                name: bgai-service-breaker
-                fallbackUri: forward:/fallback/bgai-service
-        # messages-service路由
-        - id: messages-service
-          uri: http://localhost:8081
-          predicates:
-            - Path=/api/messages/**
-          filters:
-            - AddRequestHeader=X-Gateway-Source, gateway-service
-            - AddResponseHeader=X-Gateway-Response, true
-        - id: default-route
-          uri: http://localhost:8688
-          predicates:
-            - Path=/**
-          filters:
-            - AddRequestHeader=X-Gateway-Source, gateway-service
-            - AddResponseHeader=X-Gateway-Response, true
-
-# Resilience4j 配置
-resilience4j:
-  circuitbreaker:
-    configs:
-      default:
-        failureRateThreshold: 50           # 失败率阈值
-        slowCallRateThreshold: 50          # 慢调用率阈值
-        slowCallDurationThreshold: 5000    # 慢调用时间阈值，单位ms
-        slidingWindowSize: 10              # 滑动窗口大小
-        slidingWindowType: COUNT_BASED     # 滑动窗口类型(基于次数)
-        minimumNumberOfCalls: 5            # 最小调用次数，断路器计算失败率所需的最小调用数
-        waitDurationInOpenState: 10000     # 断路器从打开到半开的等待时间
-        permittedNumberOfCallsInHalfOpenState: 3  # 半开状态允许的调用次数
-        automaticTransitionFromOpenToHalfOpenEnabled: true  # 是否自动从打开到半开转换
-        recordExceptions:                  # 记录为失败的异常类型
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-          - java.lang.RuntimeException
-          - org.springframework.web.client.ResourceAccessException
-          - org.springframework.cloud.gateway.support.NotFoundException
-    instances:
-      signature-service-breaker:
-        registerHealthIndicator: true
-        slidingWindowType: COUNT_BASED
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        recordExceptions:
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-          - org.springframework.web.client.ResourceAccessException
-      bgai-service-breaker:
-        registerHealthIndicator: true
-        slidingWindowType: COUNT_BASED
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 30s  # 增加到30秒
-        permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        recordExceptions:
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-          - java.net.SocketTimeoutException  # 添加Socket超时异常
-          - org.springframework.web.client.ResourceAccessException
-          - org.springframework.web.client.ResourceAccessException
-      chat-agent-service-breaker:
-        registerHealthIndicator: true
-        slidingWindowType: COUNT_BASED
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        recordExceptions:
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-          - org.springframework.web.client.ResourceAccessException
-      default-service-breaker:
-        baseConfig: default
-        slidingWindowSize: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-      chat-api-breaker:
-        baseConfig: default
-        slidingWindowSize: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-      auth-api-breaker:
-        baseConfig: default
-        slidingWindowSize: 5
-        waitDurationInOpenState: 5s
-  timelimiter:
-    configs:
-      default:
-        timeoutDuration: 30s
-    instances:
-      signature-service-breaker:
-        timeoutDuration: 10s
-      bgai-service-breaker:
-        timeoutDuration: 60s
-      chat-agent-service-breaker:
-        timeoutDuration: 30s
-      default-service-breaker:
-        timeoutDuration: 30s
-      chat-api-breaker:
-        timeoutDuration: 60s
-      auth-api-breaker:
-        timeoutDuration: 10s
-  # 重试配置  
-  retry:
-    configs:
-      default:
-        maxRetryAttempts: 3
-        waitDuration: 1000
-        enableExponentialBackoff: true
-        exponentialBackoffMultiplier: 2
-        retryExceptions:
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-          - org.springframework.web.client.ResourceAccessException
-        ignoreExceptions:
-          - java.lang.IllegalArgumentException
-    instances:
-      signature-service-retry:
-        baseConfig: default
-        maxRetryAttempts: 2
-        waitDuration: 1s
-      bgai-service-retry:
-        baseConfig: default
-        maxRetryAttempts: 5  # 增加到5次
-        waitDuration: 3s      # 增加到3秒
-      chat-agent-service-retry:
-        baseConfig: default
-        maxRetryAttempts: 3
-        waitDuration: 2s
-      default-service-retry:
-        baseConfig: default
-  # 限流配置
-  ratelimiter:
-    configs:
-      default:
-        limitForPeriod: 100
-        limitRefreshPeriod: 1s
-        timeoutDuration: 0
-    instances:
-      signature-service-limiter:
-        baseConfig: default
-        limitForPeriod: 200
-        limitRefreshPeriod: 1s
-      bgai-service-limiter:
-        baseConfig: default
-        limitForPeriod: 100
-        limitRefreshPeriod: 1s
-      chat-api-limiter:
-        baseConfig: default
-        limitForPeriod: 50
-        limitRefreshPeriod: 1s
-      auth-api-limiter:
-        baseConfig: default
-        limitForPeriod: 300
-        limitRefreshPeriod: 1s
-
-# 网关配置
-gateway:
-  # 启用动态路由功能
-  dynamic-routes:
-    enabled: true
-  # 降级处理器配置
-  fallback:
-    bgai-service:
-      enabled: true
-      message: "bgai-service暂时不可用，请稍后重试"
-      status: 503
-      retry-after: 30
-  # signature-service配置
-  signature-service:
-    base-url: http://localhost:8689
-    validation-endpoint: /api/validation/validate
-    timeout: 5000  # 5秒超时
-    retry-attempts: 3
-  # 跳过限流的路径
-  skip-rate-limit-paths:
-    - /actuator/**
-    - /health/**
-    - /metrics/**
-    - /public/**
-  # 跳过熔断的路径
-  skip-circuit-breaker-paths:
-    - /actuator/**
-    - /health/**
-    - /metrics/**
-    - /public/**
-  # 跳过防御检查的路径
-  skip-defensive-paths:
-    - /actuator/**
-    - /health/**
-    - /metrics/**
-    - /public/**
-    - /api/validation/**
-    - /api/metrics/**
-    - /api/token/**
-    - /api/keys/**
-  # 路径权限配置
-  path-permissions:
-    - path: /api/admin/**
-      methods: [GET, POST, PUT, DELETE]
-      roles: [ADMIN]
-    - path: /api/user/**
-      methods: [GET, POST]
-      roles: [USER, ADMIN]
-  # 限流配置
-  rate-limit-configs:
-    - path: /api/chat/**
-      max-requests: 100
-      time-window: 60
-    - path: /api/chatGatWay-internal/**
-      max-requests: 50
-      time-window: 60
-  # 熔断器配置
-  circuit-breaker-configs:
-    - path: /api/chat/**
-      failure-rate-threshold: 50.0
-      ring-buffer-size-in-closed-state: 10
-      ring-buffer-size-in-half-open-state: 5
-      wait-duration-in-open-state: 30
-      fallback-message: "Service temporarily unavailable"
-  # 防御性策略配置
-  defensive-config:
-    max-requests-per-minute: 1000
-    enable-anti-crawler: true
-    enable-anti-replay: true
-    enable-malicious-content-detection: true
-    timestamp-validity-seconds: 300
-    blacklisted-ips:
-      - "192.168.1.100"
-      - "10.0.0.50"
-    whitelisted-ips:
-      - "192.168.1.1"
-      - "10.0.0.1"
-  # 灰度发布配置
-  canary:
-    enabled: false
-    weight: 10
-    header: "X-Canary"
-    value: "true"
-  canary-paths:
-    - /api/chat/**
-  canary-services:
-    - name: bgai-service
-      canary-uri: http://localhost:8688-canary
-      main-uri: http://localhost:8688
-
-# 管理端点配置
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,gateway,circuitbreakers,retries,ratelimiters
-  endpoint:
-  health:
-    redis:
-      enabled: false
-    elasticsearch:
-      enabled: false
-      show-details: always
-  # Resilience4j 监控端点
-  circuitbreakers:
-    enabled: true
-  retries:
-    enabled: true
-  ratelimiters:
-    enabled: true
-
-# 日志配置
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    com.jiangyang.gateway: DEBUG
-    io.github.resilience4j: DEBUG
-    com.alibaba.nacos: OFF  # 禁用Nacos日志
-    io.seata: OFF  # 禁用Seata日志
-    com.netflix.eureka: OFF  # 禁用Eureka日志
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-
-# 禁用Seata分布式事务
-seata:
-  enabled: false
-  saga:
-    enabled: false
-    state-machine:
-      auto-register: false
-      enabled: false
-saga:
-  enabled: false
-
-# JWT配置
-jwt:
-  secret: jiangyang-gateway-secret-key-2024-for-development-only-change-in-production
-  issuer: jiangyang-gateway
-  expiration: 3600000  # 1小时
-
-
-# 禁用Eureka客户端
-eureka:
-  client:
-    enabled: false
-  instance:
-    enabled: false 
+#server:
+#  port: 8080
+#  tomcat:
+#    max-http-header-size: 8KB
+#    max-http-form-post-size: 2MB
+#    max-http-header-count: 200
+#
+#spring:
+#  application:
+#    name: gateway-service
+#  main:
+#    web-application-type: reactive
+#  # 禁用数据源
+#  datasource:
+#    enabled: false
+#  autoconfigure:
+#    exclude:
+#      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+#      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+#      - org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration
+#      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+#      - org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration
+#      - com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration
+#      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+#      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+#      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+#      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+#      - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
+#      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+#
+#  # Nacos配置
+#  cloud:
+#    nacos:
+#      discovery:
+#        enabled: true
+#      config:
+#        enabled: true
+#    gateway:
+#      discovery:
+#        locator:
+#          enabled: true  # 启用自动路由发现，Nacos服务可用
+#          lower-case-service-id: true
+#      # HTTP客户端配置 - 解决超时问题
+#      httpclient:
+#        connect-timeout: 10000  # 连接超时 10秒
+#        response-timeout: 30s   # 响应超时 30秒
+#        pool:
+#          max-connections: 200
+#          max-idle-time: 15s
+#          acquire-timeout: 5000  # 获取连接超时 5秒
+#      routes:
+#        - id: swagger-root
+#          uri: forward:/swagger-ui/index.html
+#          order: -10001
+#          predicates:
+#            - Path=/
+#        - id: swagger-legacy
+#          uri: forward:/swagger-ui/index.html
+#          order: -10001
+#          predicates:
+#            - Path=/swagger-ui.html
+#        - id: swagger-static
+#          uri: forward:/
+#          order: -10000
+#          predicates:
+#            - Path=/swagger-ui.html,/swagger-ui/**,/v3/api-docs/**,/webjars/**
+#        # 签名验证服务路由 - 最高优先级
+#        - id: signature-service
+#          uri: http://localhost:8689
+#          order: -1000
+#          predicates:
+#            - Path=/api/signature/**,/api/keys/**,/api/auth/**,/api/sso/**,/api/validation/**,/api/token/**,/api/app-secret/**
+#          filters:
+#            - AddRequestHeader=X-Gateway-Source, gateway-service
+#            - AddResponseHeader=X-Gateway-Response, true
+#        # AI代理服务路由
+#        - id: chat-agent-service
+#          uri: http://localhost:8690
+#          order: -500
+#          predicates:
+#            - Path=/api/chat-agent/**,/api/aiChat/**
+#          filters:
+#            - AddRequestHeader=X-Gateway-Source, gateway-service
+#            - AddResponseHeader=X-Gateway-Response, true
+#        # bgai服务路由 - 需要验证的接口 (先经过验证过滤器)
+#        - id: bgai-service-validated
+#          uri: http://localhost:8688  # 直接路由到bgai-service
+#          predicates:
+#            - Path=/api/chatGatWay-internal/**,/api/admin/**
+#          filters:
+#            - ValidationFilter
+#            - AddRequestHeader=X-Gateway-Source, gateway-service
+#            - AddResponseHeader=X-Gateway-Response, true
+#            - name: CircuitBreaker
+#              args:
+#                name: bgai-service-breaker
+#                fallbackUri: forward:/fallback/bgai-service
+#            - name: Retry
+#              args:
+#                retries: 3
+#                statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE,INTERNAL_SERVER_ERROR
+#                methods: GET,POST
+#                backoff:
+#                  firstBackoff: 1000ms
+#                  maxBackoff: 5000ms
+#                  factor: 2
+#        # bgai服务路由 - 公开接口
+#        - id: bgai-service-public
+#          uri: http://localhost:8688
+#          predicates:
+#            - Path=/api/bgai/**,/api/public/**
+#          filters:
+#            - StripPrefix=1
+#            - AddRequestHeader=X-Gateway-Source, gateway-service
+#            - AddResponseHeader=X-Gateway-Response, true
+#            - name: CircuitBreaker
+#              args:
+#                name: bgai-service-breaker
+#                fallbackUri: forward:/fallback/bgai-service
+#        # messages-service路由
+#        - id: messages-service
+#          uri: http://localhost:8081
+#          predicates:
+#            - Path=/api/messages/**
+#          filters:
+#            - AddRequestHeader=X-Gateway-Source, gateway-service
+#            - AddResponseHeader=X-Gateway-Response, true
+#        - id: default-route
+#          uri: http://localhost:8688
+#          predicates:
+#            - Path=/**
+#          filters:
+#            - AddRequestHeader=X-Gateway-Source, gateway-service
+#            - AddResponseHeader=X-Gateway-Response, true
+#
+## Resilience4j 配置
+#resilience4j:
+#  circuitbreaker:
+#    configs:
+#      default:
+#        failureRateThreshold: 50           # 失败率阈值
+#        slowCallRateThreshold: 50          # 慢调用率阈值
+#        slowCallDurationThreshold: 5000    # 慢调用时间阈值，单位ms
+#        slidingWindowSize: 10              # 滑动窗口大小
+#        slidingWindowType: COUNT_BASED     # 滑动窗口类型(基于次数)
+#        minimumNumberOfCalls: 5            # 最小调用次数，断路器计算失败率所需的最小调用数
+#        waitDurationInOpenState: 10000     # 断路器从打开到半开的等待时间
+#        permittedNumberOfCallsInHalfOpenState: 3  # 半开状态允许的调用次数
+#        automaticTransitionFromOpenToHalfOpenEnabled: true  # 是否自动从打开到半开转换
+#        recordExceptions:                  # 记录为失败的异常类型
+#          - java.io.IOException
+#          - java.util.concurrent.TimeoutException
+#          - java.lang.RuntimeException
+#          - org.springframework.web.client.ResourceAccessException
+#          - org.springframework.cloud.gateway.support.NotFoundException
+#    instances:
+#      signature-service-breaker:
+#        registerHealthIndicator: true
+#        slidingWindowType: COUNT_BASED
+#        slidingWindowSize: 10
+#        minimumNumberOfCalls: 5
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 10s
+#        permittedNumberOfCallsInHalfOpenState: 3
+#        automaticTransitionFromOpenToHalfOpenEnabled: true
+#        recordExceptions:
+#          - java.io.IOException
+#          - java.util.concurrent.TimeoutException
+#          - org.springframework.web.client.ResourceAccessException
+#      bgai-service-breaker:
+#        registerHealthIndicator: true
+#        slidingWindowType: COUNT_BASED
+#        slidingWindowSize: 10
+#        minimumNumberOfCalls: 5
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 30s  # 增加到30秒
+#        permittedNumberOfCallsInHalfOpenState: 3
+#        automaticTransitionFromOpenToHalfOpenEnabled: true
+#        recordExceptions:
+#          - java.io.IOException
+#          - java.util.concurrent.TimeoutException
+#          - java.net.SocketTimeoutException  # 添加Socket超时异常
+#          - org.springframework.web.client.ResourceAccessException
+#          - org.springframework.web.client.ResourceAccessException
+#      chat-agent-service-breaker:
+#        registerHealthIndicator: true
+#        slidingWindowType: COUNT_BASED
+#        slidingWindowSize: 10
+#        minimumNumberOfCalls: 5
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 10s
+#        permittedNumberOfCallsInHalfOpenState: 3
+#        automaticTransitionFromOpenToHalfOpenEnabled: true
+#        recordExceptions:
+#          - java.io.IOException
+#          - java.util.concurrent.TimeoutException
+#          - org.springframework.web.client.ResourceAccessException
+#      default-service-breaker:
+#        baseConfig: default
+#        slidingWindowSize: 10
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 10s
+#      chat-api-breaker:
+#        baseConfig: default
+#        slidingWindowSize: 10
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 10s
+#      auth-api-breaker:
+#        baseConfig: default
+#        slidingWindowSize: 5
+#        waitDurationInOpenState: 5s
+#  timelimiter:
+#    configs:
+#      default:
+#        timeoutDuration: 30s
+#    instances:
+#      signature-service-breaker:
+#        timeoutDuration: 10s
+#      bgai-service-breaker:
+#        timeoutDuration: 60s
+#      chat-agent-service-breaker:
+#        timeoutDuration: 30s
+#      default-service-breaker:
+#        timeoutDuration: 30s
+#      chat-api-breaker:
+#        timeoutDuration: 60s
+#      auth-api-breaker:
+#        timeoutDuration: 10s
+#  # 重试配置
+#  retry:
+#    configs:
+#      default:
+#        maxRetryAttempts: 3
+#        waitDuration: 1000
+#        enableExponentialBackoff: true
+#        exponentialBackoffMultiplier: 2
+#        retryExceptions:
+#          - java.io.IOException
+#          - java.util.concurrent.TimeoutException
+#          - org.springframework.web.client.ResourceAccessException
+#        ignoreExceptions:
+#          - java.lang.IllegalArgumentException
+#    instances:
+#      signature-service-retry:
+#        baseConfig: default
+#        maxRetryAttempts: 2
+#        waitDuration: 1s
+#      bgai-service-retry:
+#        baseConfig: default
+#        maxRetryAttempts: 5  # 增加到5次
+#        waitDuration: 3s      # 增加到3秒
+#      chat-agent-service-retry:
+#        baseConfig: default
+#        maxRetryAttempts: 3
+#        waitDuration: 2s
+#      default-service-retry:
+#        baseConfig: default
+#  # 限流配置
+#  ratelimiter:
+#    configs:
+#      default:
+#        limitForPeriod: 100
+#        limitRefreshPeriod: 1s
+#        timeoutDuration: 0
+#    instances:
+#      signature-service-limiter:
+#        baseConfig: default
+#        limitForPeriod: 200
+#        limitRefreshPeriod: 1s
+#      bgai-service-limiter:
+#        baseConfig: default
+#        limitForPeriod: 100
+#        limitRefreshPeriod: 1s
+#      chat-api-limiter:
+#        baseConfig: default
+#        limitForPeriod: 50
+#        limitRefreshPeriod: 1s
+#      auth-api-limiter:
+#        baseConfig: default
+#        limitForPeriod: 300
+#        limitRefreshPeriod: 1s
+#
+## 网关配置
+#gateway:
+#  # 启用动态路由功能
+#  dynamic-routes:
+#    enabled: true
+#  # 降级处理器配置
+#  fallback:
+#    bgai-service:
+#      enabled: true
+#      message: "bgai-service暂时不可用，请稍后重试"
+#      status: 503
+#      retry-after: 30
+#  # signature-service配置
+#  signature-service:
+#    base-url: http://localhost:8689
+#    validation-endpoint: /api/validation/validate
+#    timeout: 5000  # 5秒超时
+#    retry-attempts: 3
+#  # 跳过限流的路径
+#  skip-rate-limit-paths:
+#    - /actuator/**
+#    - /health/**
+#    - /metrics/**
+#    - /public/**
+#  # 跳过熔断的路径
+#  skip-circuit-breaker-paths:
+#    - /actuator/**
+#    - /health/**
+#    - /metrics/**
+#    - /public/**
+#  # 跳过防御检查的路径
+#  skip-defensive-paths:
+#    - /actuator/**
+#    - /health/**
+#    - /metrics/**
+#    - /public/**
+#    - /api/validation/**
+#    - /api/metrics/**
+#    - /api/token/**
+#    - /api/keys/**
+#  # 路径权限配置
+#  path-permissions:
+#    - path: /api/admin/**
+#      methods: [GET, POST, PUT, DELETE]
+#      roles: [ADMIN]
+#    - path: /api/user/**
+#      methods: [GET, POST]
+#      roles: [USER, ADMIN]
+#  # 限流配置
+#  rate-limit-configs:
+#    - path: /api/chat/**
+#      max-requests: 100
+#      time-window: 60
+#    - path: /api/chatGatWay-internal/**
+#      max-requests: 50
+#      time-window: 60
+#  # 熔断器配置
+#  circuit-breaker-configs:
+#    - path: /api/chat/**
+#      failure-rate-threshold: 50.0
+#      ring-buffer-size-in-closed-state: 10
+#      ring-buffer-size-in-half-open-state: 5
+#      wait-duration-in-open-state: 30
+#      fallback-message: "Service temporarily unavailable"
+#  # 防御性策略配置
+#  defensive-config:
+#    max-requests-per-minute: 1000
+#    enable-anti-crawler: true
+#    enable-anti-replay: true
+#    enable-malicious-content-detection: true
+#    timestamp-validity-seconds: 300
+#    blacklisted-ips:
+#      - "192.168.1.100"
+#      - "10.0.0.50"
+#    whitelisted-ips:
+#      - "192.168.1.1"
+#      - "10.0.0.1"
+#  # 灰度发布配置
+#  canary:
+#    enabled: false
+#    weight: 10
+#    header: "X-Canary"
+#    value: "true"
+#  canary-paths:
+#    - /api/chat/**
+#  canary-services:
+#    - name: bgai-service
+#      canary-uri: http://localhost:8688-canary
+#      main-uri: http://localhost:8688
+#
+## 管理端点配置
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health,info,metrics,gateway,circuitbreakers,retries,ratelimiters
+#  endpoint:
+#  health:
+#    redis:
+#      enabled: false
+#    elasticsearch:
+#      enabled: false
+#      show-details: always
+#  # Resilience4j 监控端点
+#  circuitbreakers:
+#    enabled: true
+#  retries:
+#    enabled: true
+#  ratelimiters:
+#    enabled: true
+#
+## 日志配置
+#logging:
+#  level:
+#    org.springframework.cloud.gateway: DEBUG
+#    com.jiangyang.gateway: DEBUG
+#    io.github.resilience4j: DEBUG
+#    com.alibaba.nacos: OFF  # 禁用Nacos日志
+#    io.seata: OFF  # 禁用Seata日志
+#    com.netflix.eureka: OFF  # 禁用Eureka日志
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+#
+## 禁用Seata分布式事务
+#seata:
+#  enabled: false
+#  saga:
+#    enabled: false
+#    state-machine:
+#      auto-register: false
+#      enabled: false
+#saga:
+#  enabled: false
+#
+## JWT配置
+#jwt:
+#  secret: jiangyang-gateway-secret-key-2024-for-development-only-change-in-production
+#  issuer: jiangyang-gateway
+#  expiration: 3600000  # 1小时
+#
+#
+## 禁用Eureka客户端
+#eureka:
+#  client:
+#    enabled: false
+#  instance:
+#    enabled: false
+#
+## OpenAPI / Swagger 配置（网关展示自身端点文档或转发聚合时可用）
+#springdoc:
+#  swagger-ui:
+#    path: /swagger-ui.html
+#    enabled: true
+#  api-docs:
+#    path: /v3/api-docs
+#    enabled: true

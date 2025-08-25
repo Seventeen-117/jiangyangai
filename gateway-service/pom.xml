@@ -129,6 +129,13 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
+        <!-- Springdoc OpenAPI for WebFlux (Swagger UI) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>${springdoc-openapi.version}</version>
+        </dependency>
+
         <!-- Lombok - 代码生成工具 -->
         <dependency>
             <groupId>org.projectlombok</groupId>

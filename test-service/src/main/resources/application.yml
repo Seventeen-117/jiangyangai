@@ -1,0 +1,35 @@
+
+server:
+  port: 8087
+spring:
+  application:
+    name: test-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+    lazy-initialization: false
+  autoconfigure:
+    exclude: []
+  config:
+    import:
+      - optional:classpath:application-test.yml
+
+swagger:
+  api-docs-path: /v3/api-docs
+  targets:
+    - name: messages-service
+      url: http://localhost:8081
+    - name: bgai-service
+      url: http://localhost:8688
+    - name: signature-service
+      url: http://localhost:8689
+    - name: deepSearch-service
+      url: http://localhost:8085
+
+# 服务配置
+service:
+  name: test-service
+  version: 1.0.0
+

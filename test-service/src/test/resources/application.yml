@@ -1,0 +1,23 @@
+
+server:
+  port: 8087
+spring:
+  application:
+    name: test-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  main:
+    allow-circular-references: true
+    allow-bean-definition-overriding: true
+    lazy-initialization: false
+  autoconfigure:
+    exclude: []
+  config:
+    import:
+      - optional:classpath:application-test.yml
+
+# 服务配置
+service:
+  name: test-service
+  version: 1.0.0
+

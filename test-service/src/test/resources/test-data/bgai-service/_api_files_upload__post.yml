@@ -1,0 +1,11 @@
+service: bgai-service
+name: "上传并解析文件"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/files/upload
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

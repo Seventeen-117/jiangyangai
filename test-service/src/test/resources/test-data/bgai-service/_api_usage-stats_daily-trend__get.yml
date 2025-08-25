@@ -1,0 +1,11 @@
+service: bgai-service
+name: "获取每日用量趋势"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/usage-stats/daily-trend
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

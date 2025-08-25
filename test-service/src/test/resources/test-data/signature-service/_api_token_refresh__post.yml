@@ -1,0 +1,11 @@
+service: signature-service
+name: "/api/token/refresh"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/token/refresh
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

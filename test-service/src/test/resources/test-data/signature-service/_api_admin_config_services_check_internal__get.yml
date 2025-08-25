@@ -1,0 +1,11 @@
+service: signature-service
+name: "/api/admin/config/services/check/internal"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/admin/config/services/check/internal
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

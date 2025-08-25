@@ -1,0 +1,11 @@
+service: bgai-service
+name: "获取所有API配置"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/system/api-configs
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

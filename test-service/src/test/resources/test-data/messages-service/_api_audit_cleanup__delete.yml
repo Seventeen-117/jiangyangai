@@ -1,0 +1,11 @@
+service: messages-service
+name: "/api/audit/cleanup"
+request:
+  method: DELETE
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/audit/cleanup
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

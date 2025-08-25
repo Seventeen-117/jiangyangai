@@ -86,11 +86,11 @@ spring:
             #     replenishRate: 100
             #     burstCapacity: 200
         
-        # 默认路由 - 最低优先级，只处理其他所有请求
+        # 默认路由 - 仅处理 /api/** 前缀的请求，避免拦截本地静态资源和 Swagger
         - id: default-route
           uri: http://localhost:8688
           predicates:
-            - Path=/**
+            - Path=/api/**
           filters:
             - AddRequestHeader=X-Gateway-Source, gateway-service
             - AddResponseHeader=X-Gateway-Response, true

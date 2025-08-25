@@ -52,6 +52,45 @@ logging:
     org.apache.rocketmq: DEBUG
     com.jiangyang.messages: DEBUG
 
+# OpenAPI / Swagger 配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+    enabled: true
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  show-actuator: false
+
+# Dubbo配置（禁用监控与指标过滤器，避免 MonitorFilter NPE）
+dubbo:
+  application:
+    name: messages-service
+    qos-enable: false
+    environment: develop
+  registry:
+    address: nacos://8.133.246.113:8848
+    timeout: 10000
+  protocol:
+    name: dubbo
+    port: -1
+  consumer:
+    check: false
+    retries: 0
+    timeout: 3000
+    filter: -monitor,-metrics,-observationsender
+  provider:
+    retries: 0
+    timeout: 3000
+    filter: -monitor,-metrics,-observationsender
+  metrics:
+    enabled: false
+
 # Actuator配置 - 禁用数据源健康检查
 management:
   health:

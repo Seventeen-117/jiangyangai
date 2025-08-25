@@ -1,0 +1,11 @@
+service: bgai-service
+name: "处理聊天请求"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/chatGatWay-internal
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

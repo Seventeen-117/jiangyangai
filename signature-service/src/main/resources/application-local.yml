@@ -180,6 +180,17 @@ eureka:
   instance:
     enabled: false
 
+# OpenAPI / Swagger 配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+
 # Dubbo 启用开关（当需要完全禁用Dubbo时，设置为false）
 dubbo:
   enabled: true  # 可以设置为false来完全禁用Dubbo

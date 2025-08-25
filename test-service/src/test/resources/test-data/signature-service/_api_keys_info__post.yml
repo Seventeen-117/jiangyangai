@@ -1,0 +1,11 @@
+service: signature-service
+name: "/api/keys/info"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/keys/info
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

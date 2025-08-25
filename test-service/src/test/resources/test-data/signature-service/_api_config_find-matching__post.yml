@@ -1,0 +1,11 @@
+service: signature-service
+name: "/api/config/find-matching"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/config/find-matching
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

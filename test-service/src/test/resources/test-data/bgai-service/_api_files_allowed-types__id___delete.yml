@@ -1,0 +1,11 @@
+service: bgai-service
+name: "删除允许的文件类型"
+request:
+  method: DELETE
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/files/allowed-types/{id}
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

@@ -1,0 +1,11 @@
+service: messages-service
+name: "/api/messages/saga/consume/sync"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/messages/saga/consume/sync
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

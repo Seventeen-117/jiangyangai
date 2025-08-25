@@ -1,0 +1,11 @@
+service: bgai-service
+name: "/api/users/{id}"
+request:
+  method: DELETE
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/users/{id}
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

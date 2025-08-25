@@ -1,0 +1,120 @@
+spring:
+  # 启用配置调试
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  # 禁用Flyway和Liquibase
+  flyway:
+    enabled: false
+  liquibase:
+    enabled: false
+  # Elasticsearch配置
+  elasticsearch:
+    uris: http://8.133.246.113:9200
+    connection-timeout: 5000ms
+    socket-timeout: 10000ms
+  # SQL初始化配置 - 完全禁用
+  sql:
+    init:
+      mode: never
+      continue-on-error: false
+      platform: mysql
+      encoding: UTF-8
+      # 明确指定不加载任何SQL脚本
+      schema-locations: []
+      data-locations: []
+      # 禁用自动检测
+      detect-schema: false
+      detect-data: false
+      # 禁用DDL执行器
+      ddl:
+        enabled: false
+      # 禁用所有SQL初始化功能
+      enabled: false
+      # 禁用DDL应用运行器
+      ddl-application-runner:
+        enabled: false
+  main:
+    web-application-type: servlet
+    allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
+    allow-bean-definition-overriding: true # 允许 Bean 覆盖，例如说 Feign 等会存在重复定义的服务
+    lazy-initialization: false # 禁用懒加载，确保实体类等在启动时加载
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_HOST:8.133.246.113}:${NACOS_PORT:8848}
+        namespace: ${NACOS_NAMESPACE:d750d92e-152f-4055-a641-3bc9dda85a29}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        # 禁用配置失败时导致应用启动失败
+        fail-fast: false
+        enabled: ${NACOS_DISCOVERY_ENABLED:true}
+        # 是否启用服务发现
+        register-enabled: true
+        # 服务实例权重
+        weight: 1
+        # 是否启用健康检查
+        health-check-enabled: true
+        # 健康检查超时时间
+        health-check-timeout: 3000
+        # 健康检查间隔时间
+        health-check-interval: 10000
+        # 心跳间隔时间
+        heart-beat-interval: 5000
+        # 心跳超时时间
+        heart-beat-timeout: 15000
+        # 实例IP删除超时时间
+        ip-delete-timeout: 30000
+        # 实例心跳超时时间
+        instance-heart-beat-timeout: 15000
+        # 实例心跳间隔时间
+        instance-heart-beat-interval: 5000
+        # 实例IP删除超时时间
+        instance-ip-delete-timeout: 30000
+        watch-delay: 30000
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        namespace: ${spring.cloud.nacos.discovery.namespace}
+        group: ${spring.cloud.nacos.discovery.group}
+        file-extension: yaml
+        # 强制使用 messages-service 作为配置前缀，避免意外读取其他服务配置
+        prefix: test-service
+        # 显式加载本服务的 dataId（优先于默认解析）
+        extension-configs:
+          - data-id: test-service-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+            group: ${spring.cloud.nacos.discovery.group}
+            refresh: true
+        # 警告处理配置
+        handle-warnings: true
+        # 使配置失败时更友好的处理，不会导致应用启动失败
+        fail-fast: false
+        # 设置超时时间，防止长时间等待
+        timeout: 10000
+        refresh-enabled: true
+        # 启用本地缓存配置
+        enabled: ${NACOS_CONFIG_ENABLED:true}
+        # 使用本地配置（即使连接失败也继续启动）
+        import-check:
+          enabled: false
+        # 使用默认缓存目录，确保容器能正确访问
+        shared-configs:
+          - data-id: common-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+            group: ${spring.cloud.nacos.discovery.group}
+            refresh: true
+
+# Elasticsearch配置
+elasticsearch:
+  enabled: true
+
+# 日志配置
+logging:
+  level:
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.autoconfigure.jdbc: WARN
+    org.springframework.boot.autoconfigure.orm.jpa: WARN
+    com.alibaba.druid: WARN
+    com.zaxxer.hikari: WARN
+    io.seata: WARN
+    # 减少条件评估报告的详细输出
+    org.springframework.boot.autoconfigure.logging: WARN
+
+# 禁用条件评估报告
+debug: false

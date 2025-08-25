@@ -63,6 +63,16 @@ public class ApiKeyWebFilter implements WebFilter {
             return chain.filter(exchange);
         }
 
+        // Swagger 与静态资源直接放行，避免DB访问与鉴权拦截
+        if (path.equals("/v3/api-docs")
+                || path.startsWith("/v3/api-docs/")
+                || path.equals("/swagger-ui.html")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/webjars")) {
+            log.debug("Swagger path, skipping API Key validation: {}", path);
+            return chain.filter(exchange);
+        }
+
         // 检查API Key验证规则是否启用
         if (!dynamicConfigService.isApiKeyValidationEnabled()) {
             log.debug("API Key validation disabled by dynamic config, skipping: {}", path);

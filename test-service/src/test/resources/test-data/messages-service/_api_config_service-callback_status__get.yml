@@ -1,0 +1,11 @@
+service: messages-service
+name: "/api/config/service-callback/status"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/config/service-callback/status
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

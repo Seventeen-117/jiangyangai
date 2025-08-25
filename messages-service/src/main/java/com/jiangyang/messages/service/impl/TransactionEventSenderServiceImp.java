@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 @DataSource("master")
 public class TransactionEventSenderServiceImp implements TransactionEventSenderService {
 
-    @DubboReference(version = "1.0.0", timeout = 3000, retries = 0, check = false, cluster = "failfast")
+    @DubboReference(version = "1.0.0", timeout = 3000, retries = 0, check = false, cluster = "failfast", filter = "-monitor,-metrics,-observationsender")
     private TransactionEventService transactionEventService;
 
     /**

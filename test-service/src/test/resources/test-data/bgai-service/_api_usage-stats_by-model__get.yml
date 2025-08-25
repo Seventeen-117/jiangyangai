@@ -1,0 +1,11 @@
+service: bgai-service
+name: "按模型类型获取用量统计"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/usage-stats/by-model
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

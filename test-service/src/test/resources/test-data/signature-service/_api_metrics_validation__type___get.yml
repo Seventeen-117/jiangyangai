@@ -1,0 +1,11 @@
+service: signature-service
+name: "/api/metrics/validation/{type}"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/metrics/validation/{type}
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

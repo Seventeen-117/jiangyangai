@@ -53,6 +53,16 @@ public class AuthenticationWebFilter implements WebFilter {
             return chain.filter(exchange);
         }
 
+        // Swagger 与静态资源直接放行，避免鉴权
+        if (path.equals("/v3/api-docs")
+                || path.startsWith("/v3/api-docs/")
+                || path.equals("/swagger-ui.html")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/webjars")) {
+            log.debug("Swagger path, skipping authentication: {}", path);
+            return chain.filter(exchange);
+        }
+
         // 检查是否为排除的路径
         if (isExcludedPath(path)) {
             log.debug("Excluded path, skipping authentication: {}", path);
@@ -92,7 +102,8 @@ public class AuthenticationWebFilter implements WebFilter {
      */
     private boolean isExcludedPath(String path) {
         return authenticationConfig.isExcludedPath(path) || 
-               PathMatcherUtil.containsAny(path, "/public/", "/health", "/actuator", "/api/validation/", "/api/metrics/", "/api/token/", "/api/keys/");
+               PathMatcherUtil.containsAny(path, "/public/", "/health", "/actuator", "/api/validation/", "/api/metrics/", "/api/token/", "/api/keys/",
+                       "/v3/api-docs", "/swagger-ui", "/webjars");
     }
 
     /**

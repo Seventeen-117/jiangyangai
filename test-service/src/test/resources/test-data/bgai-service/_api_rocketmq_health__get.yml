@@ -1,0 +1,11 @@
+service: bgai-service
+name: "/api/rocketmq/health"
+request:
+  method: GET
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/rocketmq/health
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200

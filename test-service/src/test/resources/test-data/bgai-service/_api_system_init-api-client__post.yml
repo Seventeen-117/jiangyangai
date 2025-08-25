@@ -1,0 +1,11 @@
+service: bgai-service
+name: "初始化API客户端"
+request:
+  method: POST
+  url: ${TARGET_BASE_URL:http://localhost:8080}/api/system/init-api-client
+  headers:
+    Content-Type: application/json
+    X-Gateway-Source: test-service
+  body: {}
+expect:
+  status: 200
