@@ -20,6 +20,9 @@ public class BgaiTransactionService {
     @Autowired
     private SeataTransactionService seataTransactionService;
 
+    @Autowired
+    private BgaiTransactionUtil transactionUtil;
+
     /**
      * 执行带事务的业务逻辑（推荐方式）
      * 
@@ -35,25 +38,24 @@ public class BgaiTransactionService {
         try {
             // 开始全局事务
             seataTransactionService.beginGlobalTransaction(transactionName, timeout);
-            xid = tx.getXid();
             
-            log.info("BgaiService 事务开始: XID={}, name={}", xid, transactionName);
+            // 使用工具类获取 XID
+            xid = transactionUtil.getXidFromTransaction(tx);
+            
+            // 打印事务状态
+            transactionUtil.printTransactionStatus("事务开始", transactionName);
             
             // 执行业务逻辑
             T result = supplier.get();
             
             // 提交事务
-            seataTransactionService.commitGlobalTransaction(xid);
-            log.info("BgaiService 事务提交成功: XID={}", xid);
+            transactionUtil.commitTransaction(xid, transactionName);
             
             return result;
             
         } catch (Exception e) {
             // 回滚事务
-            if (xid != null) {
-                seataTransactionService.rollbackGlobalTransaction(xid);
-                log.error("BgaiService 事务回滚: XID={}, error={}", xid, e.getMessage(), e);
-            }
+            transactionUtil.rollbackTransaction(xid, transactionName);
             throw new RuntimeException("事务执行失败: " + e.getMessage(), e);
         }
     }
@@ -99,7 +101,7 @@ public class BgaiTransactionService {
      * @return 当前事务XID，如果没有事务则返回null
      */
     public String getCurrentXid() {
-        return RootContext.getXID();
+        return transactionUtil.getCurrentXid();
     }
 
     /**
@@ -108,7 +110,7 @@ public class BgaiTransactionService {
      * @return 是否有活跃事务
      */
     public boolean hasActiveTransaction() {
-        return getCurrentXid() != null;
+        return transactionUtil.isInGlobalTransaction();
     }
 
     /**
@@ -121,7 +123,10 @@ public class BgaiTransactionService {
     public GlobalTransaction beginTransaction(String transactionName, int timeout) {
         GlobalTransaction tx = seataTransactionService.createGlobalTransaction();
         seataTransactionService.beginGlobalTransaction(transactionName, timeout);
-        log.info("BgaiService 手动开始事务: XID={}, name={}", tx.getXid(), transactionName);
+        
+        String xid = transactionUtil.getXidFromTransaction(tx);
+        log.info("BgaiService 手动开始事务: XID={}, name={}", xid, transactionName);
+        
         return tx;
     }
 
@@ -131,8 +136,7 @@ public class BgaiTransactionService {
      * @param xid 事务XID
      */
     public void commitTransaction(String xid) {
-        seataTransactionService.commitGlobalTransaction(xid);
-        log.info("BgaiService 手动提交事务: XID={}", xid);
+        transactionUtil.commitTransaction(xid, "手动事务");
     }
 
     /**
@@ -141,8 +145,7 @@ public class BgaiTransactionService {
      * @param xid 事务XID
      */
     public void rollbackTransaction(String xid) {
-        seataTransactionService.rollbackGlobalTransaction(xid);
-        log.error("BgaiService 手动回滚事务: XID={}", xid);
+        transactionUtil.rollbackTransaction(xid, "手动事务");
     }
 
     /**
@@ -166,8 +169,9 @@ public class BgaiTransactionService {
                 retryCount++;
                 
                 if (retryCount <= maxRetries) {
+                    String currentXid = getCurrentXid();
                     log.warn("BgaiService 事务执行失败，准备重试: XID={}, retryCount={}, error={}", 
-                            getCurrentXid(), retryCount, e.getMessage());
+                            currentXid, retryCount, e.getMessage());
                     
                     // 等待一段时间后重试
                     try {
@@ -198,23 +202,25 @@ public class BgaiTransactionService {
         
         try {
             seataTransactionService.beginGlobalTransaction(transactionName, timeout);
-            xid = tx.getXid();
+            
+            // 使用工具类获取 XID
+            xid = transactionUtil.getXidFromTransaction(tx);
             
             log.info("BgaiService Saga事务开始: XID={}, name={}", xid, transactionName);
             
             T result = supplier.get();
             
-            seataTransactionService.commitGlobalTransaction(xid);
-            log.info("BgaiService Saga事务提交成功: XID={}", xid);
+            // 提交事务
+            transactionUtil.commitTransaction(xid, transactionName);
             
             return result;
             
         } catch (Exception e) {
+            // 回滚事务
+            transactionUtil.rollbackTransaction(xid, transactionName);
+            
+            // 执行补偿逻辑
             if (xid != null) {
-                seataTransactionService.rollbackGlobalTransaction(xid);
-                log.error("BgaiService Saga事务回滚: XID={}, error={}", xid, e.getMessage(), e);
-                
-                // 执行补偿逻辑
                 try {
                     compensator.run();
                     log.info("BgaiService 补偿逻辑执行成功: XID={}", xid);
@@ -222,7 +228,15 @@ public class BgaiTransactionService {
                     log.error("BgaiService 补偿逻辑执行失败: XID={}, error={}", xid, ce.getMessage(), ce);
                 }
             }
+            
             throw new RuntimeException("Saga事务执行失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 获取事务诊断信息
+     */
+    public String getTransactionDiagnostics() {
+        return transactionUtil.getTransactionDiagnostics();
     }
 }

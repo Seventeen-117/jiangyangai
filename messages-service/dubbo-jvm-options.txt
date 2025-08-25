@@ -1,0 +1,76 @@
+# Dubbo JVM 启动参数配置
+# 在启动 messages-service 时，可以将这些参数添加到 JVM 启动命令中
+
+# 核心缓存禁用配置
+-Ddubbo.cache.file.enabled=false
+-Ddubbo.metadata.cache.file.enabled=false
+-Ddubbo.registry.cache.file.enabled=false
+-Ddubbo.service.name.mapping.enabled=false
+-Ddubbo.mapping.cache.file.enabled=false
+-Ddubbo.metadata.mapping.cache.file.enabled=false
+
+# 禁用服务发现缓存 - 针对 Nacos
+-Ddubbo.registry.use-as-config-center=false
+-Ddubbo.registry.use-as-metadata-center=false
+-Ddubbo.registry.cache.enabled=false
+-Ddubbo.registry.cache.file.enabled=false
+-Ddubbo.registry.cache.memory.enabled=false
+
+# 禁用元数据缓存 - 针对 Nacos 服务发现
+-Ddubbo.metadata.cache.enabled=false
+-Ddubbo.metadata.cache.file.enabled=false
+-Ddubbo.metadata.cache.memory.enabled=false
+-Ddubbo.metadata.cache.store.enabled=false
+-Ddubbo.metadata.cache.store.file.enabled=false
+
+# 禁用服务发现缓存
+-Ddubbo.service.discovery.cache.enabled=false
+-Ddubbo.service.discovery.cache.file.enabled=false
+-Ddubbo.service.discovery.cache.memory.enabled=false
+-Ddubbo.service.discovery.cache.store.enabled=false
+-Ddubbo.service.discovery.cache.store.file.enabled=false
+
+# 禁用 Nacos 特定的缓存
+-Ddubbo.nacos.cache.enabled=false
+-Ddubbo.nacos.cache.file.enabled=false
+-Ddubbo.nacos.cache.memory.enabled=false
+-Ddubbo.nacos.cache.store.enabled=false
+-Ddubbo.nacos.cache.store.file.enabled=false
+
+# 禁用监控和追踪
+-Ddubbo.monitor.enabled=false
+-Ddubbo.tracing.enabled=false
+-Ddubbo.observability.enabled=false
+
+# 设置元数据类型为本地
+-Ddubbo.metadata.type=local
+-Ddubbo.metadata.store.type=local
+
+# 禁用配置中心文件缓存
+-Ddubbo.config-center.file=false
+-Ddubbo.config-center.cache.enabled=false
+-Ddubbo.config-center.cache.file.enabled=false
+
+# 禁用 Dubbo 监控过滤器
+-Ddubbo.consumer.filter=-monitor,-observationsender
+-Ddubbo.provider.filter=-monitor,-observationsender
+-Ddubbo.cluster.filter=-observationsender
+
+# 强制禁用所有缓存相关的功能
+-Ddubbo.cache.enabled=false
+-Ddubbo.cache.memory.enabled=false
+-Ddubbo.cache.store.enabled=false
+-Ddubbo.cache.store.file.enabled=false
+
+# 禁用文件存储
+-Ddubbo.file.store.enabled=false
+-Ddubbo.file.store.cache.enabled=false
+
+# 设置应用环境变量，确保唯一性
+-Ddubbo.application.environment=dev
+-Ddubbo.application.qos.enable=false
+
+# 使用示例：
+# java -jar messages-service.jar $(cat dubbo-jvm-options.txt)
+# 或者
+# mvn spring-boot:run -Dspring-boot.run.jvmArguments="$(cat dubbo-jvm-options.txt | tr '\n' ' ')"

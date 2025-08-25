@@ -69,10 +69,66 @@ public class BillingTransactionListenerImpl implements RocketMQLocalTransactionL
                 return RocketMQLocalTransactionState.COMMIT;
             }
             
-            // 检查事务日志
-            TransactionLog txLog = transactionLogService.findByXid(xid);
+            // 检查事务日志 - 添加重试机制
+            TransactionLog txLog = null;
+            int retryCount = 0;
+            int maxRetries = 3;
+            
+            while (txLog == null && retryCount < maxRetries) {
+                txLog = transactionLogService.findByXid(xid);
+                if (txLog == null) {
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        log.warn("事务日志不存在，等待重试 ({}/{}), xid: {}", retryCount, maxRetries, xid);
+                        try {
+                            Thread.sleep(1000 * retryCount); // 递增等待时间
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    }
+                }
+            }
+            
             if (txLog == null) {
-                log.error("事务日志不存在，回滚事务, xid: {}", xid);
+                log.error("事务日志不存在，尝试创建事务日志, xid: {}", xid);
+                
+                // 尝试创建事务日志
+                try {
+                    Long logId = transactionLogService.recordTransactionBegin(
+                        xid, 
+                        "billing-transaction", 
+                        "ROCKETMQ", 
+                        "/api/billing", 
+                        "127.0.0.1", 
+                        userId
+                    );
+                    
+                    if (logId != null) {
+                        log.info("成功创建事务日志, xid: {}, logId: {}", xid, logId);
+                        txLog = transactionLogService.findByXid(xid);
+                    } else {
+                        log.error("创建事务日志失败, xid: {}", xid);
+                    }
+                } catch (Exception e) {
+                    log.error("创建事务日志时发生异常, xid: {}", xid, e);
+                }
+            }
+            
+            // 如果仍然找不到事务日志，检查事务协调器
+            if (txLog == null) {
+                log.warn("事务日志不存在，检查事务协调器状态, xid: {}, userId: {}", xid, userId);
+                
+                // 检查事务协调器中的状态
+                if (transactionCoordinator.hasActiveTransaction(userId)) {
+                    String currentId = transactionCoordinator.getCurrentCompletionId(userId);
+                    if (currentId != null && currentId.equals(completionId)) {
+                        log.info("事务协调器中有活跃事务且ID一致，提交事务, completionId: {}", completionId);
+                        return RocketMQLocalTransactionState.COMMIT;
+                    }
+                }
+                
+                log.error("事务日志不存在且事务协调器中无活跃事务，回滚事务, xid: {}", xid);
                 return RocketMQLocalTransactionState.ROLLBACK;
             }
             

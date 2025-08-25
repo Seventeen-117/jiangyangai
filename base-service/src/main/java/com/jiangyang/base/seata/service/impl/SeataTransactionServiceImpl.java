@@ -41,7 +41,8 @@ public class SeataTransactionServiceImpl implements SeataTransactionService {
     public GlobalTransaction createGlobalTransaction() {
         try {
             GlobalTransaction globalTransaction = GlobalTransactionContext.getCurrentOrCreate();
-            log.debug("创建新的全局事务: XID={}", globalTransaction.getXid());
+            // 不在这里记录 XID，因为此时 XID 还没有分配
+            log.debug("创建新的全局事务对象");
             return globalTransaction;
         } catch (Exception e) {
             log.error("创建全局事务失败", e);
@@ -53,9 +54,16 @@ public class SeataTransactionServiceImpl implements SeataTransactionService {
     public void beginGlobalTransaction(String name, int timeout) {
         try {
             GlobalTransaction globalTransaction = GlobalTransactionContext.getCurrentOrCreate();
+            log.debug("准备开始全局事务: name={}, timeout={}", name, timeout);
+            
             globalTransaction.begin(timeout, name);
-            log.info("开始全局事务: XID={}, name={}, timeout={}", 
-                    globalTransaction.getXid(), name, timeout);
+            
+            String xid = globalTransaction.getXid();
+            if (xid != null) {
+                log.info("开始全局事务成功: XID={}, name={}, timeout={}", xid, name, timeout);
+            } else {
+                log.warn("开始全局事务但XID为空: name={}, timeout={}", name, timeout);
+            }
         } catch (Exception e) {
             log.error("开始全局事务失败: name={}, timeout={}", name, timeout, e);
             throw new RuntimeException("开始全局事务失败", e);

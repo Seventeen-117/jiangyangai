@@ -29,7 +29,7 @@ RUN chown -R appuser:appuser /app /home/appuser
 USER appuser
 
 # 暴露端口
-EXPOSE 8083
+EXPOSE 8081
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
