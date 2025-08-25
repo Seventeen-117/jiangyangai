@@ -278,6 +278,8 @@ public class DeepSeekServiceImp implements DeepSeekService {
                                                      boolean multiTurn) {
         log.info("Processing reactive request: content length={}, apiUrl={}, modelName={}, userId={}, multiTurn={}",
                 content.length(), apiUrl, modelName, userId, multiTurn);
+        log.debug("processRequestReactive - userId参数详情: value='{}', null={}, empty={}", 
+                 userId, userId == null, userId != null && userId.trim().isEmpty());
 
         // 生成业务键，用于Saga状态机
         String businessKey = userId + ":" + UUID.randomUUID().toString();
@@ -305,12 +307,15 @@ public class DeepSeekServiceImp implements DeepSeekService {
                         log.debug("Response received from DeepSeek API: {}", 
                                 response.length() > 100 ? response.substring(0, 100) + "..." : response);
                         
-                        ChatResponse chatResponse = parseResponse(response).block();
+                        log.debug("准备解析响应，userId: '{}', chatCompletionId: {}", userId, chatCompletionId);
+                        ChatResponse chatResponse = parseResponse(response, userId).block();
                         if (chatResponse == null) {
                             throw new RuntimeException("响应解析失败");
                         }
                         
                         chatResponse.getUsage().setChatCompletionId(chatCompletionId);
+                        log.debug("响应解析完成，Usage中的userId: '{}'", 
+                                 chatResponse.getUsage() != null ? chatResponse.getUsage().getUserId() : "null");
                         
                         // 第二阶段：提交事务
                         boolean committed = transactionCoordinator.commit(userId, chatCompletionId, modelName);
@@ -466,9 +471,10 @@ public class DeepSeekServiceImp implements DeepSeekService {
      * Parse the API response string and extract relevant information to construct a ChatResponse object.
      *
      * @param responseBody The API response string in JSON format.
+     * @param userId The user ID from the request headers.
      * @return A Mono that emits a ChatResponse object containing the parsed information.
      */
-    private Mono<ChatResponse> parseResponse(String responseBody) {
+    private Mono<ChatResponse> parseResponse(String responseBody, String userId) {
         try {
             ChatResponse response = new ChatResponse();
             
@@ -482,23 +488,16 @@ public class DeepSeekServiceImp implements DeepSeekService {
                 }
             }
             
-            // 获取响应中的用户ID（如果存在）
-            String userId = null;
             JsonNode usageNode = root.path("usage");
             
-            if (usageNode.has("userId") && !usageNode.path("userId").isNull() && 
-                !usageNode.path("userId").asText().isEmpty()) {
-                userId = usageNode.path("userId").asText();
-                log.info("从API响应获取到用户ID: {}", userId);
-            }
-            
-            // 从响应中提取使用信息
+            // 从响应中提取使用信息 - 使用传入的userId参数
+            // 这个userId是从请求头中获取的真实用户ID，应该优先使用
             UsageInfo usage = extractUsageInfo(usageNode, root, userId);
             
-            // 确保UsageInfo中的userId被正确设置，即使从响应中没有找到
+            // 确保UsageInfo中的userId被正确设置
             if (usage.getUserId() == null || usage.getUserId().isEmpty()) {
-                log.warn("UsageInfo中的userId为空，设置为default防止数据库问题，请检查头部或身份验证过程是否正确设置了用户ID");
-                usage.setUserId("default");
+                log.warn("UsageInfo中的userId为空，设置为传入的userId: {}", userId);
+                usage.setUserId(userId != null ? userId : "default");
             }
             
             response.setUsage(usage);
@@ -931,12 +930,18 @@ public class DeepSeekServiceImp implements DeepSeekService {
         usage.setModelType(root.path("model").asText());
         
         // 确保设置userId，使用提供的userId或者默认值
+        log.debug("extractUsageInfo - 接收到的userId参数: '{}'", userId);
+        log.debug("extractUsageInfo - userId是否为null: {}", userId == null);
+        log.debug("extractUsageInfo - userId是否为空字符串: {}", userId != null && userId.trim().isEmpty());
+        
         if (userId != null && !userId.trim().isEmpty()) {
             usage.setUserId(userId);
+            log.debug("extractUsageInfo - 成功设置userId: {}", userId);
         } else {
             // 如果没有提供userId，使用一个默认值而不是null
             usage.setUserId("default");
             log.warn("在extractUsageInfo中使用默认userId：'default'，而不是null或空字符串");
+            log.warn("extractUsageInfo - 原始userId值: '{}'", userId);
         }
         
         return usage;

@@ -188,19 +188,29 @@ public class ChatGatWayInternalController {
      * 验证已由signature-service完成，此处只需提取用户信息
      */
     private String getUserIdFromHeaders(ServerWebExchange exchange) {
+        // 记录所有请求头信息，用于调试
+        log.debug("请求头信息: {}", exchange.getRequest().getHeaders());
+        
         // 优先从X-User-Id头部获取
         String userId = exchange.getRequest().getHeaders().getFirst("X-User-Id");
+        log.debug("从X-User-Id头部获取的userId: '{}'", userId);
+        
         if (StringUtils.hasText(userId)) {
+            log.info("成功从X-User-Id头部获取用户ID: {}", userId);
             return userId;
         }
         
         // 其次从X-Gateway-Source头部判断是否来自网关
         String gatewaySource = exchange.getRequest().getHeaders().getFirst("X-Gateway-Source");
+        log.debug("从X-Gateway-Source头部获取的gatewaySource: '{}'", gatewaySource);
+        
         if (StringUtils.hasText(gatewaySource)) {
+            log.info("检测到网关来源，使用默认用户ID: gateway-user");
             return "gateway-user";
         }
         
         // 最后使用默认值
+        log.warn("未找到有效的用户ID头部，使用默认值: anonymous");
         return "anonymous";
     }
 
